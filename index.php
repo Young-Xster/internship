@@ -984,7 +984,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                         <input type="text" name="pouce" value="<?= $editMode ? htmlspecialchars($editMateriel['pouce']) : '' ?>">
                     </div>
                     
-                    <div class="form-group">
+                    <!-- <div class="form-group">
                         <label>État:</label>
                         <select name="stock" id="materiel-state-select">
                             <option value="en-service" <?= $editMode && $editMateriel['stock'] === 'en-service' ? 'selected' : '' ?>>En service</option>
@@ -992,7 +992,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                             <option value="endommage" <?= $editMode && $editMateriel['stock'] === 'endommage' ? 'selected' : '' ?>>Endommagé</option>
                             <option value="casse" <?= $editMode && $editMateriel['stock'] === 'casse' ? 'selected' : '' ?>>Cassé</option>
                         </select>
-                    </div>
+                    </div> -->
                     
                     <div id="damage-cause-container" class="form-group" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
                         <label>Cause du dommage:</label>
@@ -1296,7 +1296,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                             <td>
                                 <div class="action-buttons">
                                     <a href="index.php?edit=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                    <a href="index.php?transfer=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer"><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
+                                    <!-- <a href="index.php?transfer=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer"><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a> -->
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
                                         <input type="hidden" name="action" value="delete_utilisateur">
                                         <input type="hidden" name="Compte" value="<?= $utilisateur['Compte'] ?>">
