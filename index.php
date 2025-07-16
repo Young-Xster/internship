@@ -635,9 +635,16 @@ $isFormOpen = $editMode || $transferMode || $showFormParam;
 $ste_filter = isset($_GET['ste']) && $_GET['ste'] ? $_GET['ste'] : 'prod';
 
 try {
+    // Fetch users for the current environment filter
     $utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
     $utilisateurs_stmt->execute([$ste_filter]);
     $utilisateurs = $utilisateurs_stmt->fetchAll();
+
+    // If in edit mode for a material, ensure the correct user list is loaded for that material's STE
+    if ($editMode && $editType === 'materiel' && $editMateriel && $editMateriel['STE'] !== $ste_filter) {
+        $utilisateurs_stmt->execute([$editMateriel['STE']]);
+        $utilisateurs = $utilisateurs_stmt->fetchAll();
+    }
 
     // Load users from the opposite department for transfers
     $other_ste = ($ste_filter === 'prod') ? 'comm' : 'prod';
@@ -1335,7 +1342,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
             <div class="table-container">
                 <table id="marques-table" class="table-materiel">
                     <thead>
-                        <tr>
+                                               <tr>
                             <th>Code</th>
                             <th>Marque</th>
                             <th>Actions</th>
