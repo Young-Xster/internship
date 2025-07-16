@@ -57,11 +57,24 @@ function exportTableToExcel(tableId, filename = "") {
   link.click();
   document.body.removeChild(link);
 
-  // Immediately enable all tabs and hide any forms
-  enableAllTabsAndHideForms();
-
-  // Also redirect to clean URL to ensure the URL is clean
-  redirectToCleanURL();
+  // Check if we have showForm parameter and redirect immediately to clean URL
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("showForm")) {
+    const currentTab = urlParams.get("tab") || "materiel";
+    const currentSte = urlParams.get("ste") || "prod";
+    let cleanUrl = `index.php?tab=${currentTab}&ste=${currentSte}`;
+    
+    // Preserve state and inventaire_mode if they exist
+    if (urlParams.get("state")) {
+      cleanUrl += `&state=${urlParams.get("state")}`;
+    }
+    if (urlParams.get("inventaire_mode")) {
+      cleanUrl += `&inventaire_mode=${urlParams.get("inventaire_mode")}`;
+    }
+    
+    // Immediately redirect to clean URL
+    window.location.href = cleanUrl;
+  }
 }
 
 // Function to immediately enable all tabs and hide forms (for instant feedback)
@@ -71,6 +84,8 @@ function enableAllTabsAndHideForms() {
     button.removeAttribute("disabled");
     button.style.opacity = "1";
     button.style.pointerEvents = "auto";
+    button.style.color = "";
+    button.style.cursor = "pointer";
   });
 
   // Hide all forms
@@ -401,6 +416,14 @@ function initializeFormStateClearers() {
       enableAllTabsAndHideForms();
       // Then redirect to clean URL
       redirectToCleanURL();
+    });
+  });
+
+  // Add event listeners to ALL export buttons to immediately clear form state
+  document.querySelectorAll(".btn-export").forEach(button => {
+    button.addEventListener("click", function (e) {
+      // Immediately enable tabs and hide forms for instant feedback
+      enableAllTabsAndHideForms();
     });
   });
 
