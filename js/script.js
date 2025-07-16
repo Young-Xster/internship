@@ -30,6 +30,17 @@ function hideForm(formClass) {
   }
 }
 
+// Hide form and remove 'showForm' from URL
+function hideFormAndResetURL(formSelector, tabName, ste) {
+  const form = document.querySelector(formSelector);
+  if (form) {
+    form.classList.add("hide");
+  }
+  // Construct the new URL without the 'showForm' parameter
+  const newUrl = `index.php?tab=${tabName}&ste=${ste}`;
+  window.location.href = newUrl;
+}
+
 function handleFormSubmit(form) {
   // We let the server handle form visibility on success (redirect) or error (re-render)
   /* if (form.checkValidity()) {

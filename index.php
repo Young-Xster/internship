@@ -29,483 +29,424 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if ($_POST) {
     $action = $_POST['action'] ?? '';
-    
-    switch ($action) {
-        case 'add_materiel':
-            
-            if (empty($_POST['NumSerie']) || trim($_POST['NumSerie']) === '') {
-                $error_message = "Le numéro de série est obligatoire.";
-                break;
-            }
+    $tab = $_GET['tab'] ?? 'materiel';
+    $ste = $_POST['STE'] ?? 'prod';
 
-            // Validate and clean the serial number
-            $serial = trim($_POST['NumSerie']);
-            $currentSTE = $_POST['STE'];
-            
-            // Ensure serial number is not empty after trimming
-            if (empty($serial)) {
-                $error_message = "Le numéro de série ne peut pas être vide.";
-                break;
-            }
-            
-            try {
-                // Check duplicate in same environment
-                $dupStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE NumSerie = ? AND STE = ?");
-                $dupStmt->execute([$serial, $currentSTE]);
-                if ($dupStmt->fetchColumn() > 0) {
-                    $error_message = "Ce numéro de série existe déjà dans l'environnement " . strtoupper(htmlspecialchars($currentSTE)) . ".";
-                    break;
-                }
-                // Check existence in other environment
-                $otherSTE = ($currentSTE === 'prod') ? 'comm' : 'prod';
-                $otherStmt = $pdo->prepare("SELECT m.NumSerie, u.NomPrenom FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte WHERE m.NumSerie = ? AND m.STE = ?");
-                $otherStmt->execute([$serial, $otherSTE]);
-                if ($other = $otherStmt->fetch()) {
-                    $userName = $other['NomPrenom'] ? htmlspecialchars($other['NomPrenom']) : 'un utilisateur non défini';
-                    $error_message = "Ce numéro de série existe déjà dans l'autre environnement (" . strtoupper(htmlspecialchars($otherSTE)) . ") et attribué à l'utilisateur : " . $userName . ". Un matériel ne peut pas exister dans les deux environnements.";
-                    break;
-                }
-            } catch (PDOException $e) {
-                $error_message = "Erreur lors de la vérification du numéro de série. Veuillez contacter un administrateur.";
-                break;
-            }
-            
-            $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
-            $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
-            $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
-            $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
-            
-            $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : NULL;
-            
-            try {
-                $stmt = $pdo->prepare("INSERT INTO materiel (NumSerie, CodeUtilisateur, CodeMarque, CodeType, CodeFournisseur, STE, Model, Dateentree, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                
-                // Only include damage_cause if state requires it
-                $damageCause = null;
-                if ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse') {
-                    $damageCause = $_POST['damage_cause'] ?? null;
-                }
-                
-                $stmt->execute([
-                    $serial,  
-                    $codeUtilisateur, 
-                    $codeMarque, 
-                    $codeType, 
-                    $codeFournisseur,
-                    $_POST['STE'], 
-                    $_POST['Model'], 
-                    $dateentree, 
-                    $_POST['Processeur'],
-                    $_POST['graphique'], 
-                    $_POST['disqdur'], 
-                    $_POST['mhtz'], 
-                    $_POST['mo'],
-                    $_POST['memoire'], 
-                    $_POST['ip'], 
-                    $_POST['ecran'], 
-                    $_POST['pouce'],
-                    $_POST['observation'], 
-                    $_POST['stock'], 
-                    $_POST['classification'],
-                    $damageCause
-                ]);
-
-
-                // All email notification functionality removed to improve performance
-
-                $success_message = "Le matériel a été ajouté avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de l'ajout du matériel: " . $e->getMessage();
-            }
-            break;
-            
-        case 'add_utilisateur':
-            try {
-                // Check if user already exists in ANY environment
-                $checkStmt = $pdo->prepare("SELECT Compte, STE FROM utilisateur WHERE Compte = ?");
-                $checkStmt->execute([$_POST['Compte']]);
-                if ($existing_user = $checkStmt->fetch()) {
-                    $existing_dept = strtoupper(htmlspecialchars($existing_user['STE']));
-                    $error_message = "Ce compte utilisateur existe déjà dans l'environnement " . $existing_dept . ". Un utilisateur ne peut exister que dans un seul environnement.";
-                    break;
-                }
-                
-                $stmt = $pdo->prepare("INSERT INTO utilisateur (Compte, CodeService, Email, NomPrenom, Tel, STE) VALUES (?, ?, ?, ?, ?, ?)");
-                $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
-                $stmt->execute([$_POST['Compte'], $codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE']]);
-                $success_message = "L'utilisateur a été ajouté avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de l'ajout de l'utilisateur: " . $e->getMessage();
-            }
-            break;
-            
-        case 'add_marque':
-            try {
-                
-                $maxCodeStmt = $pdo->query("SELECT MAX(Code) as max_code FROM marque");
-                $maxCode = $maxCodeStmt->fetchColumn();
-                $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
-
-                $stmt = $pdo->prepare("INSERT INTO marque (Code, Marque) VALUES (?, ?)");
-                $stmt->execute([$newCode, $_POST['Marque']]);
-                $success_message = "La marque a été ajoutée avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de l'ajout de la marque. Veuillez réessayer.";
-            }
-            break;
-            
-        case 'add_type':
-            try {
-             
-                $maxCodeStmt = $pdo->query("SELECT MAX(CodeType) as max_code FROM type");
-                $maxCode = $maxCodeStmt->fetchColumn();
-                $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
-
-                $stmt = $pdo->prepare("INSERT INTO type (CodeType, Libelle) VALUES (?, ?)");
-                $stmt->execute([$newCode, $_POST['Libelle']]);
-                $success_message = "Le type a été ajouté avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de l'ajout du type. Veuillez réessayer.";
-            }
-            break;
-            
-        case 'add_service':
-            try {
-                // Auto-generate the next CodeService
-                $maxCodeStmt = $pdo->query("SELECT MAX(CodeService) as max_code FROM service");
-                $maxCode = $maxCodeStmt->fetchColumn();
-                $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
-
-                $stmt = $pdo->prepare("INSERT INTO service (CodeService, Libelle, STE) VALUES (?, ?, ?)");
-                $stmt->execute([$newCode, $_POST['Libelle'], $_POST['STE']]);
-                $success_message = "Le service a été ajouté avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de l'ajout du service: " . $e->getMessage();
-            }
-            break;
-            
-        case 'add_fournisseur':
-            try {
-                $stmt = $pdo->prepare("INSERT INTO fournisseur (Email, CompanyName, NomComplet, Adress, TelFix, TelMobile) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$_POST['Email'], $_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile']]);
-                $success_message = "Le fournisseur a été ajouté avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de l'ajout du fournisseur. Veuillez vérifier les informations et réessayer.";
-            }
-            break;
-            
-        case 'delete_materiel':
-                try {
-                    $stmt = $pdo->prepare("DELETE FROM materiel WHERE NumSerie = ?");
-                    $stmt->execute([$_POST['NumSerie']]);
-                    $success_message = "Le matériel a été supprimé avec succès.";
-                } catch (PDOException $e) {
-                    $error_message = "Une erreur est survenue lors de la suppression du matériel. Il se peut qu'il soit encore lié à d'autres enregistrements.";
-                }
-                break;
-        case 'delete_utilisateur':
-            try {
-                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeUtilisateur = ?");
-                $checkStmt->execute([$_POST['Compte']]);
-                $count = $checkStmt->fetchColumn();
-
-                if ($count > 0) {
-                    $error_message = "L'utilisateur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
-                } else {
-                    $stmt = $pdo->prepare("DELETE FROM utilisateur WHERE Compte = ?");
-                    $stmt->execute([$_POST['Compte']]);
-                    $success_message = "L'utilisateur a été supprimé avec succès.";
-                }
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la suppression de l'utilisateur.";
-            }
-            break;
-        case 'delete_marque':
-            try {
-                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeMarque = ?");
-                $checkStmt->execute([$_POST['Code']]);
-                $count = $checkStmt->fetchColumn();
-
-                if ($count > 0) {
-                    $error_message = "La marque ne peut pas être supprimée car elle est liée à " . $count . " matériel(s).";
-                } else {
-                    $stmt = $pdo->prepare("DELETE FROM marque WHERE Code = ?");
-                    $stmt->execute([$_POST['Code']]);
-                    $success_message = "La marque a été supprimée avec succès.";
-                }
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la suppression de la marque.";
-            }
-            break;
-        case 'delete_type':
-            try {
-                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeType = ?");
-                $checkStmt->execute([$_POST['CodeType']]);
-                $count = $checkStmt->fetchColumn();
-
-                if ($count > 0) {
-                    $error_message = "Le type ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
-                } else {
-                    $stmt = $pdo->prepare("DELETE FROM type WHERE CodeType = ?");
-                    $stmt->execute([$_POST['CodeType']]);
-                    $success_message = "Le type a été supprimé avec succès.";
-                }
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la suppression du type.";
-            }
-            break;
-        case 'delete_service':
-            try {
-                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM utilisateur WHERE CodeService = ?");
-                $checkStmt->execute([$_POST['CodeService']]);
-                $count = $checkStmt->fetchColumn();
-
-                if ($count > 0) {
-                    $error_message = "Le service ne peut pas être supprimé car il est lié à " . $count . " utilisateur(s).";
-                } else {
-                    $stmt = $pdo->prepare("DELETE FROM service WHERE CodeService = ?");
-                    $stmt->execute([$_POST['CodeService']]);
-                    $success_message = "Le service a été supprimé avec succès.";
-                }
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la suppression du service.";
-            }
-            break;
-                    
-        case 'delete_fournisseur':
-            try {
-                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeFournisseur = ?");
-                $checkStmt->execute([$_POST['Email']]);
-                $count = $checkStmt->fetchColumn();
-
-                if ($count > 0) {
-                    $error_message = "Le fournisseur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
-                } else {
-                    $stmt = $pdo->prepare("DELETE FROM fournisseur WHERE Email = ?");
-                    $stmt->execute([$_POST['Email']]);
-                    $success_message = "Le fournisseur a été supprimé avec succès.";
-                }
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la suppression du fournisseur.";
-            }
-            break;
-            
-        case 'modify_materiel':
-            if (empty($_POST['NumSerie']) || trim($_POST['NumSerie']) === '') {
-                $error_message = "Le numéro de série est obligatoire.";
-                break;
-            }
-            
-            $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
-            $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
-            $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
-            $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
-            
-            $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : NULL;
-            
-            try {
-                // Get current state to check if it's changed
-                $prevStateStmt = $pdo->prepare("SELECT stock FROM materiel WHERE NumSerie = ?");
-                $prevStateStmt->execute([trim($_POST['NumSerie'])]);
-                $prevState = $prevStateStmt->fetchColumn();
-                
-                // Only include damage_cause if state requires it
-                $damageCause = null;
-                if ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse') {
-                    $damageCause = $_POST['damage_cause'] ?? null;
-                }
-                
-                $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, CodeMarque = ?, CodeType = ?, CodeFournisseur = ?, STE = ?, Model = ?, Dateentree = ?, Processeur = ?, graphique = ?, disqdur = ?, mhtz = ?, mo = ?, memoire = ?, ip = ?, ecran = ?, pouce = ?, observation = ?, stock = ?, classification = ?, damage_cause = ? WHERE NumSerie = ?");
-                $stmt->execute([
-                    $codeUtilisateur, $codeMarque, $codeType, $codeFournisseur,
-                    $_POST['STE'], $_POST['Model'], $dateentree, $_POST['Processeur'],
-                    $_POST['graphique'], $_POST['disqdur'], $_POST['mhtz'], $_POST['mo'],
-                    $_POST['memoire'], $_POST['ip'], $_POST['ecran'], $_POST['pouce'],
-                    $_POST['observation'], $_POST['stock'], $_POST['classification'],
-                    $damageCause, trim($_POST['NumSerie'])
-                ]);
-                
-                // Record state change in history if state has changed
-                if ($prevState !== $_POST['stock']) {
-                    $historyStmt = $pdo->prepare("INSERT INTO materiel_history (numserie, prev_state, new_state, date_change, user_id, notes) VALUES (?, ?, ?, NOW(), ?, 'Changement via formulaire de modification')");
-                    $historyStmt->execute([
-                        trim($_POST['NumSerie']),
-                        $prevState,
-                        $_POST['stock'],
-                        NULL // Would be current user ID in a real authentication system
-                    ]);
-                }
-                $success_message = "Le matériel a été modifié avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la modification du matériel. Veuillez vérifier les informations et réessayer.";
-            }
-            break;
-        case 'modify_utilisateur':
-            try {
-                $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
-                $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, Email = ?, NomPrenom = ?, Tel = ?, STE = ? WHERE Compte = ?");
-                $stmt->execute([$codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE'], $_POST['Compte']]);
-                $success_message = "L'utilisateur a été modifié avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la modification de l'utilisateur. Veuillez vérifier les informations et réessayer.";
-            }
-            break;
-        case 'modify_marque':
-            try {
-                $stmt = $pdo->prepare("UPDATE marque SET Marque = ? WHERE Code = ?");
-                $stmt->execute([$_POST['Marque'], $_POST['Code']]);
-                $success_message = "La marque a été modifiée avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la modification de la marque. Veuillez réessayer.";
-            }
-            break;
-        case 'modify_type':
-            try {
-                $stmt = $pdo->prepare("UPDATE type SET Libelle = ? WHERE CodeType = ?");
-                $stmt->execute([$_POST['Libelle'], $_POST['CodeType']]);
-                $success_message = "Le type a été modifié avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la modification du type. Veuillez réessayer.";
-            }
-            break;
-        case 'modify_service':
-            try {
-                $stmt = $pdo->prepare("UPDATE service SET Libelle = ?, STE = ? WHERE CodeService = ?");
-                $stmt->execute([$_POST['Libelle'], $_POST['STE'], $_POST['CodeService']]);
-                $success_message = "Le service a été modifié avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la modification du service. Veuillez réessayer.";
-            }
-            break;
-            
-        case 'modify_fournisseur':
-            try {
-                $stmt = $pdo->prepare("UPDATE fournisseur SET CompanyName = ?, NomComplet = ?, Adress = ?, TelFix = ?, TelMobile = ? WHERE Email = ?");
-                $stmt->execute([$_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile'], $_POST['Email']]);
-                $success_message = "Le fournisseur a été modifié avec succès.";
-            } catch (PDOException $e) {
-                $error_message = "Une erreur est survenue lors de la modification du fournisseur. Veuillez vérifier les informations et réessayer.";
-            }
-            break;
-            case 'transfer_materiel':
-                try {
-                    $num_serie = $_POST['NumSerie'];
-                    $code_utilisateur = $_POST['CodeUtilisateur'];
-                    $current_ste = $_POST['STE'];
-                    $target_ste = $_POST['target_STE'];
-                    
-                    // Get current material info before update
-                    $prevStmt = $pdo->prepare("SELECT m.*, u.NomPrenom FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte WHERE m.NumSerie = ?");
-                    $prevStmt->execute([$num_serie]);
-                    $prevMaterial = $prevStmt->fetch();
-                    $oldUserName = $prevMaterial['NomPrenom'] ?? 'Non attribué';
-                    
-                    // Get new user info
-                    $newUserStmt = $pdo->prepare("SELECT NomPrenom FROM utilisateur WHERE Compte = ?");
-                    $newUserStmt->execute([$code_utilisateur]);
-                    $newUserName = $newUserStmt->fetchColumn() ?? 'Non attribué';
-                    
-                    // Update the material record with the new user and change STE
-                    $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, STE = ? WHERE NumSerie = ?");
-                    $stmt->execute([$code_utilisateur, $target_ste, $num_serie]);
-                    
-                    $success_message = "Le matériel a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
-                } catch (PDOException $e) {
-                    $error_message = "Erreur lors du transfert du matériel: " . $e->getMessage();
-                }
-                break;
-            case 'transfer_utilisateur':
-                try {
-                    $compte = $_POST['Compte'];
-                    $code_service = $_POST['CodeService'];
-                    $target_ste = $_POST['target_STE'];
-                    
-                    // Update the user with the new service and change STE
-                    $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, STE = ? WHERE Compte = ?");
-                    $stmt->execute([$code_service, $target_ste, $compte]);
-                    
-                    $success_message = "L'utilisateur a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
-                } catch (PDOException $e) {
-                    $error_message = "Erreur lors du transfert de l'utilisateur: " . $e->getMessage();
-                }
-                break;
-        case 'change_state':
-            $numSerie = $_POST['NumSerie'] ?? '';
-            $stock = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
-            $redirectState = $_POST['redirect_state'] ?? $selected_state ?? 'en-service';
-            $redirectSte = $_POST['STE'] ?? $ste_filter ?? 'prod';
-            if ($numSerie !== '') {
-                $stmt = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
-                $stmt->execute([$stock, $numSerie]);
-                $success_message = "État du matériel mis à jour.";
-            }
-            header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState));
-            exit;
-        case 'fin_inventaire':
-            $present = isset($_POST['present']) ? $_POST['present'] : [];
-            $state_filter = $_POST['state'] ?? null;
-            $ste_param = $_POST['ste'] ?? $ste_filter;
-            // Select all materials for the given STE that are not already in inventory
-            $query = "SELECT NumSerie FROM materiel WHERE STE = ? AND (inventair = 0 OR inventair IS NULL)";
-            $params = [$ste_param];
-            if ($state_filter && in_array($state_filter, ['en-service','en-stock','endommage','casse'])) {
-                $query .= " AND stock = ?";
-                $params[] = $state_filter;
-            }
-            $stmt = $pdo->prepare($query);
-            $stmt->execute($params);
-            $materiel_nums = array_column($stmt->fetchAll(), 'NumSerie');
-            
-            $pdo->beginTransaction();
-            try {
-                foreach ($materiel_nums as $num) {
-                    if (in_array($num, $present)) {
-                        // Checked: stays in main list (or comes back from inventaire)
-                        $update = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
-                        $update->execute([$num]);
-                    } else {
-                        // Unchecked: goes to inventaire list
-                        $update = $pdo->prepare('UPDATE materiel SET inventair = 1, dateinvent = NOW() WHERE NumSerie = ?');
-                        $update->execute([$num]);
-                    }
-                }
-                $pdo->commit();
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                $error_message = "Erreur lors de la finalisation de l'inventaire: " . $e->getMessage();
-                // To display the error, we can't redirect. We need to fall through.
-                // But the rest of the script assumes a redirect. So we'll redirect with an error flag.
-                header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&error=1');
-                exit;
-            }
-
-            header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success=1');
-            exit;
-        case 'recuperer_inventaire':
-            $numSerie = $_POST['NumSerie'] ?? '';
-            $current_ste = $_POST['STE'] ?? 'prod';
-            if ($numSerie !== '') {
-                $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
-                $stmt->execute([$numSerie]);
-                $success_message = "Le matériel a été récupéré dans la liste principale.";
-            }
-            // Redirect back to the inventaire tab to see the list update
-            header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
-            exit;
-    }
- 
-    if (isset($error_message)) {
-       
-    } else {
+    if ($action === 'add_materiel') {
+        $stmt = $pdoo->prepare("INSERT INTO MATERIEL (NumSerie, DateRecep, Model, ID_Type, ID_Marque, ID_Fournisseur, STE) VALUES (?, ?, ?, ?, ?, ?, ?)");
         
-        $current_ste = $_POST['STE'] ?? $_GET['ste'] ?? 'prod';
-        if (!$current_ste) $current_ste = 'prod';
-        $ste_param = '&ste=' . urlencode($current_ste);
+        // Only include damage_cause if state requires it
+        $damageCause = null;
+        if ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse') {
+            $damageCause = $_POST['damage_cause'] ?? null;
+        }
+        
+        $stmt->execute([
+            $serial,  
+            $codeUtilisateur, 
+            $codeMarque, 
+            $codeType, 
+            $codeFournisseur,
+            $_POST['STE'], 
+            $_POST['Model'], 
+            $dateentree, 
+            $_POST['Processeur'],
+            $_POST['graphique'], 
+            $_POST['disqdur'], 
+            $_POST['mhtz'], 
+            $_POST['mo'],
+            $_POST['memoire'], 
+            $_POST['ip'], 
+            $_POST['ecran'], 
+            $_POST['pouce'],
+            $_POST['observation'], 
+            $_POST['stock'], 
+            $_POST['classification'],
+            $damageCause
+        ]);
 
-        // Always redirect to Matériel tab with state=all after POST
-        header('Location: index.php?tab=materiel&ste=' . urlencode($current_ste) . '&state=all&success=1');
+
+        // All email notification functionality removed to improve performance
+
+        $success_message = "Le matériel a été ajouté avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de l'ajout du matériel: " . $e->getMessage();
+    }
+    break;
+    
+case 'add_utilisateur':
+    try {
+        // Check if user already exists in ANY environment
+        $checkStmt = $pdo->prepare("SELECT Compte, STE FROM utilisateur WHERE Compte = ?");
+        $checkStmt->execute([$_POST['Compte']]);
+        if ($existing_user = $checkStmt->fetch()) {
+            $existing_dept = strtoupper(htmlspecialchars($existing_user['STE']));
+            $error_message = "Ce compte utilisateur existe déjà dans l'environnement " . $existing_dept . ". Un utilisateur ne peut exister que dans un seul environnement.";
+            break;
+        }
+        
+        $stmt = $pdo->prepare("INSERT INTO utilisateur (Compte, CodeService, Email, NomPrenom, Tel, STE) VALUES (?, ?, ?, ?, ?, ?)");
+        $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
+        $stmt->execute([$_POST['Compte'], $codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE']]);
+        $success_message = "L'utilisateur a été ajouté avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de l'ajout de l'utilisateur: " . $e->getMessage();
+    }
+    break;
+    
+case 'add_marque':
+    try {
+        
+        $maxCodeStmt = $pdo->query("SELECT MAX(Code) as max_code FROM marque");
+        $maxCode = $maxCodeStmt->fetchColumn();
+        $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
+
+        $stmt = $pdo->prepare("INSERT INTO marque (Code, Marque) VALUES (?, ?)");
+        $stmt->execute([$newCode, $_POST['Marque']]);
+        $success_message = "La marque a été ajoutée avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de l'ajout de la marque. Veuillez réessayer.";
+    }
+    break;
+    
+case 'add_type':
+    try {
+     
+        $maxCodeStmt = $pdo->query("SELECT MAX(CodeType) as max_code FROM type");
+        $maxCode = $maxCodeStmt->fetchColumn();
+        $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
+
+        $stmt = $pdo->prepare("INSERT INTO type (CodeType, Libelle) VALUES (?, ?)");
+        $stmt->execute([$newCode, $_POST['Libelle']]);
+        $success_message = "Le type a été ajouté avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de l'ajout du type. Veuillez réessayer.";
+    }
+    break;
+    
+case 'add_service':
+    try {
+        // Auto-generate the next CodeService
+        $maxCodeStmt = $pdo->query("SELECT MAX(CodeService) as max_code FROM service");
+        $maxCode = $maxCodeStmt->fetchColumn();
+        $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
+
+        $stmt = $pdo->prepare("INSERT INTO service (CodeService, Libelle, STE) VALUES (?, ?, ?)");
+        $stmt->execute([$newCode, $_POST['Libelle'], $_POST['STE']]);
+        $success_message = "Le service a été ajouté avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de l'ajout du service: " . $e->getMessage();
+    }
+    break;
+    
+case 'add_fournisseur':
+    try {
+        $stmt = $pdo->prepare("INSERT INTO fournisseur (Email, CompanyName, NomComplet, Adress, TelFix, TelMobile) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$_POST['Email'], $_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile']]);
+        $success_message = "Le fournisseur a été ajouté avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de l'ajout du fournisseur. Veuillez vérifier les informations et réessayer.";
+    }
+    break;
+    
+case 'delete_materiel':
+        try {
+            $stmt = $pdo->prepare("DELETE FROM materiel WHERE NumSerie = ?");
+            $stmt->execute([$_POST['NumSerie']]);
+            $success_message = "Le matériel a été supprimé avec succès.";
+        } catch (PDOException $e) {
+            $error_message = "Une erreur est survenue lors de la suppression du matériel. Il se peut qu'il soit encore lié à d'autres enregistrements.";
+        }
+        break;
+case 'delete_utilisateur':
+    try {
+        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeUtilisateur = ?");
+        $checkStmt->execute([$_POST['Compte']]);
+        $count = $checkStmt->fetchColumn();
+
+        if ($count > 0) {
+            $error_message = "L'utilisateur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM utilisateur WHERE Compte = ?");
+            $stmt->execute([$_POST['Compte']]);
+            $success_message = "L'utilisateur a été supprimé avec succès.";
+        }
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la suppression de l'utilisateur.";
+    }
+    break;
+case 'delete_marque':
+    try {
+        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeMarque = ?");
+        $checkStmt->execute([$_POST['Code']]);
+        $count = $checkStmt->fetchColumn();
+
+        if ($count > 0) {
+            $error_message = "La marque ne peut pas être supprimée car elle est liée à " . $count . " matériel(s).";
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM marque WHERE Code = ?");
+            $stmt->execute([$_POST['Code']]);
+            $success_message = "La marque a été supprimée avec succès.";
+        }
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la suppression de la marque.";
+    }
+    break;
+case 'delete_type':
+    try {
+        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeType = ?");
+        $checkStmt->execute([$_POST['CodeType']]);
+        $count = $checkStmt->fetchColumn();
+
+        if ($count > 0) {
+            $error_message = "Le type ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM type WHERE CodeType = ?");
+            $stmt->execute([$_POST['CodeType']]);
+            $success_message = "Le type a été supprimé avec succès.";
+        }
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la suppression du type.";
+    }
+    break;
+case 'delete_service':
+    try {
+        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM utilisateur WHERE CodeService = ?");
+        $checkStmt->execute([$_POST['CodeService']]);
+        $count = $checkStmt->fetchColumn();
+
+        if ($count > 0) {
+            $error_message = "Le service ne peut pas être supprimé car il est lié à " . $count . " utilisateur(s).";
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM service WHERE CodeService = ?");
+            $stmt->execute([$_POST['CodeService']]);
+            $success_message = "Le service a été supprimé avec succès.";
+        }
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la suppression du service.";
+    }
+    break;
+        
+case 'delete_fournisseur':
+    try {
+        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeFournisseur = ?");
+        $checkStmt->execute([$_POST['Email']]);
+        $count = $checkStmt->fetchColumn();
+
+        if ($count > 0) {
+            $error_message = "Le fournisseur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
+        } else {
+            $stmt = $pdo->prepare("DELETE FROM fournisseur WHERE Email = ?");
+            $stmt->execute([$_POST['Email']]);
+            $success_message = "Le fournisseur a été supprimé avec succès.";
+        }
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la suppression du fournisseur.";
+    }
+    break;
+    
+case 'modify_materiel':
+    if (empty($_POST['NumSerie']) || trim($_POST['NumSerie']) === '') {
+        $error_message = "Le numéro de série est obligatoire.";
+        break;
+    }
+    
+    $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
+    $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
+    $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
+    $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
+    
+    $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : NULL;
+    
+    try {
+        // Get current state to check if it's changed
+        $prevStateStmt = $pdo->prepare("SELECT stock FROM materiel WHERE NumSerie = ?");
+        $prevStateStmt->execute([trim($_POST['NumSerie'])]);
+        $prevState = $prevStateStmt->fetchColumn();
+        
+        // Only include damage_cause if state requires it
+        $damageCause = null;
+        if ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse') {
+            $damageCause = $_POST['damage_cause'] ?? null;
+        }
+        
+        $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, CodeMarque = ?, CodeType = ?, CodeFournisseur = ?, STE = ?, Model = ?, Dateentree = ?, Processeur = ?, graphique = ?, disqdur = ?, mhtz = ?, mo = ?, memoire = ?, ip = ?, ecran = ?, pouce = ?, observation = ?, stock = ?, classification = ?, damage_cause = ? WHERE NumSerie = ?");
+        $stmt->execute([
+            $codeUtilisateur, $codeMarque, $codeType, $codeFournisseur,
+            $_POST['STE'], $_POST['Model'], $dateentree, $_POST['Processeur'],
+            $_POST['graphique'], $_POST['disqdur'], $_POST['mhtz'], $_POST['mo'],
+            $_POST['memoire'], $_POST['ip'], $_POST['ecran'], $_POST['pouce'],
+            $_POST['observation'], $_POST['stock'], $_POST['classification'],
+            $damageCause, trim($_POST['NumSerie'])
+        ]);
+        
+        // Record state change in history if state has changed
+        if ($prevState !== $_POST['stock']) {
+            $historyStmt = $pdo->prepare("INSERT INTO materiel_history (numserie, prev_state, new_state, date_change, user_id, notes) VALUES (?, ?, ?, NOW(), ?, 'Changement via formulaire de modification')");
+            $historyStmt->execute([
+                trim($_POST['NumSerie']),
+                $prevState,
+                $_POST['stock'],
+                NULL // Would be current user ID in a real authentication system
+            ]);
+        }
+        $success_message = "Le matériel a été modifié avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la modification du matériel. Veuillez vérifier les informations et réessayer.";
+    }
+    break;
+case 'modify_utilisateur':
+    try {
+        $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
+        $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, Email = ?, NomPrenom = ?, Tel = ?, STE = ? WHERE Compte = ?");
+        $stmt->execute([$codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE'], $_POST['Compte']]);
+        $success_message = "L'utilisateur a été modifié avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la modification de l'utilisateur. Veuillez vérifier les informations et réessayer.";
+    }
+    break;
+case 'modify_marque':
+    try {
+        $stmt = $pdo->prepare("UPDATE marque SET Marque = ? WHERE Code = ?");
+        $stmt->execute([$_POST['Marque'], $_POST['Code']]);
+        $success_message = "La marque a été modifiée avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la modification de la marque. Veuillez réessayer.";
+    }
+    break;
+case 'modify_type':
+    try {
+        $stmt = $pdo->prepare("UPDATE type SET Libelle = ? WHERE CodeType = ?");
+        $stmt->execute([$_POST['Libelle'], $_POST['CodeType']]);
+        $success_message = "Le type a été modifié avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la modification du type. Veuillez réessayer.";
+    }
+    break;
+case 'modify_service':
+    try {
+        $stmt = $pdo->prepare("UPDATE service SET Libelle = ?, STE = ? WHERE CodeService = ?");
+        $stmt->execute([$_POST['Libelle'], $_POST['STE'], $_POST['CodeService']]);
+        $success_message = "Le service a été modifié avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la modification du service. Veuillez réessayer.";
+    }
+    break;
+    
+case 'modify_fournisseur':
+    try {
+        $stmt = $pdo->prepare("UPDATE fournisseur SET CompanyName = ?, NomComplet = ?, Adress = ?, TelFix = ?, TelMobile = ? WHERE Email = ?");
+        $stmt->execute([$_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile'], $_POST['Email']]);
+        $success_message = "Le fournisseur a été modifié avec succès.";
+    } catch (PDOException $e) {
+        $error_message = "Une erreur est survenue lors de la modification du fournisseur. Veuillez vérifier les informations et réessayer.";
+    }
+    break;
+    case 'transfer_materiel':
+        try {
+            $num_serie = $_POST['NumSerie'];
+            $code_utilisateur = $_POST['CodeUtilisateur'];
+            $current_ste = $_POST['STE'];
+            $target_ste = $_POST['target_STE'];
+            
+            // Get current material info before update
+            $prevStmt = $pdo->prepare("SELECT m.*, u.NomPrenom FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte WHERE m.NumSerie = ?");
+            $prevStmt->execute([$num_serie]);
+            $prevMaterial = $prevStmt->fetch();
+            $oldUserName = $prevMaterial['NomPrenom'] ?? 'Non attribué';
+            
+            // Get new user info
+            $newUserStmt = $pdo->prepare("SELECT NomPrenom FROM utilisateur WHERE Compte = ?");
+            $newUserStmt->execute([$code_utilisateur]);
+            $newUserName = $newUserStmt->fetchColumn() ?? 'Non attribué';
+            
+            // Update the material record with the new user and change STE
+            $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, STE = ? WHERE NumSerie = ?");
+            $stmt->execute([$code_utilisateur, $target_ste, $num_serie]);
+            
+            $success_message = "Le matériel a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
+        } catch (PDOException $e) {
+            $error_message = "Erreur lors du transfert du matériel: " . $e->getMessage();
+        }
+        break;
+    case 'transfer_utilisateur':
+        try {
+            $compte = $_POST['Compte'];
+            $code_service = $_POST['CodeService'];
+            $target_ste = $_POST['target_STE'];
+            
+            // Update the user with the new service and change STE
+            $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, STE = ? WHERE Compte = ?");
+            $stmt->execute([$code_service, $target_ste, $compte]);
+            
+            $success_message = "L'utilisateur a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
+        } catch (PDOException $e) {
+            $error_message = "Erreur lors du transfert de l'utilisateur: " . $e->getMessage();
+        }
+        break;
+case 'change_state':
+    $numSerie = $_POST['NumSerie'] ?? '';
+    $stock = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
+    $redirectState = $_POST['redirect_state'] ?? $selected_state ?? 'en-service';
+    $redirectSte = $_POST['STE'] ?? $ste_filter ?? 'prod';
+    if ($numSerie !== '') {
+        $stmt = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
+        $stmt->execute([$stock, $numSerie]);
+        $success_message = "État du matériel mis à jour.";
+    }
+    header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState));
+    exit;
+case 'fin_inventaire':
+    $present = isset($_POST['present']) ? $_POST['present'] : [];
+    $state_filter = $_POST['state'] ?? null;
+    $ste_param = $_POST['ste'] ?? $ste_filter;
+    // Select all materials for the given STE that are not already in inventory
+    $query = "SELECT NumSerie FROM materiel WHERE STE = ? AND (inventair = 0 OR inventair IS NULL)";
+    $params = [$ste_param];
+    if ($state_filter && in_array($state_filter, ['en-service','en-stock','endommage','casse'])) {
+        $query .= " AND stock = ?";
+        $params[] = $state_filter;
+    }
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $materiel_nums = array_column($stmt->fetchAll(), 'NumSerie');
+    
+    $pdo->beginTransaction();
+    try {
+        foreach ($materiel_nums as $num) {
+            if (in_array($num, $present)) {
+                // Checked: stays in main list (or comes back from inventaire)
+                $update = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
+                $update->execute([$num]);
+            } else {
+                // Unchecked: goes to inventaire list
+                $update = $pdo->prepare('UPDATE materiel SET inventair = 1, dateinvent = NOW() WHERE NumSerie = ?');
+                $update->execute([$num]);
+            }
+        }
+        $pdo->commit();
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $error_message = "Erreur lors de la finalisation de l'inventaire: " . $e->getMessage();
+        // To display the error, we can't redirect. We need to fall through.
+        // But the rest of the script assumes a redirect. So we'll redirect with an error flag.
+        header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&error=1');
         exit;
     }
+
+    header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success=1');
+    exit;
+case 'recuperer_inventaire':
+    $numSerie = $_POST['NumSerie'] ?? '';
+    $current_ste = $_POST['STE'] ?? 'prod';
+    if ($numSerie !== '') {
+        $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
+        $stmt->execute([$numSerie]);
+        $success_message = "Le matériel a été récupéré dans la liste principale.";
+    }
+    // Redirect back to the inventaire tab to see the list update
+    header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
+    exit;
 }
 
 $success_message = isset($_GET['success']) ? "Opération réalisée avec succès!" : (isset($success_message) ? $success_message : null);
@@ -929,7 +870,7 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                 <div class="form-header form-annuler">
                     <h2><?= $editMode && $editType === 'materiel' ? 'Modifier le Matériel' : 'Ajouter un Matériel' ?></h2>
                     <?php if (!$editMode): ?>
-                        <button type="button" id="close-materiel-form-btn" class="btn-close btn-cancel">Annuler</button>
+                        <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
                     <?php endif; ?>
                 </div>
                 <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
@@ -1067,8 +1008,50 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                     <div class="form-group full-width">
                         <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier le Matériel' : 'Ajouter le Matériel' ?></button>
                         <?php if ($editMode): ?>
-                            <a href="index.php?ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                            <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
                         <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Transfer Materiel Form -->
+            <div class="section materiel-transfer-form <?= ($transferMode && $transferType === 'materiel') ? '' : 'hide' ?>">
+                <div class="form-header">
+                    <h2>Transférer le Matériel</h2>
+                </div>
+                <form method="POST" class="form-grid">
+                    <input type="hidden" name="action" value="transfer_materiel">
+                    <input type="hidden" name="NumSerie" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['NumSerie']) : '' ?>">
+                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                    
+                    <div class="form-group">
+                        <label>Numéro de Série:</label>
+                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['NumSerie']) : '' ?>" disabled>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Matériel:</label>
+                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['Model']) : '' ?>" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Transférer vers:</label>
+                        <input type="text" name="target_STE" value="<?= ($ste_filter === 'prod') ? 'COMM' : 'PROD' ?>" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nouveau Propriétaire:</label>
+                        <select name="CodeUtilisateur" required>
+                            <option value="">Sélectionner un utilisateur</option>
+                            <?php foreach ($transfer_utilisateurs as $user): ?>
+                                <option value="<?= $user['Compte'] ?>"><?= $user['NomPrenom'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary">Confirmer le Transfert</button>
+                        <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
                     </div>
                 </form>
             </div>
@@ -1168,609 +1151,416 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                             $target_services_stmt->execute([$target_ste]);
                             $target_services = $target_services_stmt->fetchAll();
                             
-                            foreach ($target_services as $service): 
-                            ?>
-                                <option value="<?= $service['CodeService'] ?>"><?= $service['Libelle'] ?></option>
+                            foreach ($target_services as $service): ?>
+                                <option value="<?= htmlspecialchars($service['CodeService']) ?>"><?= htmlspecialchars($service['Libelle']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
                     <div class="form-group full-width">
-                        <button type="submit" class="btn-primary">Transférer l'Utilisateur</button>
+                        <button type="submit" class="btn-primary">Confirmer le Transfert</button>
                         <a href="index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
                     </div>
                 </form>
             </div>
-
-            <div class="section utilisateur-form <?= ($editMode && $editType === 'utilisateur') ? '' : 'hide' ?>">
-                <div class="form-header form-annuler">
-                    <h2><?= ($editMode && $editType === 'utilisateur') ? 'Modifier l\'Utilisateur' : 'Ajouter un Utilisateur' ?></h2>
-                    <?php if (!$editMode): ?>
-                        <button type="button" id="close-utilisateur-form-btn" class="btn-close btn-cancel">Annuler</button>
-                    <?php endif; ?>
-                </div>
-                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= ($editMode && $editType === 'utilisateur') ? 'modify_utilisateur' : 'add_utilisateur' ?>">
-                    <input type="hidden" name="STE" value="<?= ($editMode && $editType === 'utilisateur') ? htmlspecialchars($editUtilisateur['STE']) : $ste_filter ?>">
-                    
-                    <div class="form-group">
-                        <label>Compte:</label>
-                        <input type="number" name="Compte" value="<?= ($editMode && $editType === 'utilisateur') ? htmlspecialchars($editUtilisateur['Compte']) : '' ?>" <?= ($editMode && $editType === 'utilisateur') ? 'readonly' : 'required' ?>>
-                    </div>
-
-                    
-                    <div class="form-group">
-                        <label>Service:</label>
-                        <select name="CodeService" required>
-                            <option value="">Sélectionner un service</option>
-                            <?php foreach ($services as $service): ?>
-                                <option value="<?= $service['CodeService'] ?>" <?= ($editMode && $editType === 'utilisateur' && $editUtilisateur['CodeService'] == $service['CodeService']) ? 'selected' : '' ?>><?= $service['Libelle'] ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Nom et Prénom:</label>
-                        <input type="text" name="NomPrenom" value="<?= ($editMode && $editType === 'utilisateur') ? htmlspecialchars($editUtilisateur['NomPrenom'] ?? '') : '' ?>" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Email:</label>
-                        <input type="email" name="Email" value="<?= ($editMode && $editType === 'utilisateur') ? htmlspecialchars($editUtilisateur['Email'] ?? '') : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Téléphone:</label>
-                        <input type="tel" name="Tel" value="<?= ($editMode && $editType === 'utilisateur') ? htmlspecialchars($editUtilisateur['Tel'] ?? '') : '' ?>">
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <button type="submit" class="btn-primary"><?= ($editMode && $editType === 'utilisateur') ? 'Modifier l\'Utilisateur' : 'Ajouter l\'Utilisateur' ?></button>
-                        <?php if ($editMode && $editType === 'utilisateur'): ?>
-                            <a href="index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
-                        <?php endif; ?>
-                    </div>
-                </form>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
-                    <h2>Liste des Utilisateurs</h2>
-                    <div class="button-group">
-                        <a href="php/export_excel.php?type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-export btn-secondary">Exporter Excel</a>
-                        <button type="button" id="add-utilisateur-btn" class="btn btn-primary">Ajouter un Utilisateur</button>
-                    </div>
-                </div>
-                
-                <!-- Search Container for Utilisateurs -->
-                <div class="search-container">
-                    <div class="search-row">
-                        <div class="search-input-group">
-                            <input type="text" class="search-input" id="search-utilisateur" placeholder="Rechercher dans les utilisateurs...">
-                        </div>
-                        <div class="search-actions">
-                            <button type="button" class="btn-clear" onclick="clearSearch('utilisateur')">Effacer</button>
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <span class="filter-label">Rechercher dans:</span>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Compte">
-                            Compte
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="NomPrenom" checked>
-                            Nom et Prénom
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Email">
-                            Email
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Tel">
-                            Téléphone
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="ServiceLibelle">
-                            Service
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="table-container">
-                    <table id="utilisateur-table">
-                        <thead>
-                            <tr>
-                                <th>Compte</th>
-                                <th>Nom et Prénom</th>
-                                <th>Email</th>
-                                <th>Téléphone</th>
-                                <th>Service</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            foreach ($utilisateurs as $user): ?>
-                            <tr>
-                                <td><?= $user['Compte'] ?></td>
-                                <td><?= $user['NomPrenom'] ?></td>
-                                <td><?= $user['Email'] ?></td>
-                                <td><?= $user['Tel'] ?></td>
-                                <td><?= $user['ServiceLibelle'] ?? 'N/A' ?></td>
-                                <td>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="delete_utilisateur">
-                                        <input type="hidden" name="Compte" value="<?= $user['Compte'] ?>">
-                                        <a href="index.php?edit=<?= $user['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                        <!-- <a href="index.php?transfer=<?= $user['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer cet utilisateur">🔄</a> -->
-                                        <button type="submit" class="btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');"><img src="imgs/trash.png" alt="Supprimer"/></button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Marques Tab -->
-        <div id="marques" class="tab-content <?= ($activeTab === 'marques') ? 'active' : '' ?>">
-            <div class="section marque-form <?= ($editMode && $editType === 'marque') ? '' : 'hide' ?>">
-                <div class="form-header form-annuler">
-                    <h2><?= ($editMode && $editType === 'marque') ? 'Modifier la Marque' : 'Ajouter une Marque' ?></h2>
-                    <?php if (!$editMode): ?>
-                        <button type="button" id="close-marque-form-btn" class="btn-close btn-cancel">Annuler</button>
-                    <?php endif; ?>
-                </div>
-                <form method="POST" class="form-simple" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= ($editMode && $editType === 'marque') ? 'modify_marque' : 'add_marque' ?>">
-                    <?php if ($editMode && $editType === 'marque'): ?>
-                        <input type="hidden" name="Code" value="<?= htmlspecialchars($editMarque['Code']) ?>">
-                    <?php endif; ?>
-                    
-                    <div class="form-group">
-                        <label>Marque:</label>
-                        <input type="text" name="Marque" value="<?= ($editMode && $editType === 'marque') ? htmlspecialchars($editMarque['Marque'] ?? '') : '' ?>" required>
-                    </div>
-                    
-                    <button type="submit" class="btn-primary"><?= ($editMode && $editType === 'marque') ? 'Modifier la Marque' : 'Ajouter la Marque' ?></button>
-                    <?php if ($editMode && $editType === 'marque'): ?>
-                        <a href="index.php?tab=marque" class="btn-cancel">Annuler</a>
-                    <?php endif; ?>
-                </form>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
-                    <h2>Liste des Marques</h2>
-                    <div class="button-group">
-                        <a href="php/export_excel.php?type=marque" class="btn-export btn-secondary">Exporter Excel</a>
-                        <button type="button" id="add-marque-btn" class="btn btn-primary">Ajouter une Marque</button>
-                    </div>
-                </div>
-                
-                <!-- Search Container for Marques -->
-                <div class="search-container">
-                    <div class="search-row">
-                        <div class="search-input-group">
-                            <input type="text" class="search-input" id="search-marque" placeholder="Rechercher dans les marques...">
-                        </div>
-                        <div class="search-actions">
-                            <button type="button" class="btn-clear" onclick="clearSearch('marque')">Effacer</button>
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <span class="filter-label">Rechercher dans:</span>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Code">
-                            Code
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Marque" checked>
-                            Marque
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="table-container">
-                    <table id="marque-table">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Marque</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($marques as $marque): ?>
-                            <tr>
-                                <td><?= $marque['Code'] ?></td>
-                                <td><?= $marque['Marque'] ?></td>
-                                <td>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="delete_marque">
-                                        <input type="hidden" name="Code" value="<?= $marque['Code'] ?>">
-                                        <a href="index.php?edit=<?= $marque['Code'] ?>&type=marque" class="btn-modify"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                        <button type="submit" class="btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette marque ?');"><img src="imgs/trash.png" alt="Supprimer"/></button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-
-         <!-- Types Tab -->
-         <div id="types" class="tab-content <?= ($activeTab === 'types') ? 'active' : '' ?>">
-            <div class="section type-form <?= ($editMode && $editType === 'type') ? '' : 'hide' ?>">
-                <div class="form-header form-annuler">
-                    <h2><?= ($editMode && $editType === 'type') ? 'Modifier le Type' : 'Ajouter un Type' ?></h2>
-                    <?php if (!$editMode): ?>
-                        <button type="button" id="close-type-form-btn" class="btn-close btn-cancel">Annuler</button>
-                    <?php endif; ?>
-                </div>
-                <form method="POST" class="form-simple" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= ($editMode && $editType === 'type') ? 'modify_type' : 'add_type' ?>">
-                    <?php if ($editMode && $editType === 'type'): ?>
-                        <input type="hidden" name="CodeType" value="<?= htmlspecialchars($editTypeEntity['CodeType']) ?>">
-                    <?php endif; ?>
-                    
-                    <div class="form-group">
-                        <label>Libellé:</label>
-                        <input type="text" name="Libelle" value="<?= ($editMode && $editType === 'type') ? htmlspecialchars($editTypeEntity['Libelle'] ?? '') : '' ?>" required>
-                    </div>
-                    
-                    <button type="submit" class="btn-primary"><?= ($editMode && $editType === 'type') ? 'Modifier le Type' : 'Ajouter le Type' ?></button>
-                    <?php if ($editMode && $editType === 'type'): ?>
-                        <a href="index.php?tab=type" class="btn-cancel">Annuler</a>
-                    <?php endif; ?>
-                </form>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
-                    <h2>Liste des Types</h2>
-                    <div class="button-group">
-                        <a href="php/export_excel.php?type=type" class="btn-export btn-secondary">Exporter Excel</a>
-                        <button type="button" id="add-type-btn" class="btn btn-primary">Ajouter un Type</button>
-                    </div>
-                </div>
-                
-                <!-- Search Container for Types -->
-                <div class="search-container">
-                    <div class="search-row">
-                        <div class="search-input-group">
-                            <input type="text" class="search-input" id="search-type" placeholder="Rechercher dans les types...">
-                        </div>
-                        <div class="search-actions">
-                            <button type="button" class="btn-clear" onclick="clearSearch('type')">Effacer</button>
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <span class="filter-label">Rechercher dans:</span>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="CodeType">
-                            Code
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Libelle" checked>
-                            Libellé
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="table-container">
-                    <table id="type-table">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Libellé</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($types as $type): ?>
-                            <tr>
-                                <td><?= $type['CodeType'] ?></td>
-                                <td><?= $type['Libelle'] ?></td>
-                                <td>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="delete_type">
-                                        <input type="hidden" name="CodeType" value="<?= $type['CodeType'] ?>">
-                                        <a href="index.php?edit=<?= $type['CodeType'] ?>&type=type" class="btn-modify"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                        <button type="submit" class="btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce type ?');"><img src="imgs/trash.png" alt="Supprimer"/></button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Services Tab -->
-        <div id="services" class="tab-content <?= ($activeTab === 'services') ? 'active' : '' ?>">
-            <div class="section service-form <?= ($editMode && $editType === 'service') ? '' : 'hide' ?>">
-                <div class="form-header form-annuler">
-                    <h2><?= ($editMode && $editType === 'service') ? 'Modifier le Service' : 'Ajouter un Service' ?></h2>
-                    <?php if (!$editMode): ?>
-                        <button type="button" id="close-service-form-btn" class="btn-close btn-cancel">Annuler</button>
-                    <?php endif; ?>
-                </div>
-                <form method="POST" class="form-simple" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= ($editMode && $editType === 'service') ? 'modify_service' : 'add_service' ?>">
-                    <?php if ($editMode && $editType === 'service'): ?>
-                        <input type="hidden" name="CodeService" value="<?= htmlspecialchars($editService['CodeService']) ?>">
-                    <?php endif; ?>
-                    <input type="hidden" name="STE" value="<?= ($editMode && $editType === 'service') ? htmlspecialchars($editService['STE']) : $ste_filter ?>">
-                    
-                    <div class="form-group">
-                        <label>Libellé:</label>
-                        <input type="text" name="Libelle" value="<?= ($editMode && $editType === 'service') ? htmlspecialchars($editService['Libelle'] ?? '') : '' ?>" required>
-                    </div>
-                    
-                    <button type="submit" class="btn-primary"><?= ($editMode && $editType === 'service') ? 'Modifier le Service' : 'Ajouter le Service' ?></button>
-                    <?php if ($editMode && $editType === 'service'): ?>
-                        <a href="index.php?tab=service&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
-                    <?php endif; ?>
-                </form>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
-                    <h2>Liste des Services</h2>
-                    <div class="button-group">
-                        <a href="php/export_excel.php?type=service&ste=<?= urlencode($ste_filter) ?>" class="btn-export btn-secondary">Exporter Excel</a>
-                        <button type="button" id="add-service-btn" class="btn btn-primary">Ajouter un Service</button>
-                    </div>
-                </div>
-                
-                <!-- Search Container for Services -->
-                <div class="search-container">
-                    <div class="search-row">
-                        <div class="search-input-group">
-                            <input type="text" class="search-input" id="search-service" placeholder="Rechercher dans les services...">
-                        </div>
-                        <div class="search-actions">
-                            <button type="button" class="btn-clear" onclick="clearSearch('service')">Effacer</button>
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <span class="filter-label">Rechercher dans:</span>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="CodeService">
-                            Code
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Libelle" checked>
-                            Libellé
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="table-container">
-                    <table id="service-table">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Libellé</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($services as $service): ?>
-                            <tr>
-                                <td><?= $service['CodeService'] ?></td>
-                                <td><?= $service['Libelle'] ?></td>
-                                <td>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="delete_service">
-                                        <input type="hidden" name="CodeService" value="<?= $service['CodeService'] ?>">
-                                        <a href="index.php?edit=<?= $service['CodeService'] ?>&type=service&ste=<?= urlencode($ste_filter) ?>" class="btn-modify"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                        <button type="submit" class="btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce service ?');"><img src="imgs/trash.png" alt="Supprimer"/></button> 
-                                    </form>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Fournisseurs Tab -->
-        <div id="fournisseurs" class="tab-content <?= ($activeTab === 'fournisseurs') ? 'active' : '' ?>">
-            <div class="section fournisseur-form <?= ($editMode && $editType === 'fournisseur') ? '' : 'hide' ?>">
-                <div class="form-header form-annuler">
-                    <h2><?= ($editMode && $editType === 'fournisseur') ? 'Modifier le Fournisseur' : 'Ajouter un Fournisseur' ?></h2>
-                    <?php if (!$editMode): ?>
-                        <button type="button" id="close-fournisseur-form-btn" class="btn-close btn-cancel">Annuler</button>
-                    <?php endif; ?>
-                </div>
-                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= ($editMode && $editType === 'fournisseur') ? 'modify_fournisseur' : 'add_fournisseur' ?>">
-                    
-                    <div class="form-group">
-                        <label>Email:</label>
-                        <input type="email" name="Email" value="<?= ($editMode && $editType === 'fournisseur') ? htmlspecialchars($editFournisseur['Email'] ?? '') : '' ?>" <?= ($editMode && $editType === 'fournisseur') ? 'readonly' : 'required' ?>>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Nom de l'Entreprise:</label>
-                        <input type="text" name="CompanyName" value="<?= ($editMode && $editType === 'fournisseur') ? htmlspecialchars($editFournisseur['CompanyName'] ?? '') : '' ?>" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Nom Complet:</label>
-                        <input type="text" name="NomComplet" value="<?= ($editMode && $editType === 'fournisseur') ? htmlspecialchars($editFournisseur['NomComplet'] ?? '') : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Adresse:</label>
-                        <input type="text" name="Adress" value="<?= ($editMode && $editType === 'fournisseur') ? htmlspecialchars($editFournisseur['Adress'] ?? '') : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Téléphone Fixe:</label>
-                        <input type="tel" name="TelFix" value="<?= ($editMode && $editType === 'fournisseur') ? htmlspecialchars($editFournisseur['TelFix'] ?? '') : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Téléphone Mobile:</label>
-                        <input type="tel" name="TelMobile" value="<?= ($editMode && $editType === 'fournisseur') ? htmlspecialchars($editFournisseur['TelMobile'] ?? '') : '' ?>">
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <button type="submit" class="btn-primary"><?= ($editMode && $editType === 'fournisseur') ? 'Modifier le Fournisseur' : 'Ajouter un Fournisseur' ?></button>
-                        <?php if ($editMode && $editType === 'fournisseur'): ?>
-                            <a href="index.php?tab=fournisseur&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
-                        <?php endif; ?>
-                    </div>
-                </form>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
-                    <h2>Liste des Fournisseurs</h2>
-                    <div class="button-group">
-                        <a href="php/export_excel.php?type=fournisseur" class="btn-export btn-secondary">Exporter Excel</a>
-                        <button type="button" id="add-fournisseur-btn" class="btn btn-primary">Ajouter un Fournisseur</button>
-                    </div>
-                </div>
-                
-                <!-- Search Container for Fournisseurs -->
-                <div class="search-container">
-                    <div class="search-row">
-                        <div class="search-input-group">
-                            <input type="text" class="search-input" id="search-fournisseur" placeholder="Rechercher dans les fournisseurs...">
-                        </div>
-                        <div class="search-actions">
-                            <button type="button" class="btn-clear" onclick="clearSearch('fournisseur')">Effacer</button>
-                        </div>
-                    </div>
-                    <div class="filter-group">
-                        <span class="filter-label">Rechercher dans:</span>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Email">
-                            Email
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="CompanyName" checked>
-                            Entreprise
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="NomComplet" checked>
-                            Nom et Prénom
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Adress">
-                            Adresse
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="TelFix">
-                            Tél. Fixe
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="TelMobile">
-                            Tél. Mobile
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="table-container">
-                    <table id="fournisseur-table">
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Entreprise</th>
-                                <th>Nom et Prénom</th>
-                                <th>Adresse</th>
-                                <th>Tél. Fixe</th>
-                                <th>Tél. Mobile</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($fournisseurs as $fournisseur): ?>
-                                                       <tr>
-                                <td><?= $fournisseur['Email'] ?></td>
-                                <td><?= $fournisseur['CompanyName'] ?? 'N/A' ?></td>
-                                <td><?= $fournisseur['NomComplet'] ?? 'N/A' ?></td>
-                                <td><?= $fournisseur['Adress'] ?? 'N/A' ?></td>
-                                <td><?= $fournisseur['TelFix'] ?? 'N/A' ?></td>
-                                <td><?= $fournisseur['TelMobile'] ?? 'N/A' ?></td>
-                                <td>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="delete_fournisseur">
-                                        <input type="hidden" name="Email" value="<?= $fournisseur['Email'] ?>">
-                                        <a href="index.php?edit=<?= urlencode($fournisseur['Email']) ?>&type=fournisseur" class="btn-modify"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                        <button type="submit" class="btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce fournisseur ?');"><img src="imgs/trash.png" alt="Supprimer"/></button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Inventaire Tab -->
-        <div id="inventaire" class="tab-content <?= ($activeTab === 'inventaire') ? 'active' : '' ?>">
             <div class="section-header">
-                <h2>Matériel en Inventaire</h2>
+                <h2>Liste des Utilisateurs</h2>
                 <div class="button-group">
-                     <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=all&inventaire_mode=1" class="btn-primary">Démarrer l'Inventaire</a>
+                    <button class="btn-primary" onclick="showForm('utilisateur')">Ajouter Utilisateur</button>
                 </div>
             </div>
             <div class="table-container">
                 <table class="table-materiel">
                     <thead>
                         <tr>
-                            <th>Numéro de Série</th>
-                            <th>Marque</th>
-                            <th>Type</th>
-                            <th>Modèle</th>
-                            <th>Date de mise en inventaire</th>
+                            <th>Compte</th>
+                            <th>Nom et Prénom</th>
+                            <th>Service</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($inventaire_materiels)): ?>
-                            <tr>
-                                <td colspan="6" style="text-align: center;">Aucun matériel en cours d'inventaire.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($inventaire_materiels as $materiel): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($materiel['NumSerie']) ?></td>
-                                    <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
-                                    <td><?= htmlspecialchars($materiel['TypeLibelle'] ?? 'N/A') ?></td>
-                                    <td><?= htmlspecialchars($materiel['Model'] ?? 'N/A') ?></td>
-                                    <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($materiel['dateinvent']))) ?></td>
-                                    <td>
-                                        <form method="POST" style="display:inline;">
-                                            <input type="hidden" name="action" value="recuperer_inventaire">
-                                            <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
-                                            <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                            <button type="submit" class="btn-primary">Récupérer</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                        <?php foreach ($utilisateurs as $utilisateur): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($utilisateur['Compte']) ?></td>
+                            <td><?= htmlspecialchars($utilisateur['NomPrenom']) ?></td>
+                            <td><?= htmlspecialchars($utilisateur['ServiceLibelle'] ?? 'N/A') ?></td>
+                            <td><?= htmlspecialchars($utilisateur['Email'] ?? 'N/A') ?></td>
+                            <td><?= htmlspecialchars($utilisateur['Tel'] ?? 'N/A') ?></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="index.php?edit=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <a href="index.php?transfer=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer"><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
+                                        <input type="hidden" name="action" value="delete_utilisateur">
+                                        <input type="hidden" name="Compte" value="<?= $utilisateur['Compte'] ?>">
+                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
+            <!-- Add/Modify Utilisateur Form -->
+            <div class="section utilisateur-form <?= ($editMode && $editType === 'utilisateur') || $showFormParam === 'utilisateur' ? '' : 'hide' ?>">
+                <div class="form-header form-annuler">
+                    <h2><?= $editMode && $editType === 'utilisateur' ? 'Modifier l\'Utilisateur' : 'Ajouter un Utilisateur' ?></h2>
+                    <?php if (!$editMode): ?>
+                        <a href="index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                    <?php endif; ?>
+                </div>
+                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'utilisateur' ? 'modify_utilisateur' : 'add_utilisateur' ?>">
+                    <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editUtilisateur['STE']) : $ste_filter ?>">
+                    
+                    <div class="form-group">
+                        <label>Compte:</label>
+                        <input type="text" name="Compte" value="<?= $editMode ? htmlspecialchars($editUtilisateur['Compte']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?>>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nom et Prénom:</label>
+                        <input type="text" name="NomPrenom" value="<?= $editMode ? htmlspecialchars($editUtilisateur['NomPrenom']) : '' ?>" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Service:</label>
+                        <select name="CodeService">
+                            <option value="">Non spécifié</option>
+                            <?php foreach ($services as $service): ?>
+                                <option value="<?= $service['CodeService'] ?>" <?= $editMode && $service['CodeService'] == $editUtilisateur['CodeService'] ? 'selected' : '' ?>><?= $service['Libelle'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Email:</label>
+                        <input type="email" name="Email" value="<?= $editMode ? htmlspecialchars($editUtilisateur['Email']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Téléphone:</label>
+                        <input type="text" name="Tel" value="<?= $editMode ? htmlspecialchars($editUtilisateur['Tel']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
+                        <?php if ($editMode): ?>
+                            <a href="index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Marques Tab -->
+        <div id="marques" class="tab-content <?= ($activeTab === 'marques') ? 'active' : '' ?>">
+            <div class="section-header">
+                <h2>Liste des Marques</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="showForm('marque')">Ajouter Marque</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="table-materiel">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Marque</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($marques as $marque): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($marque['Code']) ?></td>
+                            <td><?= htmlspecialchars($marque['Marque']) ?></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="index.php?edit=<?= $marque['Code'] ?>&type=marque&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette marque ?');">
+                                        <input type="hidden" name="action" value="delete_marque">
+                                        <input type="hidden" name="Code" value="<?= $marque['Code'] ?>">
+                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Add/Modify Marque Form -->
+            <div class="section marque-form <?= ($editMode && $editType === 'marque') || $showFormParam === 'marque' ? '' : 'hide' ?>">
+                <div class="form-header form-annuler">
+                    <h2><?= $editMode && $editType === 'marque' ? 'Modifier la Marque' : 'Ajouter une Marque' ?></h2>
+                    <?php if (!$editMode): ?>
+                        <a href="index.php?tab=marque&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                    <?php endif; ?>
+                </div>
+                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'marque' ? 'modify_marque' : 'add_marque' ?>">
+                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                    <?php if ($editMode): ?>
+                                               <input type="hidden" name="Code" value="<?= htmlspecialchars($editMarque['Code']) ?>">
+                    <?php endif; ?>
+                    
+                    <div class="form-group">
+                        <label>Marque:</label>
+                        <input type="text" name="Marque" value="<?= $editMode ? htmlspecialchars($editMarque['Marque']) : '' ?>" required>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
+                        <?php if ($editMode): ?>
+                            <a href="index.php?tab=marque&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Types Tab -->
+        <div id="types" class="tab-content <?= ($activeTab === 'types') ? 'active' : '' ?>">
+            <div class="section-header">
+                <h2>Liste des Types</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="showForm('type')">Ajouter Type</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="table-materiel">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Libellé</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($types as $type): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($type['CodeType']) ?></td>
+                            <td><?= htmlspecialchars($type['Libelle']) ?></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="index.php?edit=<?= $type['CodeType'] ?>&type=type&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce type ?');">
+                                        <input type="hidden" name="action" value="delete_type">
+                                        <input type="hidden" name="CodeType" value="<?= $type['CodeType'] ?>">
+                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Add/Modify Type Form -->
+            <div class="section type-form <?= ($editMode && $editType === 'type') || $showFormParam === 'type' ? '' : 'hide' ?>">
+                                              <div class="form-header form-annuler">
+                    <h2><?= $editMode && $editType === 'type' ? 'Modifier le Type' : 'Ajouter un Type' ?></h2>
+                    <?php if (!$editMode): ?>
+                        <a href="index.php?tab=type&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                    <?php endif; ?>
+                </div>
+                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'type' ? 'modify_type' : 'add_type' ?>">
+                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                    <?php if ($editMode): ?>
+                        <input type="hidden" name="CodeType" value="<?= htmlspecialchars($editTypeEntity['CodeType']) ?>">
+                    <?php endif; ?>
+                    
+                    <div class="form-group">
+                        <label>Libellé:</label>
+                        <input type="text" name="Libelle" value="<?= $editMode ? htmlspecialchars($editTypeEntity['Libelle']) : '' ?>" required>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
+                        <?php if ($editMode): ?>
+                            <a href="index.php?tab=type&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Services Tab -->
+        <div id="services" class="tab-content <?= ($activeTab === 'services') ? 'active' : '' ?>">
+            <div class="section-header">
+                <h2>Liste des Services</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="showForm('service')">Ajouter Service</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="table-materiel">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Libellé</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($services as $service): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($service['CodeService']) ?></td>
+                            <td><?= htmlspecialchars($service['Libelle']) ?></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="index.php?edit=<?= $service['CodeService'] ?>&type=service&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce service ?');">
+                                        <input type="hidden" name="action" value="delete_service">
+                                        <input type="hidden" name="CodeService" value="<?= $service['CodeService'] ?>">
+                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Add/Modify Service Form -->
+            <div class="section service-form <?= ($editMode && $editType === 'service') || $showFormParam === 'service' ? '' : 'hide' ?>">
+                <div class="form-header form-annuler">
+                    <h2><?= $editMode && $editType === 'service' ? 'Modifier le Service' : 'Ajouter un Service' ?></h2>
+                    <?php if (!$editMode): ?>
+                        <a href="index.php?tab=service&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                    <?php endif; ?>
+                </div>
+                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'service' ? 'modify_service' : 'add_service' ?>">
+                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                    <?php if ($editMode): ?>
+                        <input type="hidden" name="CodeService" value="<?= htmlspecialchars($editService['CodeService']) ?>">
+                    <?php endif; ?>
+                    
+                    <div class="form-group">
+                        <label>Libellé:</label>
+                        <input type="text" name="Libelle" value="<?= $editMode ? htmlspecialchars($editService['Libelle']) : '' ?>" required>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
+                        <?php if ($editMode): ?>
+                            <a href="index.php?tab=service&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Fournisseurs Tab -->
+        <div id="fournisseurs" class="tab-content <?= ($activeTab === 'fournisseurs') ? 'active' : '' ?>">
+            <div class="section-header">
+                <h2>Liste des Fournisseurs</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="showForm('fournisseur')">Ajouter Fournisseur</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="table-materiel">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Société</th>
+                            <th>Nom Complet</th>
+                            <th>Adresse</th>
+                            <th>Tel Fixe</th>
+                            <th>Tel Mobile</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($fournisseurs as $fournisseur): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($fournisseur['Email']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['CompanyName']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['NomComplet']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['Adress']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['TelFix']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['TelMobile']) ?></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="index.php?edit=<?= urlencode($fournisseur['Email']) ?>&type=fournisseur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce fournisseur ?');">
+                                        <input type="hidden" name="action" value="delete_fournisseur">
+                                        <input type="hidden" name="Email" value="<?= $fournisseur['Email'] ?>">
+                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Add/Modify Fournisseur Form -->
+            <div class="section fournisseur-form <?= ($editMode && $editType === 'fournisseur') || $showFormParam === 'fournisseur' ? '' : 'hide' ?>">
+                <div class="form-header form-annuler">
+                    <h2><?= $editMode && $editType === 'fournisseur' ? 'Modifier le Fournisseur' : 'Ajouter un Fournisseur' ?></h2>
+                    <?php if (!$editMode): ?>
+                        <a href="index.php?tab=fournisseurs&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                    <?php endif; ?>
+                </div>
+                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'fournisseur' ? 'modify_fournisseur' : 'add_fournisseur' ?>">
+                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                    
+                    <div class="form-group">
+                        <label>Email:</label>
+                        <input type="email" name="Email" value="<?= $editMode ? htmlspecialchars($editFournisseur['Email']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?>>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nom de la société:</label>
+                        <input type="text" name="CompanyName" value="<?= $editMode ? htmlspecialchars($editFournisseur['CompanyName']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nom Complet:</label>
+                        <input type="text" name="NomComplet" value="<?= $editMode ? htmlspecialchars($editFournisseur['NomComplet']) : '' ?>" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Adresse:</label>
+                        <input type="text" name="Adress" value="<?= $editMode ? htmlspecialchars($editFournisseur['Adress']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Téléphone Fixe:</label>
+                        <input type="text" name="TelFix" value="<?= $editMode ? htmlspecialchars($editFournisseur['TelFix']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Téléphone Mobile:</label>
+                        <input type="text" name="TelMobile" value="<?= $editMode ? htmlspecialchars($editFournisseur['TelMobile']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
+                        <?php if ($editMode): ?>
+                            <a href="index.php?tab=fournisseurs&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-    
+
     <!-- State Change Modal -->
     <div id="state-change-modal" class="modal">
         <div class="modal-content">
@@ -1819,6 +1609,55 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
     <div id="notification-container"></div>
 
     <script src="js/script.js?v=<?= time() ?>"></script>
-    <script src="js/materiel_state.js?v=<?= time() ?>"></script>
+    <script src="js/export.js?v=<?= time() ?>"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('change', function () {
+                    const ste = this.checked ? 'comm' : 'prod';
+                    const currentUrl = new URL(window.location.href);
+                    currentUrl.searchParams.set('ste', ste);
+                    window.location.href = currentUrl.toString();
+                });
+            }
+
+            const materielStateSelect = document.getElementById('materiel-state-select');
+            const damageCauseContainer = document.getElementById('damage-cause-container');
+
+            if(materielStateSelect) {
+                materielStateSelect.addEventListener('change', function() {
+                    if (this.value === 'endommage' || this.value === 'casse') {
+                        damageCauseContainer.style.display = 'block';
+                    } else {
+                        damageCauseContainer.style.display = 'none';
+                    }
+                });
+            }
+        });
+
+        function handleFormSubmit(form) {
+            // Find all buttons in the form and disable them to prevent multiple submissions
+            const buttons = form.querySelectorAll('button, input[type="submit"]');
+            buttons.forEach(button => {
+                button.disabled = true;
+            });
+            return true; // Allow the form to be submitted
+        }
+
+        function showForm(type) {
+            // Hide all other forms
+            document.querySelectorAll('.section[class*="-form"]').forEach(form => {
+                if (!form.classList.contains(type + '-form')) {
+                    form.classList.add('hide');
+                }
+            });
+            // Show the correct form
+            const form = document.querySelector('.' + type + '-form');
+            if (form) {
+                form.classList.remove('hide');
+            }
+        }
+    </script>
 </body>
 </html>
