@@ -1103,7 +1103,7 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             <div class="section-header">
                 <h2>Matériel en Inventaire</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&inventaire=1'">Début inventaire</button>
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&inventaire_mode=1'">Début inventaire</button>
                     <button class="btn-export" onclick="exportTableToExcel('inventaire-table', 'inventaire_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
