@@ -57,8 +57,26 @@ function exportTableToExcel(tableId, filename = "") {
   link.click();
   document.body.removeChild(link);
 
-  // Always check if we're in a form view and redirect to clean URL to enable tabs
+  // Immediately enable all tabs and hide any forms
+  enableAllTabsAndHideForms();
+
+  // Also redirect to clean URL to ensure the URL is clean
   redirectToCleanURL();
+}
+
+// Function to immediately enable all tabs and hide forms (for instant feedback)
+function enableAllTabsAndHideForms() {
+  // Enable all tab buttons
+  document.querySelectorAll(".tab-btn").forEach(button => {
+    button.removeAttribute("disabled");
+    button.style.opacity = "1";
+    button.style.pointerEvents = "auto";
+  });
+
+  // Hide all forms
+  document.querySelectorAll(".section[class*='-form']").forEach(form => {
+    form.classList.add("hide");
+  });
 }
 
 // Function to redirect to clean URL without showForm parameter
@@ -379,6 +397,9 @@ function initializeFormStateClearers() {
   document.querySelectorAll("a.btn-cancel, a.btn-close").forEach(button => {
     button.addEventListener("click", function (e) {
       e.preventDefault();
+      // Immediately enable tabs and hide forms
+      enableAllTabsAndHideForms();
+      // Then redirect to clean URL
       redirectToCleanURL();
     });
   });
@@ -390,6 +411,8 @@ function initializeFormStateClearers() {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("showForm")) {
         e.preventDefault();
+        // Immediately enable all tabs
+        enableAllTabsAndHideForms();
         // Extract the tab from the onclick or href
         const href =
           this.getAttribute("onclick") || this.getAttribute("href") || "";
