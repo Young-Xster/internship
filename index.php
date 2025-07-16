@@ -496,6 +496,17 @@ if ($_POST) {
 
             header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success=1');
             exit;
+        case 'recuperer_inventaire':
+            $numSerie = $_POST['NumSerie'] ?? '';
+            $current_ste = $_POST['STE'] ?? 'prod';
+            if ($numSerie !== '') {
+                $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
+                $stmt->execute([$numSerie]);
+                $success_message = "Le matériel a été récupéré dans la liste principale.";
+            }
+            // Redirect back to the inventaire tab to see the list update
+            header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
+            exit;
     }
  
     if (isset($error_message)) {
@@ -816,15 +827,13 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             </button>
         </nav>
 
-        <?php if ($activeTab === 'materiel'): ?>
+        <?php if ($activeTab === 'materiel' && !$inventaire_mode): ?>
         <div class="state-filters">
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=all" class="<?= ($selected_state === 'all') ? 'active' : '' ?>">Tous</a>
-            <?php foreach ($stockLabelMap as $stockVal => $stockLabel): ?>
-                <?php
-                    $stateClass = 'state-' . ($stockMap[$stockVal] ?? 'default');
-                ?>
-                <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=<?= urlencode($stockMap[$stockVal]) ?>" class="<?= ($selected_state === $stockMap[$stockVal]) ? 'active' : '' ?> <?= $stateClass ?>"><?= htmlspecialchars($stockLabel) ?></a>
-            <?php endforeach; ?>
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=all" class="filter-link <?= ($selected_state === 'all') ? 'active' : '' ?>">Tous</a>
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=en-service" class="filter-link <?= ($selected_state === 'en-service') ? 'active' : '' ?>">En service</a>
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=en-stock" class="filter-link <?= ($selected_state === 'en-stock') ? 'active' : '' ?>">En stock</a>
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=endommage" class="filter-link <?= ($selected_state === 'endommage') ? 'active' : '' ?>">Endommagé</a>
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=casse" class="filter-link <?= ($selected_state === 'casse') ? 'active' : '' ?>">Cassé</a>
         </div>
         <?php endif; ?>
 
@@ -835,7 +844,7 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                 <h2>Liste du Matériel</h2>
                 <div class="button-group">
                     <?php if (!$inventaire_mode): ?>
-                    <button class="btn-primary" onclick="showForm('materiel')">Ajouter Matériel</button>
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=materiel'">Ajouter Matériel</button>
                     <button class="btn-export" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xls')">Exporter en Excel</button>
                     <?php else: ?>
                     <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler l'Inventaire</a>
