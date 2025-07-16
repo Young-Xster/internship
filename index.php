@@ -44,7 +44,7 @@ if ($_POST) {
                     $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
                     $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
                     $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
-                    $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : NULL;
+                    $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : date('Y-m-d');
                     $serial = $_POST['NumSerie'] ?? null;
 
                     // Only include damage_cause if state requires it
@@ -688,6 +688,36 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
     <title>Gestion de Matériel</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/materiel_state.css">
+    <style>
+        .state-filters {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 10px;
+        }
+        .state-filters a {
+            padding: 8px 16px;
+            text-decoration: none;
+            color: #333;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            bottom: -1px;
+            background-color: #f1f1f1;
+            font-weight: normal;
+        }
+        .state-filters a.active {
+            font-weight: bold;
+            background-color: #fff;
+            border-color: #ccc #ccc transparent #ccc;
+            color: black;
+        }
+        .state-filters a:hover {
+            background-color: #e9e9e9;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="theme-<?= htmlspecialchars($ste_filter) ?>">
     <div class="container">
@@ -782,7 +812,7 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                 <div class="button-group">
                     <?php if (!$inventaire_mode): ?>
                     <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=materiel'">Ajouter Matériel</button>
-                    <button class="btn-export" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xls')">Exporter en Excel</button>
+                    <button class="btn-export" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                     <?php else: ?>
                     <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler l'Inventaire</a>
                     <?php endif; ?>
@@ -1073,11 +1103,11 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             <div class="section-header">
                 <h2>Matériel en Inventaire</h2>
                 <div class="button-group">
-                     <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=all&inventaire_mode=1" class="btn-primary">Démarrer l'Inventaire</a>
+                    <button class="btn-export" onclick="exportTableToExcel('inventaire-table', 'inventaire_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
-                <table class="table-materiel">
+                <table id="inventaire-table" class="table-materiel">
                     <thead>
                         <tr>
                             <th>Numéro de Série</th>
@@ -1119,64 +1149,11 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
 
         <!-- Utilisateurs Tab -->
         <div id="utilisateurs" class="tab-content <?= ($activeTab === 'utilisateurs') ? 'active' : '' ?>">
-            <!-- Transfer Utilisateur Form -->
-            <div class="section utilisateur-transfer-form <?= ($transferMode && $transferType === 'utilisateur') ? '' : 'hide' ?>">
-                <div class="form-header form-annuler">
-                    <h2>Transférer l'Utilisateur</h2>
-                </div>
-                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="transfer_utilisateur">
-                    <input type="hidden" name="Compte" value="<?= ($transferMode && $transferType === 'utilisateur') ? htmlspecialchars($transferUtilisateur['Compte']) : '' ?>">
-                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                    <input type="hidden" name="target_STE" value="<?= ($ste_filter === 'prod') ? 'comm' : 'prod' ?>">
-                    
-                    <div class="form-group">
-                        <label>Compte:</label>
-                        <input type="text" value="<?= ($transferMode && $transferType === 'utilisateur') ? htmlspecialchars($transferUtilisateur['Compte']) : '' ?>" disabled>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Nom et Prénom:</label>
-                        <input type="text" value="<?= ($transferMode && $transferType === 'utilisateur') ? htmlspecialchars($transferUtilisateur['NomPrenom']) : '' ?>" disabled>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Service Actuel:</label>
-                        <input type="text" value="<?= ($transferMode && $transferType === 'utilisateur') ? htmlspecialchars($transferUtilisateur['ServiceLibelle']) : '' ?>" disabled>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Email:</label>
-                        <input type="email" value="<?= ($transferMode && $transferType === 'utilisateur') ? htmlspecialchars($transferUtilisateur['Email'] ?? '') : '' ?>" disabled>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Nouveau Service (<?= ($ste_filter === 'prod') ? 'Commercial' : 'Production' ?>):</label>
-                        <select name="CodeService" required>
-                            <option value="">Sélectionner un service</option>
-                            <?php 
-                            // Get services from the target department
-                            $target_ste = ($ste_filter === 'prod') ? 'comm' : 'prod';
-                            $target_services_stmt = $pdo->prepare("SELECT * FROM service WHERE STE = ? ORDER BY Libelle");
-                            $target_services_stmt->execute([$target_ste]);
-                            $target_services = $target_services_stmt->fetchAll();
-                            
-                            foreach ($target_services as $service): ?>
-                                <option value="<?= htmlspecialchars($service['CodeService']) ?>"><?= htmlspecialchars($service['Libelle']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <button type="submit" class="btn-primary">Confirmer le Transfert</button>
-                        <a href="index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
-                    </div>
-                </form>
-            </div>
             <div class="section-header">
                 <h2>Liste des Utilisateurs</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="showForm('utilisateur')">Ajouter Utilisateur</button>
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&showForm=utilisateur'">Ajouter Utilisateur</button>
+                    <button class="btn-export" onclick="exportTableToExcel('utilisateurs-table', 'utilisateurs_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1273,7 +1250,8 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             <div class="section-header">
                 <h2>Liste des Marques</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="showForm('marque')">Ajouter Marque</button>
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=marque&showForm=marque'">Ajouter Marque</button>
+                    <button class="btn-export" onclick="exportTableToExcel('marques-table', 'marques_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1341,7 +1319,8 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             <div class="section-header">
                 <h2>Liste des Types</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="showForm('type')">Ajouter Type</button>
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=type&showForm=type'">Ajouter Type</button>
+                    <button class="btn-export" onclick="exportTableToExcel('types-table', 'types_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1368,7 +1347,7 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                                     </form>
                                 </div>
                             </td>
-                                               </tr>
+                        </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -1396,7 +1375,7 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                     <div class="form-group full-width">
                         <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
                         <?php if ($editMode): ?>
-                            <a href="index.php?tab=type&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                                                       <a href="index.php?tab=type&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -1408,7 +1387,8 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             <div class="section-header">
                 <h2>Liste des Services</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="showForm('service')">Ajouter Service</button>
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=service&ste=<?= urlencode($ste_filter) ?>&showForm=service'">Ajouter Service</button>
+                    <button class="btn-export" onclick="exportTableToExcel('services-table', 'services_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1476,7 +1456,8 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             <div class="section-header">
                 <h2>Liste des Fournisseurs</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="showForm('fournisseur')">Ajouter Fournisseur</button>
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=fournisseurs&showForm=fournisseur'">Ajouter Fournisseur</button>
+                    <button class="btn-export" onclick="exportTableToExcel('fournisseurs-table', 'fournisseurs_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">

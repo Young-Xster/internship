@@ -15,6 +15,49 @@ function showTab(tabName) {
   window.history.replaceState({}, "", url.toString());
 }
 
+function exportTableToExcel(tableId, filename = "") {
+  const table = document.getElementById(tableId);
+  if (!table) {
+    console.error("Table not found!");
+    return;
+  }
+
+  // Clone the table to avoid modifying the original table
+  const clonedTable = table.cloneNode(true);
+
+  // Remove the "Actions" header and column from the cloned table
+  const actionHeaderIndex = Array.from(
+    clonedTable.querySelectorAll("th")
+  ).findIndex(th => th.textContent.trim() === "Actions");
+  if (actionHeaderIndex !== -1) {
+    clonedTable.querySelector("thead tr").deleteCell(actionHeaderIndex);
+    Array.from(clonedTable.querySelectorAll("tbody tr")).forEach(row => {
+      row.deleteCell(actionHeaderIndex);
+    });
+  }
+
+  const wb = XLSX.utils.table_to_book(clonedTable, { sheet: "Sheet1" });
+  const wbout = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
+
+  function s2ab(s) {
+    const buf = new ArrayBuffer(s.length);
+    const view = new Uint8Array(buf);
+    for (let i = 0; i < s.length; i++) {
+      view[i] = s.charCodeAt(i) & 0xff;
+    }
+    return buf;
+  }
+
+  const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.style.display = "none";
+  link.download = filename || "export.xlsx";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 function showForm(formClass) {
   const form = document.querySelector("." + formClass);
   if (form) {
