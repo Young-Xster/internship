@@ -1135,8 +1135,8 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                                     <?php if (!$inventaire_mode): ?>
                                     <div class="action-buttons">
                                         <a href="index.php?edit=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                        <a href="get_material_history.php?numserie=<?= $materiel['NumSerie'] ?>" class="btn-history" title="Historique"><img width="20px" height="20px" src="imgs/history.png" alt="historique"/></a>
                                         <a href="index.php?transfer=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer"><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
+                                        <a href="get_material_history.php?numserie=<?= $materiel['NumSerie'] ?>&ste=<?= urlencode($ste_filter) ?>" class="btn-history" title="Historique"><img width="20px" height="20px" src="imgs/history.png" alt="historique"/></a>
                                         <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?');">
                                             <input type="hidden" name="action" value="delete_materiel">
                                             <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
