@@ -1,5 +1,5 @@
 <?php
-require_once 'config.php';
+require_once 'php/config.php';
 
 // Check for GET parameter
 if (!isset($_GET['numserie']) || empty($_GET['numserie'])) {
@@ -19,15 +19,17 @@ try {
                 h.prev_state,
                 h.new_state,
                 u_prev.NomPrenom as prev_user,
-                u_new.NomPrenom as new_user
+                u_new.NomPrenom as new_user,
+                h.cause,
+                h.notes
             FROM 
                 materiel_history h
             LEFT JOIN 
-                utilisateurs u_prev ON h.prev_state = u_prev.Compte
+                utilisateur u_prev ON h.prev_state = u_prev.Compte
             LEFT JOIN 
-                utilisateurs u_new ON h.new_state = u_new.Compte
+                utilisateur u_new ON h.new_state = u_new.Compte
             WHERE 
-                h.numserie = :numserie AND h.change_type = 'transfert'
+                h.numserie = :numserie
             ORDER BY 
                 h.date_change DESC";
     
