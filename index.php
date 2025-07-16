@@ -303,6 +303,10 @@ if ($_POST) {
                     header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&success=modify_materiel");
                     exit();
                 } catch (PDOException $e) {
+                    // Detailed error logging
+                    $log_message = date('Y-m-d H:i:s') . " - Modify Materiel Error: " . $e->getMessage() . "\n";
+                    file_put_contents(__DIR__ . '/error.log', $log_message, FILE_APPEND);
+                    
                     $error_message = "Une erreur est survenue lors de la modification du matériel. Veuillez vérifier les informations et réessayer.";
                 }
                 break;
