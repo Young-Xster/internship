@@ -63,7 +63,7 @@ function exportTableToExcel(tableId, filename = "") {
     const currentTab = urlParams.get("tab") || "materiel";
     const currentSte = urlParams.get("ste") || "prod";
     let cleanUrl = `index.php?tab=${currentTab}&ste=${currentSte}`;
-    
+
     // Preserve state and inventaire_mode if they exist
     if (urlParams.get("state")) {
       cleanUrl += `&state=${urlParams.get("state")}`;
@@ -71,7 +71,7 @@ function exportTableToExcel(tableId, filename = "") {
     if (urlParams.get("inventaire_mode")) {
       cleanUrl += `&inventaire_mode=${urlParams.get("inventaire_mode")}`;
     }
-    
+
     // Immediately redirect to clean URL
     window.location.href = cleanUrl;
   }
