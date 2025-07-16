@@ -636,18 +636,33 @@ $state_map = [
     'casse' => 3
 ];
 
-$selected_state = isset($_GET['state']) ? $_GET['state'] : 'en-service';
+$selected_state = isset($_GET['state']) ? $_GET['state'] : 'all';
 
+// Filter materiels to exclude those in inventaire
+$materiels = array_filter($materiels, function($m) { return empty($m['inventair']) || $m['inventair'] == 0; });
 
-    if ($selected_state !== 'all' && in_array($selected_state, ['en-service','en-stock','endommage','casse'])) {
-        $materiels = array_filter($materiels, function($m) use ($selected_state, $state_map) {
-            $stock = $m['stock'];
-            if (is_numeric($stock)) {
-                $stock = $state_map[(int)$stock] ?? 'en-stock';
-            }
-            return $stock === $selected_state;
-        });
-    }
+// Detect inventaire mode from GET
+$inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] == '1';
+
+// Apply state filtering only if not in inventory mode or if specific state is selected
+if (!$inventaire_mode && $selected_state !== 'all' && in_array($selected_state, ['en-service','en-stock','endommage','casse'])) {
+    $materiels = array_filter($materiels, function($m) use ($selected_state, $state_map) {
+        $stock = $m['stock'];
+        if (is_numeric($stock)) {
+            $stock = $state_map[(int)$stock] ?? 'en-stock';
+        }
+        return $stock === $selected_state;
+    });
+} elseif ($inventaire_mode && $selected_state !== 'all' && in_array($selected_state, ['en-service','en-stock','endommage','casse'])) {
+    // In inventory mode, filter but keep all materials available for inventory
+    $materiels = array_filter($materiels, function($m) use ($selected_state, $state_map) {
+        $stock = $m['stock'];
+        if (is_numeric($stock)) {
+            $stock = $state_map[(int)$stock] ?? 'en-stock';
+        }
+        return $stock === $selected_state;
+    });
+}
 
 $inventaire_materiels = [];
 if ($activeTab === 'inventaire') {
@@ -671,12 +686,6 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
     header('Location: index.php?tab=materiel&ste=' . urlencode($ste_filter) . '&success=1');
     exit;
 }
-
-// Filter materiels to exclude those in inventaire
-$materiels = array_filter($materiels, function($m) { return empty($m['inventair']) || $m['inventair'] == 0; });
-
-// Detect inventaire mode from GET
-$inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] == '1';
 
 ?>
 
@@ -794,13 +803,21 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             </button>
         </nav>
 
-        <?php if ($activeTab === 'materiel' && !$inventaire_mode): ?>
+        <?php if ($activeTab === 'materiel'): ?>
         <div class="state-filters">
-            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=all" class="<?= $selected_state === 'all' ? 'active' : '' ?>">Tous</a>
-            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-service" class="<?= $selected_state === 'en-service' ? 'active' : '' ?>">En service</a>
-            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-stock" class="<?= $selected_state === 'en-stock' ? 'active' : '' ?>">En stock</a>
-            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=endommage" class="<?= $selected_state === 'endommage' ? 'active' : '' ?>">Endommagé</a>
-            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Cassé</a>
+            <?php if ($inventaire_mode): ?>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=all" class="<?= $selected_state === 'all' ? 'active' : '' ?>">Tous</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=en-service" class="<?= $selected_state === 'en-service' ? 'active' : '' ?>">En service</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=en-stock" class="<?= $selected_state === 'en-stock' ? 'active' : '' ?>">En stock</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=endommage" class="<?= $selected_state === 'endommage' ? 'active' : '' ?>">Endommagé</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Cassé</a>
+            <?php else: ?>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=all" class="<?= $selected_state === 'all' ? 'active' : '' ?>">Tous</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-service" class="<?= $selected_state === 'en-service' ? 'active' : '' ?>">En service</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-stock" class="<?= $selected_state === 'en-stock' ? 'active' : '' ?>">En stock</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=endommage" class="<?= $selected_state === 'endommage' ? 'active' : '' ?>">Endommagé</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Cassé</a>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
 
