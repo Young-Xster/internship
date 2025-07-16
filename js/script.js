@@ -57,10 +57,15 @@ function exportTableToExcel(tableId, filename = "") {
   link.click();
   document.body.removeChild(link);
 
-  // Check if we're in a form view and redirect to clean URL to enable tabs
+  // Always check if we're in a form view and redirect to clean URL to enable tabs
+  redirectToCleanURL();
+}
+
+// Function to redirect to clean URL without showForm parameter
+function redirectToCleanURL() {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("showForm")) {
-    // Wait a bit for the download to start, then redirect to clean URL
+    // Wait a bit for any ongoing action to complete, then redirect to clean URL
     setTimeout(() => {
       const currentTab = urlParams.get("tab") || "materiel";
       const currentSte = urlParams.get("ste") || "prod";
@@ -368,6 +373,54 @@ function initializeSearch() {
   });
 }
 
+// Function to add event listeners to cancel buttons and other navigation elements
+function initializeFormStateClearers() {
+  // Add event listeners to all cancel/annuler buttons to clear form state
+  document.querySelectorAll("a.btn-cancel, a.btn-close").forEach(button => {
+    button.addEventListener("click", function (e) {
+      e.preventDefault();
+      redirectToCleanURL();
+    });
+  });
+
+  // Add event listeners to tab buttons to clear form state when switching tabs
+  document.querySelectorAll(".tab-btn").forEach(button => {
+    button.addEventListener("click", function (e) {
+      // If we're in a form view, clear it before navigating
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("showForm")) {
+        e.preventDefault();
+        // Extract the tab from the onclick or href
+        const href =
+          this.getAttribute("onclick") || this.getAttribute("href") || "";
+        const match = href.match(/tab=([^&']+)/);
+        if (match) {
+          const targetTab = match[1];
+          const currentSte = urlParams.get("ste") || "prod";
+          window.location.href = `index.php?tab=${targetTab}&ste=${currentSte}`;
+        }
+      }
+    });
+  });
+
+  // Add event listener to state filter links to clear form state
+  document.querySelectorAll(".state-filters a").forEach(link => {
+    link.addEventListener("click", function (e) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("showForm")) {
+        e.preventDefault();
+        // Get the href and remove any showForm parameter
+        let href = this.getAttribute("href");
+        if (href) {
+          // Remove showForm parameter if present
+          href = href.replace(/[&?]showForm=[^&]*/g, "");
+          window.location.href = href;
+        }
+      }
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   const activeContent = document.querySelector(".tab-content.active");
   if (activeContent) {
@@ -436,4 +489,5 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   initializeSearch();
+  initializeFormStateClearers();
 });
