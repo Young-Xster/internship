@@ -816,27 +816,17 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             </button>
         </nav>
 
-        <!-- STATE FILTER TABS: Always visible above the matériel list -->
-        <form method="get" action="index.php" style="margin:0;">
-            <input type="hidden" name="tab" value="materiel">
-            <input type="hidden" name="ste" value="<?= htmlspecialchars($ste_filter) ?>">
-            <?php if ($inventaire_mode): ?><input type="hidden" name="inventaire_mode" value="1"><?php endif; ?>
-            <div style="display: flex; gap: 12px; margin: 18px 0 18px 0; font-size: 1.1em;">
+        <?php if ($activeTab === 'materiel'): ?>
+        <div class="state-filters">
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=all" class="<?= ($selected_state === 'all') ? 'active' : '' ?>">Tous</a>
+            <?php foreach ($stockLabelMap as $stockVal => $stockLabel): ?>
                 <?php
-                $states = [
-                    'en-service' => 'En Service',
-                    'en-stock' => 'En Stock',
-                    'endommage' => 'Endommagé',
-                    'casse' => 'Casse'
-                    // Removed 'all' => 'Tous'
-                ];
-                foreach ($states as $key => $label): ?>
-                    <button type="submit" name="state" value="<?= $key ?>" style="padding: 8px 22px; border-radius: 8px; border: none; background:<?= ($selected_state===$key) ? 'linear-gradient(90deg,#7f9cf5,#a78bfa)' : '#f3f4f6' ?>; color:<?= ($selected_state===$key) ? '#fff' : '#222' ?>; font-weight:<?= ($selected_state===$key) ? 'bold' : 'normal' ?>; box-shadow:<?= ($selected_state===$key) ? '0 2px 8px #a78bfa33' : 'none' ?>; cursor:pointer; transition:background 0.2s;">
-                        <?= $label ?>
-                    </button>
-                <?php endforeach; ?>
-            </div>
-        </form>
+                    $stateClass = 'state-' . ($stockMap[$stockVal] ?? 'default');
+                ?>
+                <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=<?= urlencode($stockMap[$stockVal]) ?>" class="<?= ($selected_state === $stockMap[$stockVal]) ? 'active' : '' ?> <?= $stateClass ?>"><?= htmlspecialchars($stockLabel) ?></a>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
 
         <!-- Matériel Tab -->
         <div id="materiel" class="mat-section tab-content <?= ($activeTab === 'materiel') ? 'active' : '' ?>">
@@ -878,7 +868,7 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                             <?php foreach ($materiels as $materiel): ?>
                             <tr>
                                 <?php if ($inventaire_mode): ?>
-                                <td><input type="checkbox" name="present[]" value="<?= $materiel['NumSerie'] ?>" checked></td>
+                                <td><input type="checkbox" name="present[]" value="<?= $materiel['NumSerie'] ?>"></td>
                                 <?php endif; ?>
                                 <td><?= htmlspecialchars($materiel['NumSerie']) ?></td>
                                 <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
