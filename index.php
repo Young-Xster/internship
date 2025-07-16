@@ -409,21 +409,6 @@ if ($_POST) {
                     $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, STE = ? WHERE NumSerie = ?");
                     $stmt->execute([$code_utilisateur, $target_ste, $num_serie]);
                     
-                    // Record in history table
-                    $historyStmt = $pdo->prepare("INSERT INTO materiel_history 
-                        (numserie, prev_state, new_state, date_change, user_id, notes) 
-                        VALUES (?, ?, ?, NOW(), ?, ?)");
-                    
-                    $historyStmt->execute([
-                        $num_serie,
-                        $prevMaterial['stock'], // Previous state
-                        $prevMaterial['stock'], // State remains the same, only user changes
-                        $code_utilisateur, // New user ID
-                        "Transfert de département: {$current_ste} → {$target_ste}, Utilisateur: {$oldUserName} → {$newUserName}"
-                    ]);
-                    
-                    
-                    
                     $success_message = "Le matériel a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
                 } catch (PDOException $e) {
                     $error_message = "Erreur lors du transfert du matériel: " . $e->getMessage();
@@ -830,10 +815,10 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
         <?php if ($activeTab === 'materiel' && !$inventaire_mode): ?>
         <div class="state-filters">
             <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=all" class="filter-link <?= ($selected_state === 'all') ? 'active' : '' ?>">Tous</a>
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=en-service" class="filter-link <?= ($selected_state === 'en-service') ? 'active' : '' ?>">En service</a>
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=en-stock" class="filter-link <?= ($selected_state === 'en-stock') ? 'active' : '' ?>">En stock</a>
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=endommage" class="filter-link <?= ($selected_state === 'endommage') ? 'active' : '' ?>">Endommagé</a>
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=casse" class="filter-link <?= ($selected_state === 'casse') ? 'active' : '' ?>">Cassé</a>
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=en-service" class="filter-link state-en-service <?= ($selected_state === 'en-service') ? 'active' : '' ?>">En service</a>
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=en-stock" class="filter-link state-en-stock <?= ($selected_state === 'en-stock') ? 'active' : '' ?>">En stock</a>
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=endommage" class="filter-link state-endommage <?= ($selected_state === 'endommage') ? 'active' : '' ?>">Endommagé</a>
+            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=casse" class="filter-link state-casse <?= ($selected_state === 'casse') ? 'active' : '' ?>">Cassé</a>
         </div>
         <?php endif; ?>
 
@@ -880,6 +865,7 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                                 <td><input type="checkbox" name="present[]" value="<?= $materiel['NumSerie'] ?>"></td>
                                 <?php endif; ?>
                                 <td><?= htmlspecialchars($materiel['NumSerie']) ?></td>
+                                <td><?= htmlspecialchars($materiel['NomPrenom'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($materiel['TypeLibelle'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($materiel['Model'] ?? 'N/A') ?></td>
@@ -897,18 +883,17 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                                             <?php endforeach; ?>
                                         </select>
                                     </form>
+                                    <?php else: ?>
+                                        <?php 
+                                            $stockVal = $materiel['stock'];
+                                            if (is_numeric($stockVal)) {
+                                                $stockVal = $stockMap[(int)$stockVal] ?? 'en-service';
+                                            }
+                                            $stateLabel = $stockLabelMap[$stateToStock[$stockVal] ?? 0] ?? '';
+                                            $stateClass = 'state-' . ($stockVal ?? 'en-service');
+                                        ?>
+                                        <span class="<?= $stateClass ?>" style="margin-left:8px;"> <?= $stateLabel ?> </span>
                                     <?php endif; ?>
-
-<?php 
-    
-    $stockVal = $materiel['stock'];
-    if (is_numeric($stockVal)) {
-        $stockVal = $stockMap[(int)$stockVal] ?? 'en-service';
-    }
-    $stateLabel = $stockLabelMap[$stateToStock[$stockVal] ?? 0] ?? '';
-    $stateClass = 'state-' . ($stockVal ?? 'en-service');
-?>
-                                    <span class="<?= $stateClass ?>" style="margin-left:8px;"> <?= $stateLabel ?> </span>
                                 </td>
                                 <td><?= $materiel['observation'] ?? 'N/A' ?></td>
                                 <td>
