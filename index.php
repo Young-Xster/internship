@@ -460,7 +460,8 @@ if ($_POST) {
             $present = isset($_POST['present']) ? $_POST['present'] : [];
             $state_filter = $_POST['state'] ?? null;
             $ste_param = $_POST['ste'] ?? $ste_filter;
-            $query = "SELECT NumSerie FROM materiel WHERE STE = ? AND (inventaire = 0 OR inventaire IS NULL)";
+            // Select all materials for the given STE that are not already in inventory
+            $query = "SELECT NumSerie FROM materiel WHERE STE = ? AND (inventair = 0 OR inventair IS NULL)";
             $params = [$ste_param];
             if ($state_filter && in_array($state_filter, ['en-service','en-stock','endommage','casse'])) {
                 $query .= " AND stock = ?";
@@ -469,17 +470,30 @@ if ($_POST) {
             $stmt = $pdo->prepare($query);
             $stmt->execute($params);
             $materiel_nums = array_column($stmt->fetchAll(), 'NumSerie');
-            foreach ($materiel_nums as $num) {
-                if (in_array($num, $present)) {
-                    // Checked: stays in main list
-                    $update = $pdo->prepare('UPDATE materiel SET inventaire = 0, inventaire_date = NULL WHERE NumSerie = ?');
-                    $update->execute([$num]);
-                } else {
-                    // Unchecked: goes to inventaire
-                    $update = $pdo->prepare('UPDATE materiel SET inventaire = 1, inventaire_date = NOW() WHERE NumSerie = ?');
-                    $update->execute([$num]);
+            
+            $pdo->beginTransaction();
+            try {
+                foreach ($materiel_nums as $num) {
+                    if (in_array($num, $present)) {
+                        // Checked: stays in main list (or comes back from inventaire)
+                        $update = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
+                        $update->execute([$num]);
+                    } else {
+                        // Unchecked: goes to inventaire list
+                        $update = $pdo->prepare('UPDATE materiel SET inventair = 1, dateinvent = NOW() WHERE NumSerie = ?');
+                        $update->execute([$num]);
+                    }
                 }
+                $pdo->commit();
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                $error_message = "Erreur lors de la finalisation de l'inventaire: " . $e->getMessage();
+                // To display the error, we can't redirect. We need to fall through.
+                // But the rest of the script assumes a redirect. So we'll redirect with an error flag.
+                header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&error=1');
+                exit;
             }
+
             header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success=1');
             exit;
     }
@@ -688,7 +702,7 @@ $selected_state = isset($_GET['state']) ? $_GET['state'] : 'en-service';
 $inventaire_materiels = [];
 if ($activeTab === 'inventaire') {
     try {
-        $inventaire_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.inventaire = 1 AND m.STE = ? ORDER BY m.NumSerie DESC");
+        $inventaire_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.inventair = 1 AND m.STE = ? ORDER BY m.NumSerie DESC");
         $inventaire_stmt->execute([$ste_filter]);
         $inventaire_materiels = $inventaire_stmt->fetchAll();
     } catch (PDOException $e) {
@@ -700,7 +714,7 @@ if ($activeTab === 'inventaire') {
 if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
     $numSerie = $_POST['NumSerie'] ?? '';
     if ($numSerie !== '') {
-        $stmt = $pdo->prepare('UPDATE materiel SET inventaire = 0, inventaire_date = NULL WHERE NumSerie = ?');
+        $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
         $stmt->execute([$numSerie]);
         $success_message = "Le matériel a été récupéré dans la liste principale.";
     }
@@ -709,7 +723,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
 }
 
 // Filter materiels to exclude those in inventaire
-$materiels = array_filter($materiels, function($m) { return empty($m['inventaire']) || $m['inventaire'] == 0; });
+$materiels = array_filter($materiels, function($m) { return empty($m['inventair']) || $m['inventair'] == 0; });
 
 // Detect inventaire mode from GET
 $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] == '1';
@@ -830,7 +844,12 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             <div class="section-header">
                 <h2>Liste du Matériel</h2>
                 <div class="button-group">
-                    <button type="button" id="add-materiel-btn" class="btn btn-primary" onclick="window.location.href='?showForm=materiel&tab=materiel&ste=<?= urlencode($ste_filter) ?>'">Ajouter un Matériel</button>
+                    <?php if (!$inventaire_mode): ?>
+                    <button class="btn-primary" onclick="showForm('materiel')">Ajouter Matériel</button>
+                    <button class="btn-export" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xls')">Exporter en Excel</button>
+                    <?php else: ?>
+                    <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler l'Inventaire</a>
+                    <?php endif; ?>
                 </div>
             </div>
             <form method="POST" id="fin-inventaire-form">
@@ -838,11 +857,13 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                 <input type="hidden" name="ste" value="<?= htmlspecialchars($ste_filter) ?>">
                 <input type="hidden" name="state" value="<?= htmlspecialchars($selected_state) ?>">
                 <div class="table-container">
-                    <table id="materiel-table">
+                    <table id="materiel-table" class="table-materiel">
                         <thead>
                             <tr>
-                                <?php if ($inventaire_mode): ?><th>Présent</th><?php endif; ?>
-                                <th>N° Série</th>
+                                <?php if ($inventaire_mode): ?>
+                                <th>Présent</th>
+                                <?php endif; ?>
+                                <th>Numéro de Série</th>
                                 <th>Utilisateur</th>
                                 <th>Marque</th>
                                 <th>Type</th>
@@ -855,17 +876,15 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                         </thead>
                         <tbody>
                             <?php foreach ($materiels as $materiel): ?>
-                            <tr data-numserie="<?= $materiel['NumSerie'] ?>">
+                            <tr>
                                 <?php if ($inventaire_mode): ?>
-                                    <!-- Checkbox must be inside the form and have name='present[]' -->
-                                    <td><input type="checkbox" name="present[]" value="<?= $materiel['NumSerie'] ?>"></td>
+                                <td><input type="checkbox" name="present[]" value="<?= $materiel['NumSerie'] ?>" checked></td>
                                 <?php endif; ?>
-                                <td><?= $materiel['NumSerie'] ?></td>
-                                <td><?= $materiel['NomPrenom'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['Marque'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['TypeLibelle'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['Model'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['Dateentree'] ?? 'N/A' ?></td>
+                                <td><?= htmlspecialchars($materiel['NumSerie']) ?></td>
+                                <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($materiel['TypeLibelle'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($materiel['Model'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
                                 <td class="materiel-state">
                                     <?php if (!$inventaire_mode): ?>
                                     <form method="POST" style="display:inline; margin:0;">
@@ -895,14 +914,17 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                                 <td><?= $materiel['observation'] ?? 'N/A' ?></td>
                                 <td>
                                     <?php if (!$inventaire_mode): ?>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="delete_materiel">
-                                        <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
-                                        <a href="index.php?edit=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-modify"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                        <button type="submit" class="btn-delete" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?');"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
-                                        <a href="index.php?transfer=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer ce matériel"><img width="20px" height="20px" src="imgs/transfer.png" alt="Transfer"/></a>
-                                        <button type="button" class="btn-history" data-numserie="<?= $materiel['NumSerie'] ?>" title="Historique du matériel"><img width="20px" height="20px" src="imgs/history.png" alt="Historique"/></button>
-                                    </form>
+                                    <div class="action-buttons">
+                                        <a href="index.php?edit=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                        <a href="get_material_history.php?numserie=<?= $materiel['NumSerie'] ?>" class="btn-history" title="Historique"><img width="20px" height="20px" src="imgs/history.png" alt="historique"/></a>
+                                        <a href="index.php?transfer=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer"><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
+                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?');">
+                                            <input type="hidden" name="action" value="delete_materiel">
+                                            <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
+                                            <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                            <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                        </form>
+                                    </div>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -911,62 +933,14 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                     </table>
                 </div>
                 <?php if ($inventaire_mode): ?>
-                <div class="form-group full-width" style="margin-top: 20px;">
-                    <button type="submit" class="btn-primary">Fin Inventaire</button>
+                <div class="form-group full-width" style="margin-top: 20px; text-align: right;">
+                    <button type="submit" class="btn-primary">Finaliser l'Inventaire</button>
                     <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
                 </div>
                 <?php endif; ?>
             </form>
 
-            <!-- Transfer Materiel Form -->
-            <div class="section materiel-transfer-form <?= ($transferMode && $transferType === 'materiel') ? '' : 'hide' ?>">
-                <div class="form-header form-annuler">
-                    <h2>Transférer le Matériel</h2>
-                </div>
-                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="transfer_materiel">
-                    <input type="hidden" name="NumSerie" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['NumSerie']) : '' ?>">
-                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                    <input type="hidden" name="target_STE" value="<?= ($ste_filter === 'prod') ? 'comm' : 'prod' ?>">
-                    
-                    <div class="form-group">
-                        <label>Numéro de Série:</label>
-                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['NumSerie']) : '' ?>" disabled>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Type:</label>
-                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['TypeLibelle']) : '' ?>" disabled>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Marque:</label>
-                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['Marque']) : '' ?>" disabled>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Utilisateur Actuel:</label>
-                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['NomPrenom']) : 'Aucun' ?>" disabled>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Nouvel Utilisateur (<?= ($ste_filter === 'prod') ? 'Commercial' : 'Production' ?>):</label>
-                        <select name="CodeUtilisateur" required>
-                            <option value="">Sélectionner un utilisateur</option>
-                            <?php foreach ($transfer_utilisateurs as $user): ?>
-                                <option value="<?= $user['Compte'] ?>"><?= $user['NomPrenom'] ?> (<?= $user['ServiceLibelle'] ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    
-
-                    <div class="form-group full-width">
-                        <button type="submit" class="btn-primary">Transférer le Matériel</button>
-                        <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
-                    </div>
-                </form>
-            </div>
-
+            <!-- Add Materiel Form -->
             <div class="section materiel-form <?= ($editMode && $editType === 'materiel') || $showFormParam === 'materiel' ? '' : 'hide' ?>">
                 <div class="form-header form-annuler">
                     <h2><?= $editMode && $editType === 'materiel' ? 'Modifier le Matériel' : 'Ajouter un Matériel' ?></h2>
@@ -1116,6 +1090,55 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
             </div>
         </div>
 
+
+        <!-- Inventaire Tab -->
+        <div id="inventaire" class="tab-content <?= ($activeTab === 'inventaire') ? 'active' : '' ?>">
+            <div class="section-header">
+                <h2>Matériel en Inventaire</h2>
+                <div class="button-group">
+                     <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=all&inventaire_mode=1" class="btn-primary">Démarrer l'Inventaire</a>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="table-materiel">
+                    <thead>
+                        <tr>
+                            <th>Numéro de Série</th>
+                            <th>Marque</th>
+                            <th>Type</th>
+                            <th>Modèle</th>
+                            <th>Date de mise en inventaire</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($inventaire_materiels)): ?>
+                            <tr>
+                                <td colspan="6" style="text-align: center;">Aucun matériel en cours d'inventaire.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($inventaire_materiels as $materiel): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($materiel['NumSerie']) ?></td>
+                                    <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['TypeLibelle'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['Model'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($materiel['dateinvent']))) ?></td>
+                                    <td>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="recuperer_inventaire">
+                                            <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
+                                            <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                            <button type="submit" class="btn-primary">Récupérer</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <!-- Utilisateurs Tab -->
         <div id="utilisateurs" class="tab-content <?= ($activeTab === 'utilisateurs') ? 'active' : '' ?>">
@@ -1716,53 +1739,50 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
 
         <!-- Inventaire Tab -->
         <div id="inventaire" class="tab-content <?= ($activeTab === 'inventaire') ? 'active' : '' ?>">
-            <div class="section">
-                <div class="section-header">
-                    <h2>Liste d'Inventaire</h2>
-                    <div class="button-group">
-                        <button type="button" id="start-inventaire-btn" class="btn btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&inventaire_mode=1'">Démarrer l'Inventaire</button>
-                    </div>
+            <div class="section-header">
+                <h2>Matériel en Inventaire</h2>
+                <div class="button-group">
+                     <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=all&inventaire_mode=1" class="btn-primary">Démarrer l'Inventaire</a>
                 </div>
-                <div class="table-container">
-                    <table id="inventaire-table">
-                        <thead>
+            </div>
+            <div class="table-container">
+                <table class="table-materiel">
+                    <thead>
+                        <tr>
+                            <th>Numéro de Série</th>
+                            <th>Marque</th>
+                            <th>Type</th>
+                            <th>Modèle</th>
+                            <th>Date de mise en inventaire</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($inventaire_materiels)): ?>
                             <tr>
-                                <th>N° Série</th>
-                                <th>Utilisateur</th>
-                                <th>Marque</th>
-                                <th>Type</th>
-                                <th>Modèle</th>
-                                <th>Date Entrée</th>
-                                <th>État</th>
-                                <th>Observation</th>
-                                <th>Date Inventaire</th>
-                                <th>Actions</th>
+                                <td colspan="6" style="text-align: center;">Aucun matériel en cours d'inventaire.</td>
                             </tr>
-                        </thead>
-                        <tbody>
+                        <?php else: ?>
                             <?php foreach ($inventaire_materiels as $materiel): ?>
-                            <tr data-numserie="<?= $materiel['NumSerie'] ?>">
-                                <td><?= $materiel['NumSerie'] ?></td>
-                                <td><?= $materiel['NomPrenom'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['Marque'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['TypeLibelle'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['Model'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['Dateentree'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['stock'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['observation'] ?? 'N/A' ?></td>
-                                <td><?= $materiel['inventaire_date'] ?? 'N/A' ?></td>
-                                <td>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="action" value="recuperer_inventaire">
-                                        <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
-                                        <button type="submit" class="btn-recup" onclick="return confirm('Êtes-vous sûr de vouloir récupérer ce matériel dans la liste principale ?');">Récupérer</button>
-                                    </form>
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td><?= htmlspecialchars($materiel['NumSerie']) ?></td>
+                                    <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['TypeLibelle'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['Model'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($materiel['dateinvent']))) ?></td>
+                                    <td>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="recuperer_inventaire">
+                                            <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
+                                            <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                            <button type="submit" class="btn-primary">Récupérer</button>
+                                        </form>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
