@@ -56,6 +56,27 @@ function exportTableToExcel(tableId, filename = "") {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+
+  // Check if we're in a form view and redirect to clean URL to enable tabs
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("showForm")) {
+    // Wait a bit for the download to start, then redirect to clean URL
+    setTimeout(() => {
+      const currentTab = urlParams.get("tab") || "materiel";
+      const currentSte = urlParams.get("ste") || "prod";
+      let cleanUrl = `index.php?tab=${currentTab}&ste=${currentSte}`;
+
+      // Preserve state and inventaire_mode if they exist
+      if (urlParams.get("state")) {
+        cleanUrl += `&state=${urlParams.get("state")}`;
+      }
+      if (urlParams.get("inventaire_mode")) {
+        cleanUrl += `&inventaire_mode=${urlParams.get("inventaire_mode")}`;
+      }
+
+      window.location.href = cleanUrl;
+    }, 100);
+  }
 }
 
 function showForm(formClass) {
