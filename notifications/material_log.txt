@@ -1,0 +1,14 @@
+2025-07-10 12:28:23 - Nouveau matériel ajouté - bgh8945
+Un nouveau matériel a été ajouté au système: bgh8945
+Utilisateur: hassen
+Marque: DELL
+Type: kou3Namla
+
+
+2025-07-10 14:28:14 - Nouveau matériel ajouté - n88gvhn
+Un nouveau matériel a été ajouté au système: n88gvhn
+Utilisateur: helmi
+Marque: asus
+Type: kou3Namla
+
+

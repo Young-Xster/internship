@@ -1,0 +1,32 @@
+2025-07-10 12:28:25 - Nouveau matériel bgh8945 - To: kamelrmeda123@gmail.com
+Un nouveau matériel a été ajouté au système:
+Numéro de série: bgh8945
+Utilisateur: hassen
+Marque: DELL
+Type: kou3Namla
+
+2025-07-10 14:28:16 - Nouveau matériel n88gvhn - To: kamelrmeda123@gmail.com
+Un nouveau matériel a été ajouté au système:
+Numéro de série: n88gvhn
+Utilisateur: helmi
+Marque: asus
+Type: kou3Namla
+
+2025-07-14 20:13:23 POST: {"action":"fin_inventaire","ste":"prod","state":"en-service","present":["e4fzzd"]}
+2025-07-14 20:13:44 POST: {"action":"fin_inventaire","ste":"prod","state":"en-service","present":["e4fzzd"]}
+2025-07-14 21:24:40 POST: {"action":"recuperer_inventaire","NumSerie":"5hkll"}
+2025-07-14 21:29:10 POST: {"action":"fin_inventaire","ste":"prod","state":"endommage","present":["55555"]}
+2025-07-14 21:40:22 POST: {"action":"fin_inventaire","ste":"prod","state":"en-stock","present":["efv77fe"]}
+2025-07-14 21:40:50 POST: {"action":"recuperer_inventaire","NumSerie":"5hkll"}
+2025-07-14 15:00:12 POST: {"action":"fin_inventaire","ste":"prod","state":"en-stock","present":["efv77fe"]}
+2025-07-14 15:02:23 POST: {"action":"fin_inventaire","ste":"prod","state":"en-stock","present":["efv77fe"]}
+2025-07-14 15:02:39 POST: {"action":"recuperer_inventaire","NumSerie":"5hkll"}
+2025-07-14 15:03:14 POST: {"action":"fin_inventaire","ste":"prod","state":"casse"}
+2025-07-14 15:05:23 POST: {"action":"fin_inventaire","ste":"comm","state":"en-service","present":["jefnu47","7754"]}
+2025-07-14 15:05:44 POST: {"action":"fin_inventaire","ste":"comm","state":"en-stock","present":["ugtvf888","jhrfcr7777"]}
+2025-07-14 15:05:50 POST: {"action":"recuperer_inventaire","NumSerie":"jefnu47"}
+2025-07-14 15:19:58 POST: {"action":"add_materiel","STE":"prod","NumSerie":"hjbg841","CodeUtilisateur":"155557","CodeFournisseur":"fedi@gmail.com","CodeMarque":"16","CodeType":"17","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","stock":"en-service","damage_cause":"","classification":"","observation":""}
+2025-07-14 15:20:41 POST: {"action":"fin_inventaire","ste":"prod","state":"en-service","present":["hjbg841"]}
+2025-07-14 15:21:18 POST: {"action":"fin_inventaire","ste":"prod","state":"casse"}
+2025-07-14 15:22:02 POST: {"action":"add_materiel","STE":"prod","NumSerie":"mkjhyb877","CodeUtilisateur":"14","CodeFournisseur":"fedi3@gmail.com","CodeMarque":"16","CodeType":"18","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","stock":"en-service","damage_cause":"","classification":"","observation":""}
+2025-07-14 15:22:39 POST: {"action":"fin_inventaire","ste":"prod","state":"en-service","present":["mkjhyb877"]}
