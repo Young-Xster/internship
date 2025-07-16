@@ -27,15 +27,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     file_put_contents(__DIR__ . '/material_notifications.log', date('Y-m-d H:i:s') . ' POST: ' . json_encode($_POST) . "\n", FILE_APPEND);
 }
 
-// Check for success or error messages from redirects
-if (isset($_GET['success_message'])) {
-    $success_message = htmlspecialchars($_GET['success_message']);
-}
-if (isset($_GET['error_message'])) {
-    $error_message = htmlspecialchars($_GET['error_message']);
-}
-
-
 if ($_POST) {
     $action = $_POST['action'] ?? '';
     $tab = $_GET['tab'] ?? 'materiel';
@@ -86,11 +77,9 @@ if ($_POST) {
                         $damageCause
                     ]);
 
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le matériel a été ajouté avec succès."));
-                    exit;
+                    $success_message = "Le matériel a été ajouté avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de l'ajout du matériel: " . $e->getMessage()));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de l'ajout du matériel: " . $e->getMessage();
                 }
                 break;
     
@@ -101,18 +90,16 @@ if ($_POST) {
                     $checkStmt->execute([$_POST['Compte']]);
                     if ($existing_user = $checkStmt->fetch()) {
                         $existing_dept = strtoupper(htmlspecialchars($existing_user['STE']));
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Ce compte utilisateur existe déjà dans l'environnement " . $existing_dept . ". Un utilisateur ne peut exister que dans un seul environnement."));
-                        exit;
+                        $error_message = "Ce compte utilisateur existe déjà dans l'environnement " . $existing_dept . ". Un utilisateur ne peut exister que dans un seul environnement.";
+                        break;
                     }
                     
                     $stmt = $pdo->prepare("INSERT INTO utilisateur (Compte, CodeService, Email, NomPrenom, Tel, STE) VALUES (?, ?, ?, ?, ?, ?)");
                     $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
                     $stmt->execute([$_POST['Compte'], $codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("L'utilisateur a été ajouté avec succès."));
-                    exit;
+                    $success_message = "L'utilisateur a été ajouté avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de l'ajout de l'utilisateur: " . $e->getMessage()));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de l'ajout de l'utilisateur: " . $e->getMessage();
                 }
                 break;
                 
@@ -125,11 +112,9 @@ if ($_POST) {
 
                     $stmt = $pdo->prepare("INSERT INTO marque (Code, Marque) VALUES (?, ?)");
                     $stmt->execute([$newCode, $_POST['Marque']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("La marque a été ajoutée avec succès."));
-                    exit;
+                    $success_message = "La marque a été ajoutée avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de l'ajout de la marque. Veuillez réessayer."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de l'ajout de la marque. Veuillez réessayer.";
                 }
                 break;
                 
@@ -142,11 +127,9 @@ if ($_POST) {
 
                     $stmt = $pdo->prepare("INSERT INTO type (CodeType, Libelle) VALUES (?, ?)");
                     $stmt->execute([$newCode, $_POST['Libelle']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le type a été ajouté avec succès."));
-                    exit;
+                    $success_message = "Le type a été ajouté avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de l'ajout du type. Veuillez réessayer."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de l'ajout du type. Veuillez réessayer.";
                 }
                 break;
                 
@@ -159,11 +142,9 @@ if ($_POST) {
 
                     $stmt = $pdo->prepare("INSERT INTO service (CodeService, Libelle, STE) VALUES (?, ?, ?)");
                     $stmt->execute([$newCode, $_POST['Libelle'], $_POST['STE']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le service a été ajouté avec succès."));
-                    exit;
+                    $success_message = "Le service a été ajouté avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de l'ajout du service: " . $e->getMessage()));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de l'ajout du service: " . $e->getMessage();
                 }
                 break;
                 
@@ -171,11 +152,9 @@ if ($_POST) {
                 try {
                     $stmt = $pdo->prepare("INSERT INTO fournisseur (Email, CompanyName, NomComplet, Adress, TelFix, TelMobile) VALUES (?, ?, ?, ?, ?, ?)");
                     $stmt->execute([$_POST['Email'], $_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le fournisseur a été ajouté avec succès."));
-                    exit;
+                    $success_message = "Le fournisseur a été ajouté avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de l'ajout du fournisseur. Veuillez vérifier les informations et réessayer."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de l'ajout du fournisseur. Veuillez vérifier les informations et réessayer.";
                 }
                 break;
                 
@@ -183,11 +162,9 @@ if ($_POST) {
                     try {
                         $stmt = $pdo->prepare("DELETE FROM materiel WHERE NumSerie = ?");
                         $stmt->execute([$_POST['NumSerie']]);
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le matériel a été supprimé avec succès."));
-                        exit;
+                        $success_message = "Le matériel a été supprimé avec succès.";
                     } catch (PDOException $e) {
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la suppression du matériel. Il se peut qu'il soit encore lié à d'autres enregistrements."));
-                        exit;
+                        $error_message = "Une erreur est survenue lors de la suppression du matériel. Il se peut qu'il soit encore lié à d'autres enregistrements.";
                     }
                     break;
             case 'delete_utilisateur':
@@ -197,17 +174,14 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("L'utilisateur ne peut pas être supprimé car il est lié à " . $count . " matériel(s)."));
-                        exit;
+                        $error_message = "L'utilisateur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM utilisateur WHERE Compte = ?");
                         $stmt->execute([$_POST['Compte']]);
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("L'utilisateur a été supprimé avec succès."));
-                        exit;
+                        $success_message = "L'utilisateur a été supprimé avec succès.";
                     }
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la suppression de l'utilisateur."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la suppression de l'utilisateur.";
                 }
                 break;
             case 'delete_marque':
@@ -217,17 +191,14 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("La marque ne peut pas être supprimée car elle est liée à " . $count . " matériel(s)."));
-                        exit;
+                        $error_message = "La marque ne peut pas être supprimée car elle est liée à " . $count . " matériel(s).";
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM marque WHERE Code = ?");
                         $stmt->execute([$_POST['Code']]);
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("La marque a été supprimée avec succès."));
-                        exit;
+                        $success_message = "La marque a été supprimée avec succès.";
                     }
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la suppression de la marque."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la suppression de la marque.";
                 }
                 break;
             case 'delete_type':
@@ -237,17 +208,14 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Le type ne peut pas être supprimé car il est lié à " . $count . " matériel(s)."));
-                        exit;
+                        $error_message = "Le type ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM type WHERE CodeType = ?");
                         $stmt->execute([$_POST['CodeType']]);
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le type a été supprimé avec succès."));
-                        exit;
+                        $success_message = "Le type a été supprimé avec succès.";
                     }
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la suppression du type."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la suppression du type.";
                 }
                 break;
             case 'delete_service':
@@ -257,17 +225,14 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Le service ne peut pas être supprimé car il est lié à " . $count . " utilisateur(s)."));
-                        exit;
+                        $error_message = "Le service ne peut pas être supprimé car il est lié à " . $count . " utilisateur(s).";
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM service WHERE CodeService = ?");
                         $stmt->execute([$_POST['CodeService']]);
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le service a été supprimé avec succès."));
-                        exit;
+                        $success_message = "Le service a été supprimé avec succès.";
                     }
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la suppression du service."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la suppression du service.";
                 }
                 break;
                     
@@ -278,24 +243,21 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Le fournisseur ne peut pas être supprimé car il est lié à " . $count . " matériel(s)."));
-                        exit;
+                        $error_message = "Le fournisseur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM fournisseur WHERE Email = ?");
                         $stmt->execute([$_POST['Email']]);
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le fournisseur a été supprimé avec succès."));
-                        exit;
+                        $success_message = "Le fournisseur a été supprimé avec succès.";
                     }
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la suppression du fournisseur."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la suppression du fournisseur.";
                 }
                 break;
             
             case 'modify_materiel':
                 if (empty($_POST['NumSerie']) || trim($_POST['NumSerie']) === '') {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Le numéro de série est obligatoire."));
-                    exit;
+                    $error_message = "Le numéro de série est obligatoire.";
+                    break;
                 }
                 
                 $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
@@ -337,11 +299,9 @@ if ($_POST) {
                             NULL // Would be current user ID in a real authentication system
                         ]);
                     }
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le matériel a été modifié avec succès."));
-                    exit;
+                    $success_message = "Le matériel a été modifié avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la modification du matériel. Veuillez vérifier les informations et réessayer."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la modification du matériel. Veuillez vérifier les informations et réessayer.";
                 }
                 break;
             case 'modify_utilisateur':
@@ -349,44 +309,36 @@ if ($_POST) {
                     $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
                     $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, Email = ?, NomPrenom = ?, Tel = ?, STE = ? WHERE Compte = ?");
                     $stmt->execute([$codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE'], $_POST['Compte']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("L'utilisateur a été modifié avec succès."));
-                    exit;
+                    $success_message = "L'utilisateur a été modifié avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la modification de l'utilisateur. Veuillez vérifier les informations et réessayer."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la modification de l'utilisateur. Veuillez vérifier les informations et réessayer.";
                 }
                 break;
             case 'modify_marque':
                 try {
                     $stmt = $pdo->prepare("UPDATE marque SET Marque = ? WHERE Code = ?");
                     $stmt->execute([$_POST['Marque'], $_POST['Code']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("La marque a été modifiée avec succès."));
-                    exit;
+                    $success_message = "La marque a été modifiée avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la modification de la marque. Veuillez réessayer."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la modification de la marque. Veuillez réessayer.";
                 }
                 break;
             case 'modify_type':
                 try {
                     $stmt = $pdo->prepare("UPDATE type SET Libelle = ? WHERE CodeType = ?");
                     $stmt->execute([$_POST['Libelle'], $_POST['CodeType']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le type a été modifié avec succès."));
-                    exit;
+                    $success_message = "Le type a été modifié avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la modification du type. Veuillez réessayer."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la modification du type. Veuillez réessayer.";
                 }
                 break;
             case 'modify_service':
                 try {
                     $stmt = $pdo->prepare("UPDATE service SET Libelle = ?, STE = ? WHERE CodeService = ?");
                     $stmt->execute([$_POST['Libelle'], $_POST['STE'], $_POST['CodeService']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le service a été modifié avec succès."));
-                    exit;
+                    $success_message = "Le service a été modifié avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la modification du service. Veuillez réessayer."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la modification du service. Veuillez réessayer.";
                 }
                 break;
                 
@@ -394,11 +346,9 @@ if ($_POST) {
                 try {
                     $stmt = $pdo->prepare("UPDATE fournisseur SET CompanyName = ?, NomComplet = ?, Adress = ?, TelFix = ?, TelMobile = ? WHERE Email = ?");
                     $stmt->execute([$_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile'], $_POST['Email']]);
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&success_message=' . urlencode("Le fournisseur a été modifié avec succès."));
-                    exit;
+                    $success_message = "Le fournisseur a été modifié avec succès.";
                 } catch (PDOException $e) {
-                    header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Une erreur est survenue lors de la modification du fournisseur. Veuillez vérifier les informations et réessayer."));
-                    exit;
+                    $error_message = "Une erreur est survenue lors de la modification du fournisseur. Veuillez vérifier les informations et réessayer.";
                 }
                 break;
                 case 'transfer_materiel':
@@ -423,11 +373,9 @@ if ($_POST) {
                         $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, STE = ? WHERE NumSerie = ?");
                         $stmt->execute([$code_utilisateur, $target_ste, $num_serie]);
                         
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($current_ste) . '&success_message=' . urlencode("Le matériel a été transféré avec succès vers le département " . strtoupper($target_ste) . "."));
-                        exit;
+                        $success_message = "Le matériel a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
                     } catch (PDOException $e) {
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($current_ste) . '&error_message=' . urlencode("Erreur lors du transfert du matériel: " . $e->getMessage()));
-                        exit;
+                        $error_message = "Erreur lors du transfert du matériel: " . $e->getMessage();
                     }
                     break;
                 case 'transfer_utilisateur':
@@ -435,18 +383,14 @@ if ($_POST) {
                         $compte = $_POST['Compte'];
                         $code_service = $_POST['CodeService'];
                         $target_ste = $_POST['target_STE'];
-                        $current_ste = $_POST['STE'];
                         
                         // Update the user with the new service and change STE
                         $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, STE = ? WHERE Compte = ?");
                         $stmt->execute([$code_service, $target_ste, $compte]);
                         
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($current_ste) . '&success_message=' . urlencode("L'utilisateur a été transféré avec succès vers le département " . strtoupper($target_ste) . "."));
-                        exit;
+                        $success_message = "L'utilisateur a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
                     } catch (PDOException $e) {
-                        $current_ste = $_POST['STE'] ?? 'prod';
-                        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($current_ste) . '&error_message=' . urlencode("Erreur lors du transfert de l'utilisateur: " . $e->getMessage()));
-                        exit;
+                        $error_message = "Erreur lors du transfert de l'utilisateur: " . $e->getMessage();
                     }
                     break;
                 case 'change_state':
@@ -457,9 +401,9 @@ if ($_POST) {
                     if ($numSerie !== '') {
                         $stmt = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
                         $stmt->execute([$stock, $numSerie]);
-                        // Success message is now handled by the redirect
+                        $success_message = "État du matériel mis à jour.";
                     }
-                    header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState) . '&success_message=' . urlencode("État du matériel mis à jour."));
+                    header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState));
                     exit;
                 case 'fin_inventaire':
                     $present = isset($_POST['present']) ? $_POST['present'] : [];
@@ -490,17 +434,16 @@ if ($_POST) {
                             }
                         }
                         $pdo->commit();
-                        $success_message = "L'inventaire a été finalisé avec succès.";
                     } catch (Exception $e) {
                         $pdo->rollBack();
                         $error_message = "Erreur lors de la finalisation de l'inventaire: " . $e->getMessage();
                         // To display the error, we can't redirect. We need to fall through.
                         // But the rest of the script assumes a redirect. So we'll redirect with an error flag.
-                        header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&error_message=' . urlencode($error_message));
+                        header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&error=1');
                         exit;
                     }
 
-                    header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success_message=' . urlencode($success_message));
+                    header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success=1');
                     exit;
                 case 'recuperer_inventaire':
                     $numSerie = $_POST['NumSerie'] ?? '';
@@ -508,115 +451,423 @@ if ($_POST) {
                     if ($numSerie !== '') {
                         $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
                         $stmt->execute([$numSerie]);
-                        // Success message is now handled by the redirect
+                        $success_message = "Le matériel a été récupéré dans la liste principale.";
                     }
                     // Redirect back to the inventaire tab to see the list update
-                    header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1&success_message=' . urlencode("Le matériel a été récupéré dans la liste principale."));
+                    header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
                     exit;
         }
     } catch (Exception $e) {
-        $tab = $_GET['tab'] ?? 'materiel';
-        $ste = $_POST['STE'] ?? 'prod';
-        header('Location: index.php?tab=' . urlencode($tab) . '&ste=' . urlencode($ste) . '&error_message=' . urlencode("Erreur lors du traitement de la demande: " . $e->getMessage()));
-        exit;
+        $error_message = "Erreur lors du traitement de la demande: " . $e->getMessage();
     }
 }
+
+$success_message = isset($_GET['success']) ? "Opération réalisée avec succès!" : (isset($success_message) ? $success_message : null);
+
+$editMode = false;
+$transferMode = false;
+$editMateriel = null;
+$editUtilisateur = null;
+$editMarque = null;
+$editTypeEntity = null;
+$editService = null;
+$editFournisseur = null;
+$editEntity = null;
+$transferMateriel = null;
+$transferUtilisateur = null;
+$transferEntity = null;
+
+$showFormParam = isset($_GET['showForm']) ? $_GET['showForm'] : null;
+
+if (isset($_GET['edit']) && !empty($_GET['edit'])) {
+    $editMode = true;
+    $editId = $_GET['edit'];
+    $editType = $_GET['type'] ?? 'materiel';
+    
+    try {
+        switch ($editType) {
+            case 'materiel':
+                $stmt = $pdo->prepare("SELECT * FROM materiel WHERE NumSerie = ?");
+                $stmt->execute([$editId]);
+                $editMateriel = $stmt->fetch();
+                $editEntity = $editMateriel;
+                break;
+            case 'utilisateur':
+                $stmt = $pdo->prepare("SELECT * FROM utilisateur WHERE Compte = ?");
+                $stmt->execute([$editId]);
+                $editUtilisateur = $stmt->fetch();
+                $editEntity = $editUtilisateur;
+                break;
+            case 'marque':
+                $stmt = $pdo->prepare("SELECT * FROM marque WHERE Code = ?");
+                $stmt->execute([$editId]);
+                $editMarque = $stmt->fetch();
+                $editEntity = $editMarque;
+                break;
+            case 'type':
+                $stmt = $pdo->prepare("SELECT * FROM type WHERE CodeType = ?");
+                $stmt->execute([$editId]);
+                $editTypeEntity = $stmt->fetch();
+                $editEntity = $editTypeEntity;
+                break;
+            case 'service':
+                $stmt = $pdo->prepare("SELECT * FROM service WHERE CodeService = ?");
+                $stmt->execute([$editId]);
+                $editService = $stmt->fetch();
+                $editEntity = $editService;
+                break;
+            case 'fournisseur':
+                $stmt = $pdo->prepare("SELECT * FROM fournisseur WHERE Email = ?");
+                $stmt->execute([$editId]);
+                $editFournisseur = $stmt->fetch();
+                $editEntity = $editFournisseur;
+                break;
+        }
+        
+        if (!$editEntity) {
+            $error_message = "Élément non trouvé.";
+            $editMode = false;
+        }
+    } catch (PDOException $e) {
+        $error_message = "Erreur lors du chargement des données pour la modification.";
+        $editMode = false;
+    }
+}
+
+// Transfer mode detection
+if (isset($_GET['transfer']) && !empty($_GET['transfer'])) {
+    $transferMode = true;
+    $transferId = $_GET['transfer'];
+    $transferType = $_GET['type'] ?? 'materiel';
+    
+    try {
+        switch ($transferType) {
+            case 'materiel':
+                $stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.NumSerie = ?");
+                $stmt->execute([$transferId]);
+                $transferMateriel = $stmt->fetch();
+                $transferEntity = $transferMateriel;
+                break;
+            case 'utilisateur':
+                $stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.Compte = ?");
+                $stmt->execute([$transferId]);
+                $transferUtilisateur = $stmt->fetch();
+                $transferEntity = $transferUtilisateur;
+                break;
+        }
+        
+        if (!$transferEntity) {
+            $error_message = "Élément non trouvé pour le transfert.";
+            $transferMode = false;
+        }
+    } catch (PDOException $e) {
+        $error_message = "Erreur lors du chargement des données pour le transfert.";
+        $transferMode = false;
+    }
+}
+
+$activeTab = 'materiel';
+if ($editMode || $transferMode) {
+    
+    $tabMapping = [
+        'materiel' => 'materiel',
+        'inventaire' => 'inventaire',
+        'utilisateur' => 'utilisateurs',
+        'marque' => 'marques',
+        'type' => 'types',
+        'service' => 'services',
+        'fournisseurs' => 'fournisseurs'
+    ];
+    $activeTab = $tabMapping[$editType ?? $transferType ?? 'materiel'] ?? 'materiel';
+} elseif (isset($_GET['tab'])) {
+    
+    $tabMapping = [
+        'materiel' => 'materiel',
+        'inventaire' => 'inventaire',
+        'utilisateur' => 'utilisateurs',
+        'marque' => 'marques',
+        'type' => 'types',
+        'service' => 'services',
+        'fournisseurs' => 'fournisseurs'
+    ];
+    $activeTab = $tabMapping[$_GET['tab']] ?? 'materiel';
+}
+
+$isFormOpen = $editMode || $transferMode || $showFormParam;
+
+$ste_filter = isset($_GET['ste']) && $_GET['ste'] ? $_GET['ste'] : 'prod';
+
+try {
+    $utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
+    $utilisateurs_stmt->execute([$ste_filter]);
+    $utilisateurs = $utilisateurs_stmt->fetchAll();
+
+    // Load users from the opposite department for transfers
+    $other_ste = ($ste_filter === 'prod') ? 'comm' : 'prod';
+    $transfer_utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
+    $transfer_utilisateurs_stmt->execute([$other_ste]);
+    $transfer_utilisateurs = $transfer_utilisateurs_stmt->fetchAll();
+
+    $marques = $pdo->query("SELECT * FROM marque ORDER BY Marque")->fetchAll();
+    $types = $pdo->query("SELECT * FROM type ORDER BY Libelle")->fetchAll();
+
+    $services_stmt = $pdo->prepare("SELECT * FROM service WHERE STE = ? ORDER BY Libelle");
+    $services_stmt->execute([$ste_filter]);
+    $services = $services_stmt->fetchAll();
+
+    $materiels_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.STE = ? ORDER BY m.NumSerie DESC");
+    $materiels_stmt->execute([$ste_filter]);
+    $materiels = $materiels_stmt->fetchAll();
+
+    $fournisseurs = $pdo->query("SELECT * FROM fournisseur ORDER BY CompanyName, NomComplet")->fetchAll();
+} catch (PDOException $e) {
+    $error_message = "Erreur critique: Impossible de charger les données de la base de données. Veuillez contacter un administrateur.";
+    $utilisateurs = $marques = $types = $services = $materiels = $fournisseurs = [];
+}
+
+$state_map = [
+    0 => 'en-service',
+    1 => 'en-stock',
+    2 => 'endommage',
+    3 => 'casse',
+    'en-service' => 0,
+    'en-stock' => 1,
+    'endommage' => 2,
+    'casse' => 3
+];
+
+$selected_state = isset($_GET['state']) ? $_GET['state'] : 'en-service';
+
+
+    if ($selected_state !== 'all' && in_array($selected_state, ['en-service','en-stock','endommage','casse'])) {
+        $materiels = array_filter($materiels, function($m) use ($selected_state, $state_map) {
+            $stock = $m['stock'];
+            if (is_numeric($stock)) {
+                $stock = $state_map[(int)$stock] ?? 'en-stock';
+            }
+            return $stock === $selected_state;
+        });
+    }
+
+$inventaire_materiels = [];
+if ($activeTab === 'inventaire') {
+    try {
+        $inventaire_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.inventair = 1 AND m.STE = ? ORDER BY m.NumSerie DESC");
+        $inventaire_stmt->execute([$ste_filter]);
+        $inventaire_materiels = $inventaire_stmt->fetchAll();
+    } catch (PDOException $e) {
+        $inventaire_materiels = [];
+    }
+}
+
+// Handle recuperer_inventaire POST action
+if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
+    $numSerie = $_POST['NumSerie'] ?? '';
+    if ($numSerie !== '') {
+        $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
+        $stmt->execute([$numSerie]);
+        $success_message = "Le matériel a été récupéré dans la liste principale.";
+    }
+    header('Location: index.php?tab=materiel&ste=' . urlencode($ste_filter) . '&success=1');
+    exit;
+}
+
+// Filter materiels to exclude those in inventaire
+$materiels = array_filter($materiels, function($m) { return empty($m['inventair']) || $m['inventair'] == 0; });
+
+// Detect inventaire mode from GET
+$inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] == '1';
+
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion de Parc Informatique</title>
+    <title>Gestion de Matériel</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/materiel_state.css">
+    <style>
+        .state-filters {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 10px;
+        }
+        .state-filters a {
+            padding: 8px 16px;
+            text-decoration: none;
+            color: #333;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            bottom: -1px;
+            background-color: #f1f1f1;
+            font-weight: normal;
+        }
+        .state-filters a.active {
+            font-weight: bold;
+            background-color: #fff;
+            border-color: #ccc #ccc transparent #ccc;
+            color: black;
+        }
+        .state-filters a:hover {
+            background-color: #e9e9e9;
+        }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-<body>
+<body class="theme-<?= htmlspecialchars($ste_filter) ?>">
     <div class="container">
         <header>
-            <div class="logo">
-                <img src="imgs/Logo_AAF.JPG" alt="Logo">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="imgs/Logo_AAF.JPG" alt="AAF Logo" class="header-logo">
+                </div>
+                <div class="title-section">
+                    <h1>Système de Gestion de Matériel</h1>
+                    <p class="header-subtitle">Administration et Suivi des Équipements</p>
+                </div>
             </div>
-            <h1>Gestion de Parc Informatique</h1>
         </header>
 
-        <?php if (!empty($success_message)): ?>
-            <div class="success-message" id="success-message">
-                <?php echo $success_message; ?>
-                <span class="close-btn" onclick="document.getElementById('success-message').style.display='none'">&times;</span>
-            </div>
-        <?php endif; ?>
-        <?php if (!empty($error_message)): ?>
-            <div class="error-message" id="error-message">
-                <?php echo $error_message; ?>
-                <span class="close-btn" onclick="document.getElementById('error-message').style.display='none'">&times;</span>
+        <?php if (isset($success_message)): ?>
+            <div class="alert alert-success">
+                <strong>Succès!</strong> <?= htmlspecialchars($success_message) ?>
             </div>
         <?php endif; ?>
 
-        <nav>
-            <ul>
-                <?php
-                $tabs = ['materiel', 'utilisateurs', 'marques', 'types', 'services', 'fournisseurs', 'inventaire'];
-                $current_tab = $_GET['tab'] ?? 'materiel';
-                $is_form_open = ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_GET['success_message']));
+        <?php if (isset($error_message)): ?>
+            <div class="alert alert-error">
+                <strong>Erreur!</strong> <?= htmlspecialchars($error_message) ?>
+            </div>
+        <?php endif; ?>
 
-                foreach ($tabs as $tab_item) {
-                    $active_class = ($tab_item == $current_tab) ? 'active' : '';
-                    $disabled_attr = ($is_form_open && $tab_item !== $current_tab) ? 'disabled' : '';
-                    $link = $is_form_open ? '#' : 'index.php?tab=' . $tab_item;
-                    echo "<li><a href=\"$link\" class=\"$active_class\" $disabled_attr>" . ucfirst($tab_item) . "</a></li>";
-                }
-                ?>
-            </ul>
+        <div class="switch-button">   
+
+            <label class="theme-switch-label">
+                <input type="checkbox" id="theme-toggle" <?= ($ste_filter === 'comm') ? 'checked' : '' ?>>
+                <span class="slider">
+                    <span class="slider-text text-prod">PROD</span>
+                    <span class="slider-text text-comm">COMM</span>
+                </span>
+            </label>
+        </div>
+
+        <nav class="tabs">
+            <button class="tab-btn <?= ($activeTab === 'materiel') ? 'active' : '' ?>" 
+                    onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>'" 
+                    <?= ($isFormOpen && $activeTab !== 'materiel') ? 'disabled' : '' ?>>
+                Matériel
+            </button>
+            <button class="tab-btn <?= ($activeTab === 'inventaire') ? 'active' : '' ?>" 
+                    onclick="window.location.href='index.php?tab=inventaire&ste=<?= urlencode($ste_filter) ?>'" 
+                    <?= ($isFormOpen && $activeTab !== 'inventaire') ? 'disabled' : '' ?>>
+                Inventaire
+            </button>
+            <button class="tab-btn <?= ($activeTab === 'utilisateurs') ? 'active' : '' ?>" 
+                    onclick="window.location.href='index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>'" 
+                    <?= ($isFormOpen && $activeTab !== 'utilisateurs') ? 'disabled' : '' ?>>
+                Utilisateurs
+            </button>
+            <button class="tab-btn <?= ($activeTab === 'marques') ? 'active' : '' ?>" 
+                    onclick="window.location.href='index.php?tab=marque&ste=<?= urlencode($ste_filter) ?>'" 
+                    <?= ($isFormOpen && $activeTab !== 'marques') ? 'disabled' : '' ?>>
+                Marques
+            </button>
+            <button class="tab-btn <?= ($activeTab === 'types') ? 'active' : '' ?>" 
+                    onclick="window.location.href='index.php?tab=type&ste=<?= urlencode($ste_filter) ?>'" 
+                    <?= ($isFormOpen && $activeTab !== 'types') ? 'disabled' : '' ?>>
+                Types
+            </button>
+            <button class="tab-btn <?= ($activeTab === 'services') ? 'active' : '' ?>" 
+                    onclick="window.location.href='index.php?tab=service&ste=<?= urlencode($ste_filter) ?>'" 
+                    <?= ($isFormOpen && $activeTab !== 'services') ? 'disabled' : '' ?>>
+                Services
+            </button>
+            <button class="tab-btn <?= ($activeTab === 'fournisseurs') ? 'active' : '' ?>" 
+                    onclick="window.location.href='index.php?tab=fournisseurs&ste=<?= urlencode($ste_filter) ?>'" 
+                    <?= ($isFormOpen && $activeTab !== 'fournisseurs') ? 'disabled' : '' ?>>
+                Fournisseurs
+            </button>
         </nav>
-        
+
         <main>
             <?php
-            $tab = $_GET['tab'] ?? 'materiel';
-            $action = $_GET['action'] ?? 'view';
-            $id = $_GET['id'] ?? null;
-            $ste_filter = $_GET['ste'] ?? 'prod';
-            $selected_state = $_GET['state'] ?? 'en-service';
-
-            // Fetch data for dropdowns
-            $marques = $pdo->query("SELECT * FROM marque ORDER BY Marque")->fetchAll();
-            $types = $pdo->query("SELECT * FROM type ORDER BY Libelle")->fetchAll();
-            $fournisseurs = $pdo->query("SELECT * FROM fournisseur ORDER BY CompanyName")->fetchAll();
-            
-            // Fetch users and services based on STE filter
-            $services_stmt = $pdo->prepare("SELECT * FROM service WHERE STE = ? ORDER BY Libelle");
-            $services_stmt->execute([$ste_filter]);
-            $services = $services_stmt->fetchAll();
-
-            $utilisateurs_stmt = $pdo->prepare("SELECT * FROM utilisateur WHERE STE = ? ORDER BY NomPrenom");
-            $utilisateurs_stmt->execute([$ste_filter]);
-            $utilisateurs = $utilisateurs_stmt->fetchAll();
-
             // Include the content for the selected tab
-            if (file_exists("php/tabs/{$tab}.php")) {
-                include "php/tabs/{$tab}.php";
+            if (file_exists("php/tabs/{$activeTab}.php")) {
+                include "php/tabs/{$activeTab}.php";
             } else {
-                echo "<p>Onglet non trouvé.</p>";
+                // Fallback for old tab names if necessary
+                $legacyTabFile = '';
+                if ($activeTab === 'utilisateurs') $legacyTabFile = 'utilisateur';
+                if ($activeTab === 'marques') $legacyTabFile = 'marque';
+                if ($activeTab === 'types') $legacyTabFile = 'type';
+                if ($activeTab === 'services') $legacyTabFile = 'service';
+                
+                if (!empty($legacyTabFile) && file_exists("php/tabs/{$legacyTabFile}.php")) {
+                    include "php/tabs/{$legacyTabFile}.php";
+                } else {
+                    echo "<div class='tab-content active'><p>Contenu pour '" . htmlspecialchars($activeTab) . "' non trouvé.</p></div>";
+                }
             }
             ?>
         </main>
+
     </div>
 
     <script src="js/script.js"></script>
     <script src="js/materiel_state.js"></script>
     <script>
-        // Auto-hide success/error messages after 5 seconds
-        setTimeout(function() {
-            const successMsg = document.getElementById('success-message');
-            if (successMsg) {
-                successMsg.style.display = 'none';
+        document.addEventListener('DOMContentLoaded', function () {
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('change', function () {
+                    const ste = this.checked ? 'comm' : 'prod';
+                    const currentUrl = new URL(window.location.href);
+                    currentUrl.searchParams.set('ste', ste);
+                    window.location.href = currentUrl.toString();
+                });
             }
-            const errorMsg = document.getElementById('error-message');
-            if (errorMsg) {
-                errorMsg.style.display = 'none';
+
+            const materielStateSelect = document.getElementById('materiel-state-select');
+            const damageCauseContainer = document.getElementById('damage-cause-container');
+
+            if(materielStateSelect) {
+                materielStateSelect.addEventListener('change', function() {
+                    if (this.value === 'endommage' || this.value === 'casse') {
+                        damageCauseContainer.style.display = 'block';
+                    } else {
+                        damageCauseContainer.style.display = 'none';
+                    }
+                });
             }
-        }, 5000);
+        });
+
+        function handleFormSubmit(form) {
+            // Find all buttons in the form and disable them to prevent multiple submissions
+            const buttons = form.querySelectorAll('button, input[type="submit"]');
+            buttons.forEach(button => {
+                button.disabled = true;
+            });
+            return true; // Allow the form to be submitted
+        }
+
+        function showForm(type) {
+            // Hide all other forms
+            document.querySelectorAll('.section[class*="-form"]').forEach(form => {
+                if (!form.classList.contains(type + '-form')) {
+                    form.classList.add('hide');
+                }
+            });
+            // Show the correct form
+            const form = document.querySelector('.' + type + '-form');
+            if (form) {
+                form.classList.remove('hide');
+            }
+        }
     </script>
 </body>
 </html>
