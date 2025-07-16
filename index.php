@@ -823,6 +823,198 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
 
         <!-- Matériel Tab -->
         <div id="materiel" class="mat-section tab-content <?= ($activeTab === 'materiel') ? 'active' : '' ?>">
+            
+            <!-- Add Materiel Form -->
+            <div class="section materiel-form <?= ($editMode && $editType === 'materiel') || $showFormParam === 'materiel' ? '' : 'hide' ?>">
+                <div class="form-header form-annuler">
+                    <h2><?= $editMode && $editType === 'materiel' ? 'Modifier le Matériel' : 'Ajouter un Matériel' ?></h2>
+                    <?php if (!$editMode): ?>
+                        <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                    <?php endif; ?>
+                </div>
+                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
+                    <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : $ste_filter ?>">
+                    
+                    <div class="form-group">
+                        <label>Numéro de Série:</label>
+                        <input type="text" name="NumSerie" value="<?= $editMode ? htmlspecialchars($editMateriel['NumSerie']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?> pattern="[^\s].*" title="Le numéro de série ne peut pas être vide ou contenir uniquement des espaces">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Utilisateur:</label>
+                        <select name="CodeUtilisateur" required>
+                            <option value="">Sélectionner un utilisateur</option>
+                            <?php foreach ($utilisateurs as $user): ?>
+                                <option value="<?= $user['Compte'] ?>" <?= $editMode && $user['Compte'] == $editMateriel['CodeUtilisateur'] ? 'selected' : '' ?>><?= $user['NomPrenom'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fournisseur:</label>
+                        <select name="CodeFournisseur" required>
+                            <option value="">Sélectionner un fournisseur</option>
+                            <?php foreach ($fournisseurs as $four):
+                                $isSelected = $editMode && isset($editMateriel['CodeFournisseur']) && $four['Email'] == $editMateriel['CodeFournisseur'];
+                                $displayName = !empty($four['CompanyName']) ? $four['CompanyName'] : $four['NomComplet'];
+                                ?>
+                                <option value="<?= htmlspecialchars($four['Email']) ?>" <?= $isSelected ? 'selected' : '' ?>><?= htmlspecialchars($displayName) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Marque:</label>
+                        <select name="CodeMarque" required>
+                            <option value="">Sélectionner une marque</option>
+                            <?php foreach ($marques as $marque): ?>
+                                <option value="<?= $marque['Code'] ?>" <?= $editMode && $marque['Code'] == $editMateriel['CodeMarque'] ? 'selected' : '' ?>><?= $marque['Marque'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Type:</label>
+                        <select name="CodeType" required>
+                            <option value="">Sélectionner un type</option>
+                            <?php foreach ($types as $type): ?>
+                                <option value="<?= $type['CodeType'] ?>" <?= $editMode && $type['CodeType'] == $editMateriel['CodeType'] ? 'selected' : '' ?>><?= $type['Libelle'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    
+                    <div class="form-group">
+                        <label>Modèle:</label>
+                        <input type="text" name="Model" value="<?= $editMode ? htmlspecialchars($editMateriel['Model']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Date d'entrée:</label>
+                        <input type="date" name="Dateentree" value="<?= $editMode ? htmlspecialchars($editMateriel['Dateentree']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Processeur:</label>
+                        <input type="text" name="Processeur" value="<?= $editMode ? htmlspecialchars($editMateriel['Processeur']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Carte Graphique:</label>
+                        <input type="text" name="graphique" value="<?= $editMode ? htmlspecialchars($editMateriel['graphique']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Disque Dur:</label>
+                        <input type="text" name="disqdur" value="<?= $editMode ? htmlspecialchars($editMateriel['disqdur']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Fréquence (MHz):</label>
+                        <input type="text" name="mhtz" value="<?= $editMode ? htmlspecialchars($editMateriel['mhtz']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>MO:</label>
+                        <input type="text" name="mo" value="<?= $editMode ? htmlspecialchars($editMateriel['mo']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Mémoire:</label>
+                        <input type="text" name="memoire" value="<?= $editMode ? htmlspecialchars($editMateriel['memoire']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Adresse IP:</label>
+                        <input type="text" name="ip" value="<?= $editMode ? htmlspecialchars($editMateriel['ip']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Écran:</label>
+                        <input type="text" name="ecran" value="<?= $editMode ? htmlspecialchars($editMateriel['ecran']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Pouces:</label>
+                        <input type="text" name="pouce" value="<?= $editMode ? htmlspecialchars($editMateriel['pouce']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>État:</label>
+                        <select name="stock" id="materiel-state-select">
+                            <option value="en-service" <?= $editMode && $editMateriel['stock'] === 'en-service' ? 'selected' : '' ?>>En service</option>
+                            <option value="en-stock" <?= $editMode && $editMateriel['stock'] === 'en-stock' ? 'selected' : '' ?>>En stock</option>
+                            <option value="endommage" <?= $editMode && $editMateriel['stock'] === 'endommage' ? 'selected' : '' ?>>Endommagé</option>
+                            <option value="casse" <?= $editMode && $editMateriel['stock'] === 'casse' ? 'selected' : '' ?>>Cassé</option>
+                        </select>
+                    </div>
+                    
+                    <div id="damage-cause-container" class="form-group" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
+                        <label>Cause du dommage:</label>
+                        <textarea name="damage_cause" rows="2"><?= $editMode ? htmlspecialchars($editMateriel['damage_cause'] ?? '') : '' ?></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Classification:</label>
+                        <input type="text" name="classification" value="<?= $editMode ? htmlspecialchars($editMateriel['classification']) : '' ?>">
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label>Observation:</label>
+                        <textarea name="observation" rows="3"><?= $editMode ? htmlspecialchars($editMateriel['observation']) : '' ?></textarea>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier le Matériel' : 'Ajouter le Matériel' ?></button>
+                        <?php if ($editMode): ?>
+                            <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Transfer Materiel Form -->
+            <div class="section materiel-transfer-form <?= ($transferMode && $transferType === 'materiel') ? '' : 'hide' ?>">
+                <div class="form-header">
+                    <h2>Transférer le Matériel</h2>
+                </div>
+                <form method="POST" class="form-grid">
+                    <input type="hidden" name="action" value="transfer_materiel">
+                    <input type="hidden" name="NumSerie" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['NumSerie']) : '' ?>">
+                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                    
+                    <div class="form-group">
+                        <label>Numéro de Série:</label>
+                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['NumSerie']) : '' ?>" disabled>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Matériel:</label>
+                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['Model']) : '' ?>" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Transférer vers:</label>
+                        <input type="text" name="target_STE" value="<?= ($ste_filter === 'prod') ? 'COMM' : 'PROD' ?>" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nouveau Propriétaire:</label>
+                        <select name="CodeUtilisateur" required>
+                            <option value="">Sélectionner un utilisateur</option>
+                            <?php foreach ($transfer_utilisateurs as $user): ?>
+                                <option value="<?= $user['Compte'] ?>"><?= $user['NomPrenom'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary">Confirmer le Transfert</button>
+                        <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                    </div>
+                </form>
+            </div>
+
             <!-- Section header with Ajouter button -->
             <div class="section-header">
                 <h2>Liste du Matériel</h2>
@@ -1167,50 +1359,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
 
         <!-- Utilisateurs Tab -->
         <div id="utilisateurs" class="tab-content <?= ($activeTab === 'utilisateurs') ? 'active' : '' ?>">
-            <div class="section-header">
-                <h2>Liste des Utilisateurs</h2>
-                <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&showForm=utilisateur'">Ajouter Utilisateur</button>
-                    <button class="btn-export" onclick="exportTableToExcel('utilisateurs-table', 'utilisateurs_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
-                </div>
-            </div>
-            <div class="table-container">
-                <table class="table-materiel">
-                    <thead>
-                        <tr>
-                            <th>Compte</th>
-                            <th>Nom et Prénom</th>
-                            <th>Service</th>
-                            <th>Email</th>
-                            <th>Téléphone</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($utilisateurs as $utilisateur): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($utilisateur['Compte']) ?></td>
-                            <td><?= htmlspecialchars($utilisateur['NomPrenom']) ?></td>
-                            <td><?= htmlspecialchars($utilisateur['ServiceLibelle'] ?? 'N/A') ?></td>
-                            <td><?= htmlspecialchars($utilisateur['Email'] ?? 'N/A') ?></td>
-                            <td><?= htmlspecialchars($utilisateur['Tel'] ?? 'N/A') ?></td>
-                            <td>
-                                <div class="action-buttons">
-                                    <a href="index.php?edit=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                    <a href="index.php?transfer=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer"><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
-                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
-                                        <input type="hidden" name="action" value="delete_utilisateur">
-                                        <input type="hidden" name="Compte" value="<?= $utilisateur['Compte'] ?>">
-                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+            
             <!-- Add/Modify Utilisateur Form -->
             <div class="section utilisateur-form <?= ($editMode && $editType === 'utilisateur') || $showFormParam === 'utilisateur' ? '' : 'hide' ?>">
                 <div class="form-header form-annuler">
@@ -1261,10 +1410,87 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                     </div>
                 </form>
             </div>
+
+            <!-- Section header with Ajouter button -->
+            <div class="section-header">
+                <h2>Liste des Utilisateurs</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&showForm=utilisateur'">Ajouter Utilisateur</button>
+                    <button class="btn-export" onclick="exportTableToExcel('utilisateurs-table', 'utilisateurs_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="utilisateurs-table" class="table-materiel">
+                    <thead>
+                        <tr>
+                            <th>Compte</th>
+                            <th>Nom et Prénom</th>
+                            <th>Service</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($utilisateurs as $utilisateur): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($utilisateur['Compte']) ?></td>
+                            <td><?= htmlspecialchars($utilisateur['NomPrenom']) ?></td>
+                            <td><?= htmlspecialchars($utilisateur['ServiceLibelle'] ?? 'N/A') ?></td>
+                            <td><?= htmlspecialchars($utilisateur['Email'] ?? 'N/A') ?></td>
+                            <td><?= htmlspecialchars($utilisateur['Tel'] ?? 'N/A') ?></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="index.php?edit=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <a href="index.php?transfer=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer"><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
+                                        <input type="hidden" name="action" value="delete_utilisateur">
+                                        <input type="hidden" name="Compte" value="<?= $utilisateur['Compte'] ?>">
+                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Marques Tab -->
         <div id="marques" class="tab-content <?= ($activeTab === 'marques') ? 'active' : '' ?>">
+            
+            <!-- Add/Modify Marque Form -->
+            <div class="section marque-form <?= ($editMode && $editType === 'marque') || $showFormParam === 'marque' ? '' : 'hide' ?>">
+                <div class="form-header form-annuler">
+                    <h2><?= $editMode && $editType === 'marque' ? 'Modifier la Marque' : 'Ajouter une Marque' ?></h2>
+                    <?php if (!$editMode): ?>
+                        <a href="index.php?tab=marque&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                    <?php endif; ?>
+                </div>
+                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'marque' ? 'modify_marque' : 'add_marque' ?>">
+                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                    <?php if ($editMode): ?>
+                        <input type="hidden" name="Code" value="<?= htmlspecialchars($editMarque['Code']) ?>">
+                    <?php endif; ?>
+                    
+                    <div class="form-group">
+                        <label>Marque:</label>
+                        <input type="text" name="Marque" value="<?= $editMode ? htmlspecialchars($editMarque['Marque']) : '' ?>" required>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
+                        <?php if ($editMode): ?>
+                            <a href="index.php?tab=marque&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Section header with Ajouter button -->
             <div class="section-header">
                 <h2>Liste des Marques</h2>
                 <div class="button-group">
@@ -1273,7 +1499,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                 </div>
             </div>
             <div class="table-container">
-                <table class="table-materiel">
+                <table id="marques-table" class="table-materiel">
                     <thead>
                         <tr>
                             <th>Code</th>
@@ -1302,38 +1528,41 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                     </tbody>
                 </table>
             </div>
-            <!-- Add/Modify Marque Form -->
-            <div class="section marque-form <?= ($editMode && $editType === 'marque') || $showFormParam === 'marque' ? '' : 'hide' ?>">
+        </div>
+
+        <!-- Types Tab -->
+        <div id="types" class="tab-content <?= ($activeTab === 'types') ? 'active' : '' ?>">
+            
+            <!-- Add/Modify Type Form -->
+            <div class="section type-form <?= ($editMode && $editType === 'type') || $showFormParam === 'type' ? '' : 'hide' ?>">
                 <div class="form-header form-annuler">
-                    <h2><?= $editMode && $editType === 'marque' ? 'Modifier la Marque' : 'Ajouter une Marque' ?></h2>
+                    <h2><?= $editMode && $editType === 'type' ? 'Modifier le Type' : 'Ajouter un Type' ?></h2>
                     <?php if (!$editMode): ?>
-                        <a href="index.php?tab=marque&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                        <a href="index.php?tab=type&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
                     <?php endif; ?>
                 </div>
                 <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'marque' ? 'modify_marque' : 'add_marque' ?>">
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'type' ? 'modify_type' : 'add_type' ?>">
                     <input type="hidden" name="STE" value="<?= $ste_filter ?>">
                     <?php if ($editMode): ?>
-                                               <input type="hidden" name="Code" value="<?= htmlspecialchars($editMarque['Code']) ?>">
+                        <input type="hidden" name="CodeType" value="<?= htmlspecialchars($editTypeEntity['CodeType']) ?>">
                     <?php endif; ?>
                     
                     <div class="form-group">
-                        <label>Marque:</label>
-                        <input type="text" name="Marque" value="<?= $editMode ? htmlspecialchars($editMarque['Marque']) : '' ?>" required>
+                        <label>Libellé:</label>
+                        <input type="text" name="Libelle" value="<?= $editMode ? htmlspecialchars($editTypeEntity['Libelle']) : '' ?>" required>
                     </div>
                     
                     <div class="form-group full-width">
                         <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
                         <?php if ($editMode): ?>
-                            <a href="index.php?tab=marque&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                            <a href="index.php?tab=type&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
                         <?php endif; ?>
                     </div>
                 </form>
             </div>
-        </div>
 
-        <!-- Types Tab -->
-        <div id="types" class="tab-content <?= ($activeTab === 'types') ? 'active' : '' ?>">
+            <!-- Section header with Ajouter button -->
             <div class="section-header">
                 <h2>Liste des Types</h2>
                 <div class="button-group">
@@ -1342,12 +1571,13 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                 </div>
             </div>
             <div class="table-container">
-                <table class="table-materiel">
+                <table id="types-table" class="table-materiel">
                     <thead>
                         <tr>
                             <th>Code</th>
                             <th>Libellé</th>
-                            <th>Actions</th                        </tr>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($types as $type): ?>
@@ -1370,75 +1600,11 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                     </tbody>
                 </table>
             </div>
-            <!-- Add/Modify Type Form -->
-            <div class="section type-form <?= ($editMode && $editType === 'type') || $showFormParam === 'type' ? '' : 'hide' ?>">
-                                              <div class="form-header form-annuler">
-                    <h2><?= $editMode && $editType === 'type' ? 'Modifier le Type' : 'Ajouter un Type' ?></h2>
-                    <?php if (!$editMode): ?>
-                        <a href="index.php?tab=type&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
-                    <?php endif; ?>
-                </div>
-                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'type' ? 'modify_type' : 'add_type' ?>">
-                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                    <?php if ($editMode): ?>
-                        <input type="hidden" name="CodeType" value="<?= htmlspecialchars($editTypeEntity['CodeType']) ?>">
-                    <?php endif; ?>
-                    
-                    <div class="form-group">
-                        <label>Libellé:</label>
-                        <input type="text" name="Libelle" value="<?= $editMode ? htmlspecialchars($editTypeEntity['Libelle']) : '' ?>" required>
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
-                        <?php if ($editMode): ?>
-                                                       <a href="index.php?tab=type&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
-                        <?php endif; ?>
-                    </div>
-                </form>
-            </div>
         </div>
 
         <!-- Services Tab -->
         <div id="services" class="tab-content <?= ($activeTab === 'services') ? 'active' : '' ?>">
-            <div class="section-header">
-                <h2>Liste des Services</h2>
-                <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=service&ste=<?= urlencode($ste_filter) ?>&showForm=service'">Ajouter Service</button>
-                    <button class="btn-export" onclick="exportTableToExcel('services-table', 'services_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
-                </div>
-            </div>
-            <div class="table-container">
-                <table class="table-materiel">
-                    <thead>
-                        <tr>
-                            <th>Code</th>
-                            <th>Libellé</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($services as $service): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($service['CodeService']) ?></td>
-                            <td><?= htmlspecialchars($service['Libelle']) ?></td>
-                            <td>
-                                <div class="action-buttons">
-                                    <a href="index.php?edit=<?= $service['CodeService'] ?>&type=service&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce service ?');">
-                                        <input type="hidden" name="action" value="delete_service">
-                                        <input type="hidden" name="CodeService" value="<?= $service['CodeService'] ?>">
-                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+            
             <!-- Add/Modify Service Form -->
             <div class="section service-form <?= ($editMode && $editType === 'service') || $showFormParam === 'service' ? '' : 'hide' ?>">
                 <div class="form-header form-annuler">
@@ -1467,45 +1633,35 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                     </div>
                 </form>
             </div>
-        </div>
 
-        <!-- Fournisseurs Tab -->
-        <div id="fournisseurs" class="tab-content <?= ($activeTab === 'fournisseurs') ? 'active' : '' ?>">
+            <!-- Section header with Ajouter button -->
             <div class="section-header">
-                <h2>Liste des Fournisseurs</h2>
+                <h2>Liste des Services</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=fournisseurs&showForm=fournisseur'">Ajouter Fournisseur</button>
-                    <button class="btn-export" onclick="exportTableToExcel('fournisseurs-table', 'fournisseurs_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=service&ste=<?= urlencode($ste_filter) ?>&showForm=service'">Ajouter Service</button>
+                    <button class="btn-export" onclick="exportTableToExcel('services-table', 'services_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
-                <table class="table-materiel">
+                <table id="services-table" class="table-materiel">
                     <thead>
                         <tr>
-                            <th>Email</th>
-                            <th>Société</th>
-                            <th>Nom Complet</th>
-                            <th>Adresse</th>
-                            <th>Tel Fixe</th>
-                            <th>Tel Mobile</th>
+                            <th>Code</th>
+                            <th>Libellé</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($fournisseurs as $fournisseur): ?>
+                        <?php foreach ($services as $service): ?>
                         <tr>
-                            <td><?= htmlspecialchars($fournisseur['Email']) ?></td>
-                            <td><?= htmlspecialchars($fournisseur['CompanyName']) ?></td>
-                            <td><?= htmlspecialchars($fournisseur['NomComplet']) ?></td>
-                            <td><?= htmlspecialchars($fournisseur['Adress']) ?></td>
-                            <td><?= htmlspecialchars($fournisseur['TelFix']) ?></td>
-                            <td><?= htmlspecialchars($fournisseur['TelMobile']) ?></td>
+                            <td><?= htmlspecialchars($service['CodeService']) ?></td>
+                            <td><?= htmlspecialchars($service['Libelle']) ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="index.php?edit=<?= urlencode($fournisseur['Email']) ?>&type=fournisseur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce fournisseur ?');">
-                                        <input type="hidden" name="action" value="delete_fournisseur">
-                                        <input type="hidden" name="Email" value="<?= $fournisseur['Email'] ?>">
+                                    <a href="index.php?edit=<?= $service['CodeService'] ?>&type=service&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce service ?');">
+                                        <input type="hidden" name="action" value="delete_service">
+                                        <input type="hidden" name="CodeService" value="<?= $service['CodeService'] ?>">
                                         <input type="hidden" name="STE" value="<?= $ste_filter ?>">
                                         <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
                                     </form>
@@ -1516,6 +1672,11 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- Fournisseurs Tab -->
+        <div id="fournisseurs" class="tab-content <?= ($activeTab === 'fournisseurs') ? 'active' : '' ?>">
+            
             <!-- Add/Modify Fournisseur Form -->
             <div class="section fournisseur-form <?= ($editMode && $editType === 'fournisseur') || $showFormParam === 'fournisseur' ? '' : 'hide' ?>">
                 <div class="form-header form-annuler">
@@ -1565,6 +1726,53 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                         <?php endif; ?>
                     </div>
                 </form>
+            </div>
+
+            <!-- Section header with Ajouter button -->
+            <div class="section-header">
+                <h2>Liste des Fournisseurs</h2>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=fournisseurs&showForm=fournisseur'">Ajouter Fournisseur</button>
+                    <button class="btn-export" onclick="exportTableToExcel('fournisseurs-table', 'fournisseurs_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="fournisseurs-table" class="table-materiel">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Société</th>
+                            <th>Nom Complet</th>
+                            <th>Adresse</th>
+                            <th>Tel Fixe</th>
+                            <th>Tel Mobile</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($fournisseurs as $fournisseur): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($fournisseur['Email']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['CompanyName']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['NomComplet']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['Adress']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['TelFix']) ?></td>
+                            <td><?= htmlspecialchars($fournisseur['TelMobile']) ?></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="index.php?edit=<?= urlencode($fournisseur['Email']) ?>&type=fournisseur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce fournisseur ?');">
+                                        <input type="hidden" name="action" value="delete_fournisseur">
+                                        <input type="hidden" name="Email" value="<?= $fournisseur['Email'] ?>">
+                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
