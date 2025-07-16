@@ -686,35 +686,8 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion de Matériel</title>
-    <style>
-        /* ... existing styles ... */
-        .state-filters {
-            margin-bottom: 20px;
-            padding-bottom: 1px;
-            border-bottom: 1px solid #ccc;
-            display: flex;
-        }
-        .state-filters a {
-            padding: 8px 16px;
-            text-decoration: none;
-            color: #333;
-            border: 1px solid transparent;
-            border-bottom: none;
-            margin-right: 5px;
-            border-radius: 4px 4px 0 0;
-            position: relative;
-            bottom: -1px;
-            background-color: #f1f1f1;
-        }
-        .state-filters a.active {
-            font-weight: bold;
-            background-color: #fff;
-            border-color: #ccc #ccc transparent #ccc;
-        }
-        .state-filters a:hover {
-            background-color: #e9e9e9;
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/materiel_state.css">
 </head>
 <body class="theme-<?= htmlspecialchars($ste_filter) ?>">
     <div class="container">
