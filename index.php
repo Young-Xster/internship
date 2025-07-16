@@ -32,421 +32,427 @@ if ($_POST) {
     $tab = $_GET['tab'] ?? 'materiel';
     $ste = $_POST['STE'] ?? 'prod';
 
-    if ($action === 'add_materiel') {
-        $stmt = $pdoo->prepare("INSERT INTO MATERIEL (NumSerie, DateRecep, Model, ID_Type, ID_Marque, ID_Fournisseur, STE) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        
-        // Only include damage_cause if state requires it
-        $damageCause = null;
-        if ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse') {
-            $damageCause = $_POST['damage_cause'] ?? null;
-        }
-        
-        $stmt->execute([
-            $serial,  
-            $codeUtilisateur, 
-            $codeMarque, 
-            $codeType, 
-            $codeFournisseur,
-            $_POST['STE'], 
-            $_POST['Model'], 
-            $dateentree, 
-            $_POST['Processeur'],
-            $_POST['graphique'], 
-            $_POST['disqdur'], 
-            $_POST['mhtz'], 
-            $_POST['mo'],
-            $_POST['memoire'], 
-            $_POST['ip'], 
-            $_POST['ecran'], 
-            $_POST['pouce'],
-            $_POST['observation'], 
-            $_POST['stock'], 
-            $_POST['classification'],
-            $damageCause
-        ]);
+    switch ($action) {
+        case 'add_materiel':
+            try {
+                $stmt = $pdoo->prepare("INSERT INTO MATERIEL (NumSerie, DateRecep, Model, ID_Type, ID_Marque, ID_Fournisseur, STE) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                
+                // Only include damage_cause if state requires it
+                $damageCause = null;
+                if ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse') {
+                    $damageCause = $_POST['damage_cause'] ?? null;
+                }
+                
+                $stmt->execute([
+                    $serial,  
+                    $codeUtilisateur, 
+                    $codeMarque, 
+                    $codeType, 
+                    $codeFournisseur,
+                    $_POST['STE'], 
+                    $_POST['Model'], 
+                    $dateentree, 
+                    $_POST['Processeur'],
+                    $_POST['graphique'], 
+                    $_POST['disqdur'], 
+                    $_POST['mhtz'], 
+                    $_POST['mo'],
+                    $_POST['memoire'], 
+                    $_POST['ip'], 
+                    $_POST['ecran'], 
+                    $_POST['pouce'],
+                    $_POST['observation'], 
+                    $_POST['stock'], 
+                    $_POST['classification'],
+                    $damageCause
+                ]);
 
 
-        // All email notification functionality removed to improve performance
+                // All email notification functionality removed to improve performance
 
-        $success_message = "Le matériel a été ajouté avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de l'ajout du matériel: " . $e->getMessage();
-    }
-    break;
-    
-case 'add_utilisateur':
-    try {
-        // Check if user already exists in ANY environment
-        $checkStmt = $pdo->prepare("SELECT Compte, STE FROM utilisateur WHERE Compte = ?");
-        $checkStmt->execute([$_POST['Compte']]);
-        if ($existing_user = $checkStmt->fetch()) {
-            $existing_dept = strtoupper(htmlspecialchars($existing_user['STE']));
-            $error_message = "Ce compte utilisateur existe déjà dans l'environnement " . $existing_dept . ". Un utilisateur ne peut exister que dans un seul environnement.";
-            break;
-        }
-        
-        $stmt = $pdo->prepare("INSERT INTO utilisateur (Compte, CodeService, Email, NomPrenom, Tel, STE) VALUES (?, ?, ?, ?, ?, ?)");
-        $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
-        $stmt->execute([$_POST['Compte'], $codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE']]);
-        $success_message = "L'utilisateur a été ajouté avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de l'ajout de l'utilisateur: " . $e->getMessage();
-    }
-    break;
-    
-case 'add_marque':
-    try {
-        
-        $maxCodeStmt = $pdo->query("SELECT MAX(Code) as max_code FROM marque");
-        $maxCode = $maxCodeStmt->fetchColumn();
-        $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
-
-        $stmt = $pdo->prepare("INSERT INTO marque (Code, Marque) VALUES (?, ?)");
-        $stmt->execute([$newCode, $_POST['Marque']]);
-        $success_message = "La marque a été ajoutée avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de l'ajout de la marque. Veuillez réessayer.";
-    }
-    break;
-    
-case 'add_type':
-    try {
-     
-        $maxCodeStmt = $pdo->query("SELECT MAX(CodeType) as max_code FROM type");
-        $maxCode = $maxCodeStmt->fetchColumn();
-        $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
-
-        $stmt = $pdo->prepare("INSERT INTO type (CodeType, Libelle) VALUES (?, ?)");
-        $stmt->execute([$newCode, $_POST['Libelle']]);
-        $success_message = "Le type a été ajouté avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de l'ajout du type. Veuillez réessayer.";
-    }
-    break;
-    
-case 'add_service':
-    try {
-        // Auto-generate the next CodeService
-        $maxCodeStmt = $pdo->query("SELECT MAX(CodeService) as max_code FROM service");
-        $maxCode = $maxCodeStmt->fetchColumn();
-        $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
-
-        $stmt = $pdo->prepare("INSERT INTO service (CodeService, Libelle, STE) VALUES (?, ?, ?)");
-        $stmt->execute([$newCode, $_POST['Libelle'], $_POST['STE']]);
-        $success_message = "Le service a été ajouté avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de l'ajout du service: " . $e->getMessage();
-    }
-    break;
-    
-case 'add_fournisseur':
-    try {
-        $stmt = $pdo->prepare("INSERT INTO fournisseur (Email, CompanyName, NomComplet, Adress, TelFix, TelMobile) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$_POST['Email'], $_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile']]);
-        $success_message = "Le fournisseur a été ajouté avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de l'ajout du fournisseur. Veuillez vérifier les informations et réessayer.";
-    }
-    break;
-    
-case 'delete_materiel':
-        try {
-            $stmt = $pdo->prepare("DELETE FROM materiel WHERE NumSerie = ?");
-            $stmt->execute([$_POST['NumSerie']]);
-            $success_message = "Le matériel a été supprimé avec succès.";
-        } catch (PDOException $e) {
-            $error_message = "Une erreur est survenue lors de la suppression du matériel. Il se peut qu'il soit encore lié à d'autres enregistrements.";
-        }
-        break;
-case 'delete_utilisateur':
-    try {
-        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeUtilisateur = ?");
-        $checkStmt->execute([$_POST['Compte']]);
-        $count = $checkStmt->fetchColumn();
-
-        if ($count > 0) {
-            $error_message = "L'utilisateur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
-        } else {
-            $stmt = $pdo->prepare("DELETE FROM utilisateur WHERE Compte = ?");
-            $stmt->execute([$_POST['Compte']]);
-            $success_message = "L'utilisateur a été supprimé avec succès.";
-        }
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la suppression de l'utilisateur.";
-    }
-    break;
-case 'delete_marque':
-    try {
-        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeMarque = ?");
-        $checkStmt->execute([$_POST['Code']]);
-        $count = $checkStmt->fetchColumn();
-
-        if ($count > 0) {
-            $error_message = "La marque ne peut pas être supprimée car elle est liée à " . $count . " matériel(s).";
-        } else {
-            $stmt = $pdo->prepare("DELETE FROM marque WHERE Code = ?");
-            $stmt->execute([$_POST['Code']]);
-            $success_message = "La marque a été supprimée avec succès.";
-        }
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la suppression de la marque.";
-    }
-    break;
-case 'delete_type':
-    try {
-        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeType = ?");
-        $checkStmt->execute([$_POST['CodeType']]);
-        $count = $checkStmt->fetchColumn();
-
-        if ($count > 0) {
-            $error_message = "Le type ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
-        } else {
-            $stmt = $pdo->prepare("DELETE FROM type WHERE CodeType = ?");
-            $stmt->execute([$_POST['CodeType']]);
-            $success_message = "Le type a été supprimé avec succès.";
-        }
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la suppression du type.";
-    }
-    break;
-case 'delete_service':
-    try {
-        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM utilisateur WHERE CodeService = ?");
-        $checkStmt->execute([$_POST['CodeService']]);
-        $count = $checkStmt->fetchColumn();
-
-        if ($count > 0) {
-            $error_message = "Le service ne peut pas être supprimé car il est lié à " . $count . " utilisateur(s).";
-        } else {
-            $stmt = $pdo->prepare("DELETE FROM service WHERE CodeService = ?");
-            $stmt->execute([$_POST['CodeService']]);
-            $success_message = "Le service a été supprimé avec succès.";
-        }
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la suppression du service.";
-    }
-    break;
-        
-case 'delete_fournisseur':
-    try {
-        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeFournisseur = ?");
-        $checkStmt->execute([$_POST['Email']]);
-        $count = $checkStmt->fetchColumn();
-
-        if ($count > 0) {
-            $error_message = "Le fournisseur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
-        } else {
-            $stmt = $pdo->prepare("DELETE FROM fournisseur WHERE Email = ?");
-            $stmt->execute([$_POST['Email']]);
-            $success_message = "Le fournisseur a été supprimé avec succès.";
-        }
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la suppression du fournisseur.";
-    }
-    break;
-    
-case 'modify_materiel':
-    if (empty($_POST['NumSerie']) || trim($_POST['NumSerie']) === '') {
-        $error_message = "Le numéro de série est obligatoire.";
-        break;
-    }
-    
-    $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
-    $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
-    $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
-    $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
-    
-    $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : NULL;
-    
-    try {
-        // Get current state to check if it's changed
-        $prevStateStmt = $pdo->prepare("SELECT stock FROM materiel WHERE NumSerie = ?");
-        $prevStateStmt->execute([trim($_POST['NumSerie'])]);
-        $prevState = $prevStateStmt->fetchColumn();
-        
-        // Only include damage_cause if state requires it
-        $damageCause = null;
-        if ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse') {
-            $damageCause = $_POST['damage_cause'] ?? null;
-        }
-        
-        $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, CodeMarque = ?, CodeType = ?, CodeFournisseur = ?, STE = ?, Model = ?, Dateentree = ?, Processeur = ?, graphique = ?, disqdur = ?, mhtz = ?, mo = ?, memoire = ?, ip = ?, ecran = ?, pouce = ?, observation = ?, stock = ?, classification = ?, damage_cause = ? WHERE NumSerie = ?");
-        $stmt->execute([
-            $codeUtilisateur, $codeMarque, $codeType, $codeFournisseur,
-            $_POST['STE'], $_POST['Model'], $dateentree, $_POST['Processeur'],
-            $_POST['graphique'], $_POST['disqdur'], $_POST['mhtz'], $_POST['mo'],
-            $_POST['memoire'], $_POST['ip'], $_POST['ecran'], $_POST['pouce'],
-            $_POST['observation'], $_POST['stock'], $_POST['classification'],
-            $damageCause, trim($_POST['NumSerie'])
-        ]);
-        
-        // Record state change in history if state has changed
-        if ($prevState !== $_POST['stock']) {
-            $historyStmt = $pdo->prepare("INSERT INTO materiel_history (numserie, prev_state, new_state, date_change, user_id, notes) VALUES (?, ?, ?, NOW(), ?, 'Changement via formulaire de modification')");
-            $historyStmt->execute([
-                trim($_POST['NumSerie']),
-                $prevState,
-                $_POST['stock'],
-                NULL // Would be current user ID in a real authentication system
-            ]);
-        }
-        $success_message = "Le matériel a été modifié avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la modification du matériel. Veuillez vérifier les informations et réessayer.";
-    }
-    break;
-case 'modify_utilisateur':
-    try {
-        $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
-        $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, Email = ?, NomPrenom = ?, Tel = ?, STE = ? WHERE Compte = ?");
-        $stmt->execute([$codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE'], $_POST['Compte']]);
-        $success_message = "L'utilisateur a été modifié avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la modification de l'utilisateur. Veuillez vérifier les informations et réessayer.";
-    }
-    break;
-case 'modify_marque':
-    try {
-        $stmt = $pdo->prepare("UPDATE marque SET Marque = ? WHERE Code = ?");
-        $stmt->execute([$_POST['Marque'], $_POST['Code']]);
-        $success_message = "La marque a été modifiée avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la modification de la marque. Veuillez réessayer.";
-    }
-    break;
-case 'modify_type':
-    try {
-        $stmt = $pdo->prepare("UPDATE type SET Libelle = ? WHERE CodeType = ?");
-        $stmt->execute([$_POST['Libelle'], $_POST['CodeType']]);
-        $success_message = "Le type a été modifié avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la modification du type. Veuillez réessayer.";
-    }
-    break;
-case 'modify_service':
-    try {
-        $stmt = $pdo->prepare("UPDATE service SET Libelle = ?, STE = ? WHERE CodeService = ?");
-        $stmt->execute([$_POST['Libelle'], $_POST['STE'], $_POST['CodeService']]);
-        $success_message = "Le service a été modifié avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la modification du service. Veuillez réessayer.";
-    }
-    break;
-    
-case 'modify_fournisseur':
-    try {
-        $stmt = $pdo->prepare("UPDATE fournisseur SET CompanyName = ?, NomComplet = ?, Adress = ?, TelFix = ?, TelMobile = ? WHERE Email = ?");
-        $stmt->execute([$_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile'], $_POST['Email']]);
-        $success_message = "Le fournisseur a été modifié avec succès.";
-    } catch (PDOException $e) {
-        $error_message = "Une erreur est survenue lors de la modification du fournisseur. Veuillez vérifier les informations et réessayer.";
-    }
-    break;
-    case 'transfer_materiel':
-        try {
-            $num_serie = $_POST['NumSerie'];
-            $code_utilisateur = $_POST['CodeUtilisateur'];
-            $current_ste = $_POST['STE'];
-            $target_ste = $_POST['target_STE'];
-            
-            // Get current material info before update
-            $prevStmt = $pdo->prepare("SELECT m.*, u.NomPrenom FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte WHERE m.NumSerie = ?");
-            $prevStmt->execute([$num_serie]);
-            $prevMaterial = $prevStmt->fetch();
-            $oldUserName = $prevMaterial['NomPrenom'] ?? 'Non attribué';
-            
-            // Get new user info
-            $newUserStmt = $pdo->prepare("SELECT NomPrenom FROM utilisateur WHERE Compte = ?");
-            $newUserStmt->execute([$code_utilisateur]);
-            $newUserName = $newUserStmt->fetchColumn() ?? 'Non attribué';
-            
-            // Update the material record with the new user and change STE
-            $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, STE = ? WHERE NumSerie = ?");
-            $stmt->execute([$code_utilisateur, $target_ste, $num_serie]);
-            
-            $success_message = "Le matériel a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
-        } catch (PDOException $e) {
-            $error_message = "Erreur lors du transfert du matériel: " . $e->getMessage();
-        }
-        break;
-    case 'transfer_utilisateur':
-        try {
-            $compte = $_POST['Compte'];
-            $code_service = $_POST['CodeService'];
-            $target_ste = $_POST['target_STE'];
-            
-            // Update the user with the new service and change STE
-            $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, STE = ? WHERE Compte = ?");
-            $stmt->execute([$code_service, $target_ste, $compte]);
-            
-            $success_message = "L'utilisateur a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
-        } catch (PDOException $e) {
-            $error_message = "Erreur lors du transfert de l'utilisateur: " . $e->getMessage();
-        }
-        break;
-case 'change_state':
-    $numSerie = $_POST['NumSerie'] ?? '';
-    $stock = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
-    $redirectState = $_POST['redirect_state'] ?? $selected_state ?? 'en-service';
-    $redirectSte = $_POST['STE'] ?? $ste_filter ?? 'prod';
-    if ($numSerie !== '') {
-        $stmt = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
-        $stmt->execute([$stock, $numSerie]);
-        $success_message = "État du matériel mis à jour.";
-    }
-    header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState));
-    exit;
-case 'fin_inventaire':
-    $present = isset($_POST['present']) ? $_POST['present'] : [];
-    $state_filter = $_POST['state'] ?? null;
-    $ste_param = $_POST['ste'] ?? $ste_filter;
-    // Select all materials for the given STE that are not already in inventory
-    $query = "SELECT NumSerie FROM materiel WHERE STE = ? AND (inventair = 0 OR inventair IS NULL)";
-    $params = [$ste_param];
-    if ($state_filter && in_array($state_filter, ['en-service','en-stock','endommage','casse'])) {
-        $query .= " AND stock = ?";
-        $params[] = $state_filter;
-    }
-    $stmt = $pdo->prepare($query);
-    $stmt->execute($params);
-    $materiel_nums = array_column($stmt->fetchAll(), 'NumSerie');
-    
-    $pdo->beginTransaction();
-    try {
-        foreach ($materiel_nums as $num) {
-            if (in_array($num, $present)) {
-                // Checked: stays in main list (or comes back from inventaire)
-                $update = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
-                $update->execute([$num]);
-            } else {
-                // Unchecked: goes to inventaire list
-                $update = $pdo->prepare('UPDATE materiel SET inventair = 1, dateinvent = NOW() WHERE NumSerie = ?');
-                $update->execute([$num]);
+                $success_message = "Le matériel a été ajouté avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de l'ajout du matériel: " . $e->getMessage();
             }
-        }
-        $pdo->commit();
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        $error_message = "Erreur lors de la finalisation de l'inventaire: " . $e->getMessage();
-        // To display the error, we can't redirect. We need to fall through.
-        // But the rest of the script assumes a redirect. So we'll redirect with an error flag.
-        header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&error=1');
-        exit;
-    }
+            break;
+    
+        case 'add_utilisateur':
+            try {
+                // Check if user already exists in ANY environment
+                $checkStmt = $pdo->prepare("SELECT Compte, STE FROM utilisateur WHERE Compte = ?");
+                $checkStmt->execute([$_POST['Compte']]);
+                if ($existing_user = $checkStmt->fetch()) {
+                    $existing_dept = strtoupper(htmlspecialchars($existing_user['STE']));
+                    $error_message = "Ce compte utilisateur existe déjà dans l'environnement " . $existing_dept . ". Un utilisateur ne peut exister que dans un seul environnement.";
+                    break;
+                }
+                
+                $stmt = $pdo->prepare("INSERT INTO utilisateur (Compte, CodeService, Email, NomPrenom, Tel, STE) VALUES (?, ?, ?, ?, ?, ?)");
+                $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
+                $stmt->execute([$_POST['Compte'], $codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE']]);
+                $success_message = "L'utilisateur a été ajouté avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de l'ajout de l'utilisateur: " . $e->getMessage();
+            }
+            break;
+            
+        case 'add_marque':
+            try {
+                
+                $maxCodeStmt = $pdo->query("SELECT MAX(Code) as max_code FROM marque");
+                $maxCode = $maxCodeStmt->fetchColumn();
+                $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
 
-    header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success=1');
-    exit;
-case 'recuperer_inventaire':
-    $numSerie = $_POST['NumSerie'] ?? '';
-    $current_ste = $_POST['STE'] ?? 'prod';
-    if ($numSerie !== '') {
-        $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
-        $stmt->execute([$numSerie]);
-        $success_message = "Le matériel a été récupéré dans la liste principale.";
+                $stmt = $pdo->prepare("INSERT INTO marque (Code, Marque) VALUES (?, ?)");
+                $stmt->execute([$newCode, $_POST['Marque']]);
+                $success_message = "La marque a été ajoutée avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de l'ajout de la marque. Veuillez réessayer.";
+            }
+            break;
+            
+        case 'add_type':
+            try {
+         
+                $maxCodeStmt = $pdo->query("SELECT MAX(CodeType) as max_code FROM type");
+                $maxCode = $maxCodeStmt->fetchColumn();
+                $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
+
+                $stmt = $pdo->prepare("INSERT INTO type (CodeType, Libelle) VALUES (?, ?)");
+                $stmt->execute([$newCode, $_POST['Libelle']]);
+                $success_message = "Le type a été ajouté avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de l'ajout du type. Veuillez réessayer.";
+            }
+            break;
+            
+        case 'add_service':
+            try {
+                // Auto-generate the next CodeService
+                $maxCodeStmt = $pdo->query("SELECT MAX(CodeService) as max_code FROM service");
+                $maxCode = $maxCodeStmt->fetchColumn();
+                $newCode = ($maxCode === null || $maxCode == 0) ? 1 : $maxCode + 1;
+
+                $stmt = $pdo->prepare("INSERT INTO service (CodeService, Libelle, STE) VALUES (?, ?, ?)");
+                $stmt->execute([$newCode, $_POST['Libelle'], $_POST['STE']]);
+                $success_message = "Le service a été ajouté avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de l'ajout du service: " . $e->getMessage();
+            }
+            break;
+            
+        case 'add_fournisseur':
+            try {
+                $stmt = $pdo->prepare("INSERT INTO fournisseur (Email, CompanyName, NomComplet, Adress, TelFix, TelMobile) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$_POST['Email'], $_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile']]);
+                $success_message = "Le fournisseur a été ajouté avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de l'ajout du fournisseur. Veuillez vérifier les informations et réessayer.";
+            }
+            break;
+            
+        case 'delete_materiel':
+                try {
+                    $stmt = $pdo->prepare("DELETE FROM materiel WHERE NumSerie = ?");
+                    $stmt->execute([$_POST['NumSerie']]);
+                    $success_message = "Le matériel a été supprimé avec succès.";
+                } catch (PDOException $e) {
+                    $error_message = "Une erreur est survenue lors de la suppression du matériel. Il se peut qu'il soit encore lié à d'autres enregistrements.";
+                }
+                break;
+        case 'delete_utilisateur':
+            try {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeUtilisateur = ?");
+                $checkStmt->execute([$_POST['Compte']]);
+                $count = $checkStmt->fetchColumn();
+
+                if ($count > 0) {
+                    $error_message = "L'utilisateur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
+                } else {
+                    $stmt = $pdo->prepare("DELETE FROM utilisateur WHERE Compte = ?");
+                    $stmt->execute([$_POST['Compte']]);
+                    $success_message = "L'utilisateur a été supprimé avec succès.";
+                }
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la suppression de l'utilisateur.";
+            }
+            break;
+        case 'delete_marque':
+            try {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeMarque = ?");
+                $checkStmt->execute([$_POST['Code']]);
+                $count = $checkStmt->fetchColumn();
+
+                if ($count > 0) {
+                    $error_message = "La marque ne peut pas être supprimée car elle est liée à " . $count . " matériel(s).";
+                } else {
+                    $stmt = $pdo->prepare("DELETE FROM marque WHERE Code = ?");
+                    $stmt->execute([$_POST['Code']]);
+                    $success_message = "La marque a été supprimée avec succès.";
+                }
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la suppression de la marque.";
+            }
+            break;
+        case 'delete_type':
+            try {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeType = ?");
+                $checkStmt->execute([$_POST['CodeType']]);
+                $count = $checkStmt->fetchColumn();
+
+                if ($count > 0) {
+                    $error_message = "Le type ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
+                } else {
+                    $stmt = $pdo->prepare("DELETE FROM type WHERE CodeType = ?");
+                    $stmt->execute([$_POST['CodeType']]);
+                    $success_message = "Le type a été supprimé avec succès.";
+                }
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la suppression du type.";
+            }
+            break;
+        case 'delete_service':
+            try {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM utilisateur WHERE CodeService = ?");
+                $checkStmt->execute([$_POST['CodeService']]);
+                $count = $checkStmt->fetchColumn();
+
+                if ($count > 0) {
+                    $error_message = "Le service ne peut pas être supprimé car il est lié à " . $count . " utilisateur(s).";
+                } else {
+                    $stmt = $pdo->prepare("DELETE FROM service WHERE CodeService = ?");
+                    $stmt->execute([$_POST['CodeService']]);
+                    $success_message = "Le service a été supprimé avec succès.";
+                }
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la suppression du service.";
+            }
+            break;
+                
+        case 'delete_fournisseur':
+            try {
+                $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeFournisseur = ?");
+                $checkStmt->execute([$_POST['Email']]);
+                $count = $checkStmt->fetchColumn();
+
+                if ($count > 0) {
+                    $error_message = "Le fournisseur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
+                } else {
+                    $stmt = $pdo->prepare("DELETE FROM fournisseur WHERE Email = ?");
+                    $stmt->execute([$_POST['Email']]);
+                    $success_message = "Le fournisseur a été supprimé avec succès.";
+                }
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la suppression du fournisseur.";
+            }
+            break;
+        
+        case 'modify_materiel':
+            if (empty($_POST['NumSerie']) || trim($_POST['NumSerie']) === '') {
+                $error_message = "Le numéro de série est obligatoire.";
+                break;
+            }
+            
+            $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
+            $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
+            $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
+            $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
+            
+            $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : NULL;
+            
+            try {
+                // Get current state to check if it's changed
+                $prevStateStmt = $pdo->prepare("SELECT stock FROM materiel WHERE NumSerie = ?");
+                $prevStateStmt->execute([trim($_POST['NumSerie'])]);
+                $prevState = $prevStateStmt->fetchColumn();
+                
+                // Only include damage_cause if state requires it
+                $damageCause = null;
+                if ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse') {
+                    $damageCause = $_POST['damage_cause'] ?? null;
+                }
+                
+                $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, CodeMarque = ?, CodeType = ?, CodeFournisseur = ?, STE = ?, Model = ?, Dateentree = ?, Processeur = ?, graphique = ?, disqdur = ?, mhtz = ?, mo = ?, memoire = ?, ip = ?, ecran = ?, pouce = ?, observation = ?, stock = ?, classification = ?, damage_cause = ? WHERE NumSerie = ?");
+                $stmt->execute([
+                    $codeUtilisateur, $codeMarque, $codeType, $codeFournisseur,
+                    $_POST['STE'], $_POST['Model'], $dateentree, $_POST['Processeur'],
+                    $_POST['graphique'], $_POST['disqdur'], $_POST['mhtz'], $_POST['mo'],
+                    $_POST['memoire'], $_POST['ip'], $_POST['ecran'], $_POST['pouce'],
+                    $_POST['observation'], $_POST['stock'], $_POST['classification'],
+                    $damageCause, trim($_POST['NumSerie'])
+                ]);
+                
+                // Record state change in history if state has changed
+                if ($prevState !== $_POST['stock']) {
+                    $historyStmt = $pdo->prepare("INSERT INTO materiel_history (numserie, prev_state, new_state, date_change, user_id, notes) VALUES (?, ?, ?, NOW(), ?, 'Changement via formulaire de modification')");
+                    $historyStmt->execute([
+                        trim($_POST['NumSerie']),
+                        $prevState,
+                        $_POST['stock'],
+                        NULL // Would be current user ID in a real authentication system
+                    ]);
+                }
+                $success_message = "Le matériel a été modifié avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la modification du matériel. Veuillez vérifier les informations et réessayer.";
+            }
+            break;
+        case 'modify_utilisateur':
+            try {
+                $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
+                $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, Email = ?, NomPrenom = ?, Tel = ?, STE = ? WHERE Compte = ?");
+                $stmt->execute([$codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE'], $_POST['Compte']]);
+                $success_message = "L'utilisateur a été modifié avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la modification de l'utilisateur. Veuillez vérifier les informations et réessayer.";
+            }
+            break;
+        case 'modify_marque':
+            try {
+                $stmt = $pdo->prepare("UPDATE marque SET Marque = ? WHERE Code = ?");
+                $stmt->execute([$_POST['Marque'], $_POST['Code']]);
+                $success_message = "La marque a été modifiée avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la modification de la marque. Veuillez réessayer.";
+            }
+            break;
+        case 'modify_type':
+            try {
+                $stmt = $pdo->prepare("UPDATE type SET Libelle = ? WHERE CodeType = ?");
+                $stmt->execute([$_POST['Libelle'], $_POST['CodeType']]);
+                $success_message = "Le type a été modifié avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la modification du type. Veuillez réessayer.";
+            }
+            break;
+        case 'modify_service':
+            try {
+                $stmt = $pdo->prepare("UPDATE service SET Libelle = ?, STE = ? WHERE CodeService = ?");
+                $stmt->execute([$_POST['Libelle'], $_POST['STE'], $_POST['CodeService']]);
+                $success_message = "Le service a été modifié avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la modification du service. Veuillez réessayer.";
+            }
+            break;
+            
+        case 'modify_fournisseur':
+            try {
+                $stmt = $pdo->prepare("UPDATE fournisseur SET CompanyName = ?, NomComplet = ?, Adress = ?, TelFix = ?, TelMobile = ? WHERE Email = ?");
+                $stmt->execute([$_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile'], $_POST['Email']]);
+                $success_message = "Le fournisseur a été modifié avec succès.";
+            } catch (PDOException $e) {
+                $error_message = "Une erreur est survenue lors de la modification du fournisseur. Veuillez vérifier les informations et réessayer.";
+            }
+            break;
+            case 'transfer_materiel':
+                try {
+                    $num_serie = $_POST['NumSerie'];
+                    $code_utilisateur = $_POST['CodeUtilisateur'];
+                    $current_ste = $_POST['STE'];
+                    $target_ste = $_POST['target_STE'];
+                    
+                    // Get current material info before update
+                    $prevStmt = $pdo->prepare("SELECT m.*, u.NomPrenom FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte WHERE m.NumSerie = ?");
+                    $prevStmt->execute([$num_serie]);
+                    $prevMaterial = $prevStmt->fetch();
+                    $oldUserName = $prevMaterial['NomPrenom'] ?? 'Non attribué';
+                    
+                    // Get new user info
+                    $newUserStmt = $pdo->prepare("SELECT NomPrenom FROM utilisateur WHERE Compte = ?");
+                    $newUserStmt->execute([$code_utilisateur]);
+                    $newUserName = $newUserStmt->fetchColumn() ?? 'Non attribué';
+                    
+                    // Update the material record with the new user and change STE
+                    $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, STE = ? WHERE NumSerie = ?");
+                    $stmt->execute([$code_utilisateur, $target_ste, $num_serie]);
+                    
+                    $success_message = "Le matériel a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
+                } catch (PDOException $e) {
+                    $error_message = "Erreur lors du transfert du matériel: " . $e->getMessage();
+                }
+                break;
+            case 'transfer_utilisateur':
+                try {
+                    $compte = $_POST['Compte'];
+                    $code_service = $_POST['CodeService'];
+                    $target_ste = $_POST['target_STE'];
+                    
+                    // Update the user with the new service and change STE
+                    $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, STE = ? WHERE Compte = ?");
+                    $stmt->execute([$code_service, $target_ste, $compte]);
+                    
+                    $success_message = "L'utilisateur a été transféré avec succès vers le département " . strtoupper($target_ste) . ".";
+                } catch (PDOException $e) {
+                    $error_message = "Erreur lors du transfert de l'utilisateur: " . $e->getMessage();
+                }
+                break;
+            case 'change_state':
+                $numSerie = $_POST['NumSerie'] ?? '';
+                $stock = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
+                $redirectState = $_POST['redirect_state'] ?? $selected_state ?? 'en-service';
+                $redirectSte = $_POST['STE'] ?? $ste_filter ?? 'prod';
+                if ($numSerie !== '') {
+                    $stmt = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
+                    $stmt->execute([$stock, $numSerie]);
+                    $success_message = "État du matériel mis à jour.";
+                }
+                header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState));
+                exit;
+            case 'fin_inventaire':
+                $present = isset($_POST['present']) ? $_POST['present'] : [];
+                $state_filter = $_POST['state'] ?? null;
+                $ste_param = $_POST['ste'] ?? $ste_filter;
+                // Select all materials for the given STE that are not already in inventory
+                $query = "SELECT NumSerie FROM materiel WHERE STE = ? AND (inventair = 0 OR inventair IS NULL)";
+                $params = [$ste_param];
+                if ($state_filter && in_array($state_filter, ['en-service','en-stock','endommage','casse'])) {
+                    $query .= " AND stock = ?";
+                    $params[] = $state_filter;
+                }
+                $stmt = $pdo->prepare($query);
+                $stmt->execute($params);
+                $materiel_nums = array_column($stmt->fetchAll(), 'NumSerie');
+                
+                $pdo->beginTransaction();
+                try {
+                    foreach ($materiel_nums as $num) {
+                        if (in_array($num, $present)) {
+                            // Checked: stays in main list (or comes back from inventaire)
+                            $update = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
+                            $update->execute([$num]);
+                        } else {
+                            // Unchecked: goes to inventaire list
+                            $update = $pdo->prepare('UPDATE materiel SET inventair = 1, dateinvent = NOW() WHERE NumSerie = ?');
+                            $update->execute([$num]);
+                        }
+                    }
+                    $pdo->commit();
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    $error_message = "Erreur lors de la finalisation de l'inventaire: " . $e->getMessage();
+                    // To display the error, we can't redirect. We need to fall through.
+                    // But the rest of the script assumes a redirect. So we'll redirect with an error flag.
+                    header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&error=1');
+                    exit;
+                }
+
+                header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success=1');
+                exit;
+            case 'recuperer_inventaire':
+                $numSerie = $_POST['NumSerie'] ?? '';
+                $current_ste = $_POST['STE'] ?? 'prod';
+                if ($numSerie !== '') {
+                    $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
+                    $stmt->execute([$numSerie]);
+                    $success_message = "Le matériel a été récupéré dans la liste principale.";
+                }
+                // Redirect back to the inventaire tab to see the list update
+                header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
+                exit;
+        }
+    } catch (Exception $e) {
+        $error_message = "Erreur lors du traitement de la demande: " . $e->getMessage();
     }
-    // Redirect back to the inventaire tab to see the list update
-    header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
-    exit;
 }
 
 $success_message = isset($_GET['success']) ? "Opération réalisée avec succès!" : (isset($success_message) ? $success_message : null);
@@ -673,10 +679,35 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion de Matériel</title>
-    <link rel="icon" type="image/png" href="imgs/Logo_AAF.JPG">
-    <link rel="stylesheet" href="css/style.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="css/export_styles.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="css/materiel_state.css?v=<?= time() ?>">
+    <style>
+        /* ... existing styles ... */
+        .state-filters {
+            margin-bottom: 20px;
+            padding-bottom: 1px;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+        }
+        .state-filters a {
+            padding: 8px 16px;
+            text-decoration: none;
+            color: #333;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            bottom: -1px;
+            background-color: #f1f1f1;
+        }
+        .state-filters a.active {
+            font-weight: bold;
+            background-color: #fff;
+            border-color: #ccc #ccc transparent #ccc;
+        }
+        .state-filters a:hover {
+            background-color: #e9e9e9;
+        }
+    </style>
 </head>
 <body class="theme-<?= htmlspecialchars($ste_filter) ?>">
     <div class="container">
@@ -755,11 +786,11 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
 
         <?php if ($activeTab === 'materiel' && !$inventaire_mode): ?>
         <div class="state-filters">
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=all" class="filter-link <?= ($selected_state === 'all') ? 'active' : '' ?>">Tous</a>
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=en-service" class="filter-link state-en-service <?= ($selected_state === 'en-service') ? 'active' : '' ?>">En service</a>
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=en-stock" class="filter-link state-en-stock <?= ($selected_state === 'en-stock') ? 'active' : '' ?>">En stock</a>
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=endommage" class="filter-link state-endommage <?= ($selected_state === 'endommage') ? 'active' : '' ?>">Endommagé</a>
-            <a href="?tab=materiel&ste=<?= htmlspecialchars($ste_filter) ?>&state=casse" class="filter-link state-casse <?= ($selected_state === 'casse') ? 'active' : '' ?>">Cassé</a>
+            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=all" class="<?= $selected_state === 'all' ? 'active' : '' ?>">Tous</a>
+            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-service" class="<?= $selected_state === 'en-service' ? 'active' : '' ?>">En service</a>
+            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-stock" class="<?= $selected_state === 'en-stock' ? 'active' : '' ?>">En stock</a>
+            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=endommage" class="<?= $selected_state === 'endommage' ? 'active' : '' ?>">Endommagé</a>
+            <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Cassé</a>
         </div>
         <?php endif; ?>
 
@@ -1359,7 +1390,7 @@ $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] =
                                     </form>
                                 </div>
                             </td>
-                        </tr>
+                                               </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
