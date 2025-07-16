@@ -987,14 +987,14 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                     <!-- <div class="form-group">
                         <label>État:</label>
                         <select name="stock" id="materiel-state-select">
-                            <option value="en-service" <?= $editMode && $editMateriel['stock'] === 'en-service' ? 'selected' : '' ?>>En service</option>
-                            <option value="en-stock" <?= $editMode && $editMateriel['stock'] === 'en-stock' ? 'selected' : '' ?>>En stock</option>
-                            <option value="endommage" <?= $editMode && $editMateriel['stock'] === 'endommage' ? 'selected' : '' ?>>Endommagé</option>
-                            <option value="casse" <?= $editMode && $editMateriel['stock'] === 'casse' ? 'selected' : '' ?>>Cassé</option>
+                            <option value="en-service" <?= $editMode && isset($editMateriel['stock']) && $editMateriel['stock'] === 'en-service' ? 'selected' : '' ?>>En service</option>
+                            <option value="en-stock" <?= $editMode && isset($editMateriel['stock']) && $editMateriel['stock'] === 'en-stock' ? 'selected' : '' ?>>En stock</option>
+                            <option value="endommage" <?= $editMode && isset($editMateriel['stock']) && $editMateriel['stock'] === 'endommage' ? 'selected' : '' ?>>Endommagé</option>
+                            <option value="casse" <?= $editMode && isset($editMateriel['stock']) && $editMateriel['stock'] === 'casse' ? 'selected' : '' ?>>Cassé</option>
                         </select>
                     </div> -->
                     
-                    <div id="damage-cause-container" class="form-group" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
+                    <div id="damage-cause-container" class="form-group" style="display: <?= $editMode && (isset($editMateriel['stock']) && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse')) ? 'block' : 'none' ?>;">
                         <label>Cause du dommage:</label>
                         <textarea name="damage_cause" rows="2"><?= $editMode ? htmlspecialchars($editMateriel['damage_cause'] ?? '') : '' ?></textarea>
                     </div>
@@ -1115,16 +1115,18 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                                         <input type="hidden" name="redirect_state" value="<?= htmlspecialchars($selected_state) ?>">
                                         <select name="stock" onchange="this.form.submit()">
                                             <?php foreach ($stockLabelMap as $val => $label): ?>
-                                                <option value="<?= $val ?>" <?= ($materiel['stock'] == $val) ? 'selected' : '' ?>><?= $label ?></option>
+                                            <option value="<?= $val ?>" <?= (isset($materiel['stock']) && $materiel['stock'] == $val) ? 'selected' : '' ?>><?= $label ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </form>
                                     <?php else: ?>
                                         <?php 
-                                            $stockVal = $materiel['stock'];
+                                            $stockVal = $materiel['stock'] ?? 0;
                                             if (is_numeric($stockVal)) {
+                                                $stateLabel = $stockLabelMap[$stockVal] ?? '';
+                                            } else {
+                                                $stateLabel = $stockLabelMap[$stateToStock[$stockVal] ?? 0] ?? '';
                                             }
-                                            $stateLabel = $stockLabelMap[$stateToStock[$stockVal] ?? 0] ?? '';
                                             $stateClass = 'state-' . ($stockVal ?? 'en-service');
                                         ?>
                                         <span class="<?= $stateClass ?>" style="margin-left:8px;"> <?= $stateLabel ?> </span>
