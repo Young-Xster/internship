@@ -262,48 +262,72 @@ if ($_POST) {
                 }
                 break;
             
+
+            
+            
             case 'modify_materiel':
                 if (empty($_POST['NumSerie']) || trim($_POST['NumSerie']) === '') {
                     $error_message = "Le numéro de série est obligatoire.";
                     break;
                 }
                 
-                $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
-                $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
-                $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
-                $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
-                
-                $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : NULL;
-                
                 try {
-                    // Fetch original user to check for transfer
-                    $original_materiel_stmt = $pdo->prepare("SELECT CodeUtilisateur, STE FROM materiel WHERE NumSerie = ?");
+                    // Get original material data for comparison
+                    $original_materiel_stmt = $pdo->prepare("SELECT CodeUtilisateur, STE, stock FROM materiel WHERE NumSerie = ?");
                     $original_materiel_stmt->execute([trim($_POST['NumSerie'])]);
                     $original_materiel = $original_materiel_stmt->fetch(PDO::FETCH_ASSOC);
                     $original_user = $original_materiel['CodeUtilisateur'];
                     $original_ste = $original_materiel['STE'];
 
-                    $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, CodeMarque = ?, CodeType = ?, CodeFournisseur = ?, STE = ?, Model = ?, Dateentree = ?, Processeur = ?, graphique = ?, disqdur = ?, mhtz = ?, mo = ?, memoire = ?, ip = ?, ecran = ?, pouce = ?, observation = ?, classification = ? WHERE NumSerie = ?");
-                    $stmt->execute([
-                        $codeUtilisateur, $codeMarque, $codeType, $codeFournisseur,
-                        $_POST['STE'], $_POST['Model'], $dateentree, $_POST['Processeur'],
-                        $_POST['graphique'], $_POST['disqdur'], $_POST['mhtz'], $_POST['mo'],
-                        $_POST['memoire'], $_POST['ip'], $_POST['ecran'], $_POST['pouce'],
-                        $_POST['observation'], $_POST['classification'],
-                        trim($_POST['NumSerie'])
-                    ]);
-                    
-                    // Log transfer if user has changed
-                    $new_user = $_POST['CodeUtilisateur'];
-                    if ($original_user !== $new_user) {
-                        $history_stmt = $pdo->prepare("INSERT INTO materiel_history (NumSerie, previous_owner, new_owner, previous_ste, new_ste, change_date, changed_by) VALUES (?, ?, ?, ?, ?, NOW(), ?)");
-                        $history_stmt->execute([trim($_POST['NumSerie']), $original_user, $new_user, $original_ste, $_POST['STE'], 'system']); // Assuming 'system' as changer for now
+                    // Handle form data exactly like add_materiel
+                    $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
+                    $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
+                    $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
+                    $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
+                    $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : NULL;
+                    $serial = trim($_POST['NumSerie']);
+
+                    // Handle damage cause exactly like add_materiel
+                    $damageCause = null;
+                    if (isset($_POST['stock']) && ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse')) {
+                        $damageCause = $_POST['damage_cause'] ?? null;
                     }
 
+                    // Use the stock value directly as string
+                    $stock = $_POST['stock'] ?? 'en-service';
+                            
+                    // Update material first - this part works
+                    $stmt = $pdo->prepare("UPDATE materiel SET 
+                        Dateentree = ?, Model = ?, CodeType = ?, CodeMarque = ?, CodeFournisseur = ?, 
+                        STE = ?, CodeUtilisateur = ?, Processeur = ?, graphique = ?, disqdur = ?, 
+                        mhtz = ?, mo = ?, memoire = ?, ip = ?, ecran = ?, pouce = ?, 
+                        observation = ?, stock = ?, classification = ?, damage_cause = ? 
+                        WHERE NumSerie = ?");
+
+                    $stmt->execute([
+                        $dateentree, $_POST['Model'], $codeType, $codeMarque, $codeFournisseur,
+                        $_POST['STE'], $codeUtilisateur, $_POST['Processeur'], $_POST['graphique'], $_POST['disqdur'],
+                        $_POST['mhtz'], $_POST['mo'], $_POST['memoire'], $_POST['ip'], $_POST['ecran'], $_POST['pouce'],
+                        $_POST['observation'], $stock, $_POST['classification'], $damageCause, $serial
+                    ]);
+
+                    // Try history logging separately, don't let it block the redirect
+                    try {
+                        $new_user = $_POST['CodeUtilisateur'];
+                        if ($original_user !== $new_user) {
+                            $history_stmt = $pdo->prepare("INSERT INTO materiel_history (NumSerie, previous_owner_id, new_owner_id, previous_ste, new_ste, change_date, changed_by) VALUES (?, ?, ?, ?, ?, NOW(), ?)");
+                            $history_stmt->execute([trim($_POST['NumSerie']), $original_user, $new_user, $original_ste, $_POST['STE'], 'system']);
+                        }
+                    } catch (Exception $historyEx) {
+                        // Just log history error but continue with redirect
+                        file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - History Error: " . $historyEx->getMessage() . "\n", FILE_APPEND);
+                    }
+
+                    // Always redirect after successful update
                     header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&success=modify_materiel");
                     exit();
                 } catch (PDOException $e) {
-                    // Detailed error logging
+                    // Log detailed error
                     $log_message = date('Y-m-d H:i:s') . " - Modify Materiel Error: " . $e->getMessage() . "\n";
                     file_put_contents(__DIR__ . '/error.log', $log_message, FILE_APPEND);
                     
@@ -992,7 +1016,22 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                         <label>Classification:</label>
                         <input type="text" name="classification" value="<?= $editMode ? htmlspecialchars($editMateriel['classification']) : '' ?>">
                     </div>
-                    
+
+                    <div class="form-group">
+                        <label>État:</label>
+                        <select name="stock" id="materiel-state-select" onchange="toggleDamageCause(this.value)">
+                            <option value="en-service" <?= $editMode && $editMateriel['stock'] === 'en-service' ? 'selected' : '' ?>>En service</option>
+                            <option value="en-stock" <?= $editMode && $editMateriel['stock'] === 'en-stock' ? 'selected' : '' ?>>En stock</option>
+                            <option value="endommage" <?= $editMode && $editMateriel['stock'] === 'endommage' ? 'selected' : '' ?>>Endommagé</option>
+                            <option value="casse" <?= $editMode && $editMateriel['stock'] === 'casse' ? 'selected' : '' ?>>Cassé</option>
+                        </select>
+                    </div>
+
+                    <div id="damage-cause-group" class="form-group" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
+                        <label>Cause du dommage:</label>
+                        <textarea name="damage_cause" rows="2"><?= $editMode ? htmlspecialchars($editMateriel['damage_cause'] ?? '') : '' ?></textarea>
+                    </div>
+
                     <div class="form-group full-width">
                         <label>Observation:</label>
                         <textarea name="observation" rows="3"><?= $editMode ? htmlspecialchars($editMateriel['observation']) : '' ?></textarea>
