@@ -262,15 +262,8 @@ if ($_POST) {
                 }
                 break;
             
-
-            
-            
+          
             case 'modify_materiel':
-                if (empty($_POST['NumSerie']) || trim($_POST['NumSerie']) === '') {
-                    $error_message = "Le numéro de série est obligatoire.";
-                    break;
-                }
-                
                 try {
                     // Get original material data for comparison
                     $original_materiel_stmt = $pdo->prepare("SELECT CodeUtilisateur, STE, stock FROM materiel WHERE NumSerie = ?");
@@ -278,8 +271,9 @@ if ($_POST) {
                     $original_materiel = $original_materiel_stmt->fetch(PDO::FETCH_ASSOC);
                     $original_user = $original_materiel['CodeUtilisateur'];
                     $original_ste = $original_materiel['STE'];
+                    $original_stock = $original_materiel['stock'];
 
-                    // Handle form data exactly like add_materiel
+                    // Handle form data
                     $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
                     $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
                     $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
@@ -287,7 +281,7 @@ if ($_POST) {
                     $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : NULL;
                     $serial = trim($_POST['NumSerie']);
 
-                    // Handle damage cause exactly like add_materiel
+                    // Handle damage cause
                     $damageCause = null;
                     if (isset($_POST['stock']) && ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse')) {
                         $damageCause = $_POST['damage_cause'] ?? null;
@@ -296,7 +290,7 @@ if ($_POST) {
                     // Use the stock value directly as string
                     $stock = $_POST['stock'] ?? 'en-service';
                             
-                    // Update material first - this part works
+                    // Update material first
                     $stmt = $pdo->prepare("UPDATE materiel SET 
                         Dateentree = ?, Model = ?, CodeType = ?, CodeMarque = ?, CodeFournisseur = ?, 
                         STE = ?, CodeUtilisateur = ?, Processeur = ?, graphique = ?, disqdur = ?, 
@@ -311,12 +305,33 @@ if ($_POST) {
                         $_POST['observation'], $stock, $_POST['classification'], $damageCause, $serial
                     ]);
 
-                    // Try history logging separately, don't let it block the redirect
+                    // Try history logging using the correct table structure
                     try {
                         $new_user = $_POST['CodeUtilisateur'];
-                        if ($original_user !== $new_user) {
-                            $history_stmt = $pdo->prepare("INSERT INTO materiel_history (NumSerie, previous_owner_id, new_owner_id, previous_ste, new_ste, change_date, changed_by) VALUES (?, ?, ?, ?, ?, NOW(), ?)");
-                            $history_stmt->execute([trim($_POST['NumSerie']), $original_user, $new_user, $original_ste, $_POST['STE'], 'system']);
+                        $new_ste = $_POST['STE'];
+                        
+                        // Log changes in user or state
+                        if ($original_user !== $new_user || $original_stock !== $stock) {
+                            // Use the actual table structure from your screenshot
+                            $history_stmt = $pdo->prepare("INSERT INTO materiel_history 
+                                (numserie, prev_state, new_state, date_change, user_id, notes) 
+                                VALUES (?, ?, ?, NOW(), ?, ?)");
+                            
+                            $notes = "Modification: ";
+                            if ($original_user !== $new_user) {
+                                $notes .= "Utilisateur changé de $original_user à $new_user. ";
+                            }
+                            if ($original_stock !== $stock) {
+                                $notes .= "État changé de $original_stock à $stock.";
+                            }
+                            
+                            $history_stmt->execute([
+                                $serial,
+                                $original_stock,
+                                $stock,
+                                'system',
+                                $notes
+                            ]);
                         }
                     } catch (Exception $historyEx) {
                         // Just log history error but continue with redirect
@@ -332,17 +347,6 @@ if ($_POST) {
                     file_put_contents(__DIR__ . '/error.log', $log_message, FILE_APPEND);
                     
                     $error_message = "Une erreur est survenue lors de la modification du matériel. Veuillez vérifier les informations et réessayer.";
-                }
-                break;
-            case 'modify_utilisateur':
-                try {
-                    $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
-                    $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, Email = ?, NomPrenom = ?, Tel = ?, STE = ? WHERE Compte = ?");
-                    $stmt->execute([$codeService, $_POST['Email'], $_POST['NomPrenom'], $_POST['Tel'], $_POST['STE'], $_POST['Compte']]);
-                    header("Location: index.php?tab=utilisateur&ste=" . urlencode($_POST['STE']) . "&success=modify_user");
-                    exit();
-                } catch (PDOException $e) {
-                    $error_message = "Une erreur est survenue lors de la modification de l'utilisateur. Veuillez vérifier les informations et réessayer.";
                 }
                 break;
             case 'modify_marque':
