@@ -1158,10 +1158,12 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                 <h2>Matériel en Inventaire</h2>
                 <div class="button-group">
                     <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&inventaire_mode=1'">Début inventaire</button>
-                    <button class="btn-export" onclick="exportTableToExcel('inventaire-table', 'inventaire_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                    <a href="export_pdf.php" class="btn btn-primary">
+                        <i class="fas fa-file-pdf"></i> Exporter en PDF
+                    </a>
                 </div>
             </div>
-            <div class="table-container">
+            <div class="table-responsive">
                 <table id="inventaire-table" class="table-materiel">
                     <thead>
                         <tr>
