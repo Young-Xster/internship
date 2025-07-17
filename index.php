@@ -1122,6 +1122,9 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                     <?php if (!$inventaire_mode): ?>
                     <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=materiel'">Ajouter Matériel</button>
                     <button class="btn-export" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                    <a href="export_csv.php" class="btn btn-primary">
+                        <i class="fas fa-file-csv"></i> Exporter en CSV
+                    </a>
                     <?php else: ?>
                     <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler l'Inventaire</a>
                     <?php endif; ?>
@@ -1222,12 +1225,6 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
         <div id="inventaire" class="tab-content <?= ($activeTab === 'inventaire') ? 'active' : '' ?>">
             <div class="section-header">
                 <h2>Matériel en Inventaire</h2>
-                <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&inventaire_mode=1'">Début inventaire</button>
-                    <a href="export_pdf.php" class="btn btn-primary">
-                        <i class="fas fa-file-pdf"></i> Exporter en PDF
-                    </a>
-                </div>
             </div>
             <div class="table-responsive">
                 <table id="inventaire-table" class="table-materiel">
@@ -1364,7 +1361,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                                     </form>
                                 </div>
                             </td>
-                        </tr>
+                                               </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>

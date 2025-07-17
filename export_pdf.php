@@ -51,6 +51,15 @@ foreach ($data as $row) {
     $groupedData[$ste][$service][$user][] = $row;
 }
 
+// Get image path and encode it in base64
+$logoPath = realpath('imgs/Logo_AAF.JPG');
+$logoBase64 = '';
+if ($logoPath) {
+    $logoType = pathinfo($logoPath, PATHINFO_EXTENSION);
+    $logoData = file_get_contents($logoPath);
+    $logoBase64 = 'data:image/' . $logoType . ';base64,' . base64_encode($logoData);
+}
+
 // Generate HTML content for the PDF
 ob_start();
 ?>
@@ -75,7 +84,9 @@ ob_start();
 </head>
 <body>
     <div class="header">
-        <img src="<?php echo realpath('imgs/Logo_AAF.JPG'); ?>" alt="Logo AAF">
+        <?php if ($logoBase64): ?>
+            <img src="<?php echo $logoBase64; ?>" alt="Logo AAF">
+        <?php endif; ?>
         <h1>Inventaire Matériel - AAF</h1>
     </div>
 
@@ -126,8 +137,7 @@ $html = ob_get_clean();
 // Configure Dompdf
 $options = new Options();
 $options->set('isHtml5ParserEnabled', true);
-$options->set('isRemoteEnabled', false); 
-$options->set('chroot', realpath('')); // Set chroot to the application root
+$options->set('isRemoteEnabled', false);
 
 $dompdf = new Dompdf($options);
 $dompdf->loadHtml($html);
