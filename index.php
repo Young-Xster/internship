@@ -305,38 +305,61 @@ if ($_POST) {
                         $_POST['observation'], $stock, $_POST['classification'], $damageCause, $serial
                     ]);
 
-                    // Try history logging using the correct table structure
-                    try {
-                        $new_user = $_POST['CodeUtilisateur'];
-                        $new_ste = $_POST['STE'];
-                        
-                        // Log changes in user or state
-                        if ($original_user !== $new_user || $original_stock !== $stock) {
-                            // Use the actual table structure from your screenshot
-                            $history_stmt = $pdo->prepare("INSERT INTO materiel_history 
-                                (numserie, prev_state, new_state, date_change, user_id, notes) 
-                                VALUES (?, ?, ?, NOW(), ?, ?)");
-                            
-                            $notes = "Modification: ";
-                            if ($original_user !== $new_user) {
-                                $notes .= "Utilisateur changé de $original_user à $new_user. ";
-                            }
-                            if ($original_stock !== $stock) {
-                                $notes .= "État changé de $original_stock à $stock.";
-                            }
-                            
-                            $history_stmt->execute([
-                                $serial,
-                                $original_stock,
-                                $stock,
-                                'system',
-                                $notes
-                            ]);
+                    
+                try {
+                    $new_user = $_POST['CodeUtilisateur'];
+                    $new_ste = $_POST['STE'];
+                    
+                    // Get the user names
+                    $prev_user_stmt = $pdo->prepare("SELECT NomPrenom FROM utilisateur WHERE Compte = ?");
+                    $new_user_stmt = $pdo->prepare("SELECT NomPrenom FROM utilisateur WHERE Compte = ?");
+                    
+                    $prev_user_name = 'Utilisateur inconnu';
+                    $new_user_name = 'Utilisateur inconnu';
+                    
+                    if ($original_user) {
+                        $prev_user_stmt->execute([$original_user]);
+                        $prev_user_result = $prev_user_stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($prev_user_result) {
+                            $prev_user_name = $prev_user_result['NomPrenom'];
                         }
-                    } catch (Exception $historyEx) {
-                        // Just log history error but continue with redirect
-                        file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - History Error: " . $historyEx->getMessage() . "\n", FILE_APPEND);
                     }
+                    
+                    if ($new_user) {
+                        $new_user_stmt->execute([$new_user]);
+                        $new_user_result = $new_user_stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($new_user_result) {
+                            $new_user_name = $new_user_result['NomPrenom'];
+                        }
+                    }
+                    
+                    // Log changes in user or state
+                    if ($original_user !== $new_user || $original_stock !== $stock) {
+                        // Use the actual table structure from your screenshot
+                        $history_stmt = $pdo->prepare("INSERT INTO materiel_history 
+                            (numserie, prev_state, new_state, date_change, user_id, notes) 
+                            VALUES (?, ?, ?, NOW(), ?, ?)");
+                        
+                        $notes = "Modification: ";
+                        if ($original_user !== $new_user) {
+                            $notes .= "Utilisateur changé de $prev_user_name à $new_user_name. ";
+                        }
+                        if ($original_stock !== $stock) {
+                            $notes .= "État changé de " . ($stockLabelMap[$original_stock] ?? $original_stock) . " à " . ($stockLabelMap[$stock] ?? $stock) . ".";
+                        }
+                        
+                        $history_stmt->execute([
+                            $serial,
+                            $original_stock,
+                            $stock,
+                            'system',
+                            $notes
+                        ]);
+                    }
+                } catch (Exception $historyEx) {
+                    // Just log history error but continue with redirect
+                    file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - History Error: " . $historyEx->getMessage() . "\n", FILE_APPEND);
+                }
 
                     // Always redirect after successful update
                     header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&success=modify_materiel");
