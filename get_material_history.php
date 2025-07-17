@@ -1,200 +1,240 @@
 <?php
+
 require_once 'php/config.php';
 
-// Check for GET parameter
-if (!isset($_GET['numserie']) || empty($_GET['numserie'])) {
-    die("Erreur: Numéro de série non fourni.");
-}
+// State mapping for readable display
+$stockLabelMap = [
+    0 => 'En service',
+    1 => 'En stock',
+    2 => 'Endommagé',
+    3 => 'Cassé',
+    'en-service' => 'En service',
+    'en-stock' => 'En stock',
+    'endommage' => 'Endommagé',
+    'casse' => 'Cassé'
+];
 
-$numserie = $_GET['numserie'];
-$ste = $_GET['ste'] ?? 'prod'; // Default to 'prod' if not set
+$numSerie = $_GET['numserie'] ?? '';
+$ste = $_GET['ste'] ?? 'prod';
+
+if (empty($numSerie)) {
+    echo "Numéro de série manquant.";
+    exit;
+}
 
 try {
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Get material basic info first
+    $material_stmt = $pdo->prepare("SELECT m.*, ma.Marque, t.Libelle as TypeLibelle 
+                                   FROM materiel m 
+                                   LEFT JOIN marque ma ON m.CodeMarque = ma.Code 
+                                   LEFT JOIN type t ON m.CodeType = t.CodeType 
+                                   WHERE m.NumSerie = ?");
+    $material_stmt->execute([$numSerie]);
+    $material = $material_stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Fetch transfer history for the given serial number
-    // We join with the 'utilisateurs' table twice to get the names of the previous and new users.
-    $sql = "SELECT 
-                h.date_change,
-                h.prev_state,
-                h.new_state,
-                u_prev.NomPrenom as prev_user,
-                u_new.NomPrenom as new_user,
-                h.cause,
-                h.notes
-            FROM 
-                materiel_history h
-            LEFT JOIN 
-                utilisateur u_prev ON h.prev_state = u_prev.Compte
-            LEFT JOIN 
-                utilisateur u_new ON h.new_state = u_new.Compte
-            WHERE 
-                h.numserie = :numserie
-            ORDER BY 
-                h.date_change DESC";
+    if (!$material) {
+        echo "Matériel non trouvé.";
+        exit;
+    }
+
+    // Get history with user names
+    $history_stmt = $pdo->prepare("
+        SELECT 
+            h.*, 
+            u_prev.NomPrenom as previous_username,
+            u_new.NomPrenom as new_username,
+            u_user.NomPrenom as changed_by_name
+        FROM 
+            materiel_history h
+        LEFT JOIN 
+            utilisateur u_prev ON h.previous_owner = u_prev.Compte
+        LEFT JOIN 
+            utilisateur u_new ON h.new_owner = u_new.Compte
+        LEFT JOIN 
+            utilisateur u_user ON h.user_id = u_user.Compte
+        WHERE 
+            h.numserie = ?
+        ORDER BY 
+            h.date_change DESC
+    ");
+    $history_stmt->execute([$numSerie]);
+    $history = $history_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Also get legacy history records (if table structure changed)
+    $legacy_history_stmt = $pdo->prepare("
+        SELECT * FROM materiel_history 
+        WHERE numserie = ? AND prev_state IS NOT NULL
+        ORDER BY date_change DESC
+    ");
+    $legacy_history_stmt->execute([$numSerie]);
+    $legacy_history = $legacy_history_stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['numserie' => $numserie]);
-    $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Get material details for the page header
-    $stmt_materiel = $pdo->prepare("SELECT Model, NumSerie FROM materiel WHERE NumSerie = :numserie");
-    $stmt_materiel->execute(['numserie' => $numserie]);
-    $materiel = $stmt_materiel->fetch(PDO::FETCH_ASSOC);
+    // Merge all history records if needed
+    if (!empty($legacy_history)) {
+        $history = array_merge($history, $legacy_history);
+        // Sort by date
+        usort($history, function($a, $b) {
+            return strtotime($b['date_change']) - strtotime($a['date_change']);
+        });
+    }
 
 } catch (PDOException $e) {
-    die("Erreur de connexion à la base de données: " . $e->getMessage());
+    echo "Erreur lors de la récupération de l'historique : " . $e->getMessage();
+    exit;
 }
+
+// HTML content starts here
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historique des Transferts - <?= htmlspecialchars($numserie) ?></title>
+    <title>Historique du Matériel</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
         body {
-            background-color: #f8f9fa;
-            color: #333;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f9f9f9;
         }
-        .container {
+        .history-container {
             max-width: 800px;
-            margin: 50px auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        .history-header {
+        .history-title {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 20px;
         }
-        .history-header h1 {
-            color: #343a40;
-            font-weight: 600;
-        }
-        .history-header p {
-            color: #6c757d;
-            font-size: 1.1rem;
-        }
-        .history-timeline {
-            list-style: none;
-            padding: 0;
+        .history-item {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f8f8;
             position: relative;
         }
-        .history-timeline::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 15px;
-            width: 3px;
-            background: #e9ecef;
+        .history-date {
+            color: #666;
+            font-size: 0.9em;
         }
-        .timeline-item {
-            margin-bottom: 25px;
-            position: relative;
-            padding-left: 45px;
+        .history-details {
+            margin-top: 10px;
+        }
+        .transfer-icon {
+            font-size: 24px;
+            color: #4285F4;
+            margin: 0 10px;
+        }
+        .user-change, .state-change {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .user-box, .state-box {
+            padding: 8px 15px;
+            background: #e9eef6;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .notes {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+        .btn-back {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px auto;
+            cursor: pointer;
+            border-radius: 4px;
+            display: block;
+            width: 120px;
         }
         .timeline-icon {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #667eea;
+            background: #4285F4;
             color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            border: 3px solid #fff;
-        }
-        .timeline-content {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-        .timeline-date {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 10px;
-        }
-        .transfer-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 1.05rem;
-        }
-        .user-badge {
-            padding: 5px 15px;
-            border-radius: 20px;
-            background-color: #e9ecef;
-            color: #495057;
-            font-weight: 500;
-        }
-        .transfer-arrow {
-            font-size: 1.5rem;
-            color: #6c757d;
-        }
-        .no-history {
-            text-align: center;
-            padding: 30px;
-            font-size: 1.1rem;
-            color: #6c757d;
-        }
-        .back-link {
-            display: inline-block;
-            margin-top: 30px;
-            padding: 10px 20px;
-            background-color: #6c757d;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
-        .back-link:hover {
-            background-color: #5a6268;
+            position: absolute;
+            left: -20px;
+            top: 15px;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="history-header">
+<body class="theme-<?= htmlspecialchars($ste) ?>">
+    <div class="history-container">
+        <div class="history-title">
             <h1>Historique des Transferts</h1>
-            <?php if ($materiel): ?>
-                <p><strong>Modèle:</strong> <?= htmlspecialchars($materiel['Model']) ?> | <strong>N° Série:</strong> <?= htmlspecialchars($materiel['NumSerie']) ?></p>
-            <?php endif; ?>
+            <p>Modèle: <?= htmlspecialchars($material['Model'] ?? 'N/A') ?> | N° Série: <?= htmlspecialchars($numSerie) ?></p>
         </div>
 
         <?php if (empty($history)): ?>
-            <p class="no-history">Aucun historique de transfert pour ce matériel.</p>
+            <p>Aucun historique disponible pour ce matériel.</p>
         <?php else: ?>
-            <ul class="history-timeline">
-                <?php foreach ($history as $item): ?>
-                    <li class="timeline-item">
-                        <div class="timeline-icon">&#8644;</div>
-                        <div class="timeline-content">
-                            <p class="timeline-date"><?= date('d/m/Y à H:i', strtotime($item['date_change'])) ?></p>
-                            <div class="transfer-info">
-                                <span class="user-badge"><?= htmlspecialchars($item['prev_user'] ?? 'Ancien Utilisateur Inconnu') ?></span>
-                                <span class="transfer-arrow">&rarr;</span>
-                                <span class="user-badge"><?= htmlspecialchars($item['new_user'] ?? 'N/A') ?></span>
+            <?php foreach ($history as $record): ?>
+                <div class="history-item">
+                    <div class="timeline-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+                        </svg>
+                    </div>
+                    <div class="history-date">
+                        <?= date('d/m/Y à H:i', strtotime($record['date_change'])) ?>
+                    </div>
+                    <div class="history-details">
+                        <?php if (isset($record['previous_owner']) && isset($record['new_owner']) && $record['previous_owner'] !== $record['new_owner']): ?>
+                            <div class="user-change">
+                                <span class="user-box"><?= htmlspecialchars($record['previous_username'] ?? $record['previous_owner'] ?? 'Ancien Utilisateur') ?></span>
+                                <span class="transfer-icon">→</span>
+                                <span class="user-box"><?= htmlspecialchars($record['new_username'] ?? $record['new_owner'] ?? 'Nouvel Utilisateur') ?></span>
                             </div>
-                        </div>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
+                        <?php endif; ?>
 
-        <div style="text-align: center;">
-            <a href="index.php?tab=materiel&ste=<?= htmlspecialchars($ste) ?>" class="back-link">Retour</a>
-        </div>
+                        <?php if (isset($record['prev_state']) && isset($record['new_state']) && $record['prev_state'] !== $record['new_state']): ?>
+                            <div class="state-change">
+                                <span class="state-box"><?= htmlspecialchars($stockLabelMap[$record['prev_state']] ?? $record['prev_state']) ?></span>
+                                <span class="transfer-icon">→</span>
+                                <span class="state-box"><?= htmlspecialchars($stockLabelMap[$record['new_state']] ?? $record['new_state']) ?></span>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($record['notes'])): ?>
+                            <div class="notes">
+                                <?= htmlspecialchars($record['notes']) ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($record['cause'])): ?>
+                            <div class="cause">
+                                <strong>Cause:</strong> <?= htmlspecialchars($record['cause']) ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <div class="changed-by">
+                            <small>Modifié par: <?= htmlspecialchars($record['changed_by_name'] ?? $record['user_id'] ?? 'Système') ?></small>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+        
+        <button class="btn-back" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste) ?>'">Retour</button>
     </div>
 </body>
 </html>
+

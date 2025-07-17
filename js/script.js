@@ -537,3 +537,13 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeSearch();
   initializeFormStateClearers();
 });
+
+function toggleDamageCause(stockValue) {
+  const damageCauseGroup = document.getElementById("damage-cause-group");
+  if (stockValue == "2" || stockValue == "3") {
+    // Endommagé or Cassé
+    damageCauseGroup.style.display = "block";
+  } else {
+    damageCauseGroup.style.display = "none";
+  }
+}
