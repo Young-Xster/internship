@@ -1,6 +1,7 @@
 <?php
 // Hey there! This is the main config import. Gotta have our DB and settings ready.
 require_once 'php/config.php';
+require_once 'php/initialize_db.php';
 // Email functionality removed to improve performance
 
 // This is a handy map to translate stock numbers to readable states
@@ -542,48 +543,61 @@ if ($_POST) {
                     header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState));
                     exit;
                 case 'fin_inventaire':
-                    $present = isset($_POST['present']) ? $_POST['present'] : [];
-                    $state_filter = $_POST['state'] ?? null;
-                    $ste_param = $_POST['ste'] ?? $ste_filter;
-                    // Select all materials for the given STE that are not already in inventory
-                    $query = "SELECT NumSerie FROM materiel WHERE STE = ? AND (inventair = 0 OR inventair IS NULL)";
-                    $params = [$ste_param];
-                    if ($state_filter && in_array($state_filter, ['en-service','en-stock','endommage','casse'])) {
-                        $query .= " AND stock = ?";
-                        $params[] = $state_filter;
-                    }
-                    $stmt = $pdo->prepare($query);
-                    $stmt->execute($params);
-                    $materiel_nums = array_column($stmt->fetchAll(), 'NumSerie');
-                    
+                    $present_serials = isset($_POST['present']) ? $_POST['present'] : [];
+                    $ste_filter = $_POST['ste'] ?? 'prod';
+
+                    // Get all materials for the current STE to compare against the 'present' list
+                    $stmt = $pdo->prepare("SELECT * FROM materiel WHERE STE = ?");
+                    $stmt->execute([$ste_filter]);
+                    $all_materiels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
                     $pdo->beginTransaction();
                     try {
-                        foreach ($materiel_nums as $num) {
-                            if (in_array($num, $present)) {
-                                // Checked: stays in main list (or comes back from inventaire)
-                                $update = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
-                                $update->execute([$num]);
-                            } else {
-                                // Unchecked: goes to inventaire list
-                                $update = $pdo->prepare('UPDATE materiel SET inventair = 1, dateinvent = NOW() WHERE NumSerie = ?');
-                                $update->execute([$num]);
+                        foreach ($all_materiels as $materiel) {
+                            $numSerie = $materiel['NumSerie'];
+                            if (!in_array($numSerie, $present_serials)) {
+                                // This item was not checked, so move it to inventaire
+                                $insert_stmt = $pdo->prepare(
+                                    "INSERT INTO inventaire SELECT *, NOW(), 'non-présent' FROM materiel WHERE NumSerie = ?"
+                                );
+                                $insert_stmt->execute([$numSerie]);
+
+                                // Delete from the main materiel table
+                                $delete_stmt = $pdo->prepare("DELETE FROM materiel WHERE NumSerie = ?");
+                                $delete_stmt->execute([$numSerie]);
                             }
                         }
                         $pdo->commit();
+                        $success_message = "L'inventaire a été finalisé avec succès.";
                     } catch (Exception $e) {
                         $pdo->rollBack();
                         $error_message = "Erreur lors de la finalisation de l'inventaire: " . $e->getMessage();
-                        header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&error=1');
-                        exit;
                     }
-                    header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success=1');
+                    header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_filter) . '&success=1');
                     exit;
                 case 'recuperer_inventaire':
                     $numSerie = $_POST['NumSerie'] ?? '';
                     $current_ste = $_POST['STE'] ?? 'prod';
                     if ($numSerie !== '') {
-                        $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
-                        $stmt->execute([$numSerie]);
+                        $pdo->beginTransaction();
+                        try {
+                            // Copy from inventaire back to materiel
+                            $copy_stmt = $pdo->prepare(
+                                "INSERT INTO materiel SELECT `NumSerie`, `Dateentree`, `Model`, `CodeType`, `CodeMarque`, `CodeFournisseur`, `STE`, `CodeUtilisateur`, `Processeur`, `graphique`, `disqdur`, `mhtz`, `mo`, `memoire`, `ip`, `ecran`, `pouce`, `observation`, `stock`, `classification`, `damage_cause`, `inventair`, `dateinvent` FROM inventaire WHERE NumSerie = ?"
+                            );
+                            $copy_stmt->execute([$numSerie]);
+
+                            // Delete from inventaire
+                            $delete_stmt = $pdo->prepare("DELETE FROM inventaire WHERE NumSerie = ?");
+                            $delete_stmt->execute([$numSerie]);
+                            
+                            $pdo->commit();
+                        } catch (Exception $e) {
+                            $pdo->rollBack();
+                            $error_message = "Erreur lors de la récupération du matériel: " . $e->getMessage();
+                            header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&error=1');
+                            exit;
+                        }
                     }
                     // Redirect back to the inventaire tab to see the list update
                     header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
@@ -836,11 +850,22 @@ if (!$inventaire_mode && $selected_state !== 'all' && in_array($selected_state, 
 $inventaire_materiels = [];
 if ($activeTab === 'inventaire') {
     try {
-        $inventaire_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.inventair = 1 AND m.STE = ? ORDER BY m.NumSerie DESC");
+        // Now fetching from the dedicated 'inventaire' table
+        $inventaire_stmt = $pdo->prepare(
+            "SELECT i.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle 
+             FROM inventaire i 
+             LEFT JOIN utilisateur u ON i.CodeUtilisateur = u.Compte 
+             LEFT JOIN marque ma ON i.CodeMarque = ma.Code 
+             LEFT JOIN type t ON i.CodeType = t.CodeType 
+             WHERE i.STE = ? 
+             ORDER BY i.dateinvent DESC"
+        );
         $inventaire_stmt->execute([$ste_filter]);
         $inventaire_materiels = $inventaire_stmt->fetchAll();
     } catch (PDOException $e) {
         $inventaire_materiels = [];
+        // Silently log error as we cannot show it to the user without a proper setup
+        error_log("Erreur lors du chargement du matériel en inventaire: " . $e->getMessage());
     }
 }
 
@@ -856,6 +881,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
     exit;
 }
 
+require_once 'php/initialize_db.php';
 ?>
 
 <!DOCTYPE html>
