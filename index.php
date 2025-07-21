@@ -564,12 +564,12 @@ if ($_POST) {
                                         NumSerie, CodeMarque, CodeType, Model, CodeUtilisateur, Dateentree,
                                         stock, observation, Processeur, memoire, disqdur, graphique, 
                                         pouce, ecran, mhtz, mo, ip, classification, STE, 
-                                        dateinvent, cause_inventaire
+                                        dateinvent
                                     ) VALUES (
                                         :NumSerie, :CodeMarque, :CodeType, :Model, :CodeUtilisateur, :Dateentree,
                                         :stock, :observation, :Processeur, :memoire, :disqdur, :graphique,
                                         :pouce, :ecran, :mhtz, :mo, :ip, :classification, :STE,
-                                        NOW(), 'non-présent lors de l''inventaire'
+                                        NOW()
                                     )"
                                 );
                                 
