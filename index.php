@@ -573,7 +573,7 @@ if ($_POST) {
                                     )"
                                 );
                                 
-                                // Bind values explicitly from the fetched materiel record
+                                // Only use valid columns for inventaire
                                 $params = [
                                     'NumSerie' => $materiel['NumSerie'],
                                     'CodeMarque' => $materiel['CodeMarque'],
@@ -1352,7 +1352,7 @@ require_once 'php/initialize_db.php';
                                 <th>Date Entrée</th>
                                 <th>État</th>
                                 <th>observation</th>
-                                <th>Actions</th>
+                                                               <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>

@@ -682,6 +682,15 @@
 2025-07-21 12:09:22 - Fin Inventaire Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cause_inventaire' in 'field list'
 2025-07-21 12:09:38 - Fin Inventaire Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cause_inventaire' in 'field list'
 2025-07-21 12:14:25 - Fin Inventaire Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cause_inventaire' in 'field list'
+2025-07-21 11:59:52 - Fin Inventaire Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cause_inventaire' in 'field list'
+2025-07-21 12:00:12 - Fin Inventaire Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cause_inventaire' in 'field list'
+2025-07-21 12:09:22 - Fin Inventaire Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cause_inventaire' in 'field list'
+2025-07-21 12:09:38 - Fin Inventaire Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cause_inventaire' in 'field list'
+2025-07-21 12:14:25 - Fin Inventaire Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cause_inventaire' in 'field list'
+File: C:\xampp\htdocs\internship\index.php Line: 562
+Trace: #0 C:\xampp\htdocs\internship\index.php(562): PDO->prepare('INSERT INTO inv...')
+#1 {main}
+2025-07-21 12:21:52 - Fin Inventaire Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cause_inventaire' in 'field list'
 File: C:\xampp\htdocs\internship\index.php Line: 562
 Trace: #0 C:\xampp\htdocs\internship\index.php(562): PDO->prepare('INSERT INTO inv...')
 #1 {main}
