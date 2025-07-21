@@ -613,8 +613,11 @@ if ($_POST) {
                         exit;
                     } catch (Exception $e) {
                         $pdo->rollBack();
-                        // Log the actual error to a file for debugging
-                        file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Error: " . $e->getMessage() . "\n", FILE_APPEND);
+                        // Log the actual error to a file for debugging, including stack trace and all exception details
+                        $error_details = date('Y-m-d H:i:s') . " - Fin Inventaire Error: " . $e->getMessage() . "\n";
+                        $error_details .= "File: " . $e->getFile() . " Line: " . $e->getLine() . "\n";
+                        $error_details .= "Trace: " . $e->getTraceAsString() . "\n";
+                        file_put_contents(__DIR__ . '/error.log', $error_details, FILE_APPEND);
                         
                         header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_filter) . '&error=1');
                         exit;
