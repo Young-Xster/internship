@@ -608,15 +608,17 @@ if ($_POST) {
                         
                         // Log the operation details for debugging
                         file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Success: Moved $moved_count items to inventaire table for STE: $ste_filter\n", FILE_APPEND);
-                        $success_message = "L'inventaire a été finalisé avec succès. $moved_count matériels déplacés.";
+                        
+                        header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_filter) . '&success=1');
+                        exit;
                     } catch (Exception $e) {
                         $pdo->rollBack();
                         // Log the actual error to a file for debugging
                         file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Error: " . $e->getMessage() . "\n", FILE_APPEND);
-                        $error_message = "Erreur lors de la finalisation de l'inventaire. Veuillez consulter les logs.";
+                        
+                        header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_filter) . '&error=1');
+                        exit;
                     }
-                    header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_filter) . '&success=1');
-                    exit;
                 case 'recuperer_inventaire':
                     $numSerie = $_POST['NumSerie'] ?? '';
                     $current_ste = $_POST['STE'] ?? 'prod';
@@ -710,15 +712,22 @@ $success_messages = [
     'modify_fournisseur' => "Le fournisseur a été modifié avec succès.",
     'transfer_materiel' => "Le matériel a été transféré avec succès.",
     'transfer_user' => "L'utilisateur a été transféré avec succès.",
-    '1' => "Opération réalisée avec succès!"
+    '1' => "L'inventaire a été finalisé avec succès!"
+];
+
+$error_messages = [
+    '1' => "Erreur lors de la finalisation de l'inventaire. Consultez les logs pour plus de détails."
 ];
 
 $success_code = $_GET['success'] ?? null;
+$error_code = $_GET['error'] ?? null;
 $success_message = null;
+$error_message = null;
+
 if ($success_code && isset($success_messages[$success_code])) {
     $success_message = $success_messages[$success_code];
-} elseif (isset($success_message)) {
-    // Keep any existing success message if no GET param
+} elseif ($error_code && isset($error_messages[$error_code])) {
+    $error_message = $error_messages[$error_code];
 }
 
 $editMode = false;
@@ -1033,13 +1042,13 @@ require_once 'php/initialize_db.php';
             </div>
         </header>
 
-        <?php if (isset($success_message)): ?>
+        <?php if ($success_message): ?>
             <div class="alert alert-success">
                 <strong>Succès!</strong> <?= htmlspecialchars($success_message) ?>
             </div>
         <?php endif; ?>
 
-        <?php if (isset($error_message)): ?>
+        <?php if ($error_message): ?>
             <div class="alert alert-error">
                 <strong>Erreur!</strong> <?= htmlspecialchars($error_message) ?>
             </div>
