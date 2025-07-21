@@ -553,25 +553,67 @@ if ($_POST) {
 
                     $pdo->beginTransaction();
                     try {
+                        $moved_count = 0;
                         foreach ($all_materiels as $materiel) {
                             $numSerie = $materiel['NumSerie'];
                             if (!in_array($numSerie, $present_serials)) {
                                 // This item was not checked, so move it to inventaire
+                                // Match the actual inventaire table structure from create_inventaire_table.sql
                                 $insert_stmt = $pdo->prepare(
-                                    "INSERT INTO inventaire SELECT *, NOW(), 'non-présent' FROM materiel WHERE NumSerie = ?"
+                                    "INSERT INTO inventaire (
+                                        NumSerie, CodeMarque, CodeType, Model, CodeUtilisateur, Dateentree,
+                                        stock, observation, Processeur, memoire, disqdur, graphique, 
+                                        pouce, ecran, mhtz, mo, ip, classification, STE, 
+                                        dateinvent, cause_inventaire
+                                    ) VALUES (
+                                        :NumSerie, :CodeMarque, :CodeType, :Model, :CodeUtilisateur, :Dateentree,
+                                        :stock, :observation, :Processeur, :memoire, :disqdur, :graphique,
+                                        :pouce, :ecran, :mhtz, :mo, :ip, :classification, :STE,
+                                        NOW(), 'non-présent lors de l''inventaire'
+                                    )"
                                 );
-                                $insert_stmt->execute([$numSerie]);
+                                
+                                // Bind values explicitly from the fetched materiel record
+                                $params = [
+                                    'NumSerie' => $materiel['NumSerie'],
+                                    'CodeMarque' => $materiel['CodeMarque'],
+                                    'CodeType' => $materiel['CodeType'],
+                                    'Model' => $materiel['Model'],
+                                    'CodeUtilisateur' => $materiel['CodeUtilisateur'],
+                                    'Dateentree' => $materiel['Dateentree'],
+                                    'stock' => $materiel['stock'],
+                                    'observation' => $materiel['observation'],
+                                    'Processeur' => $materiel['Processeur'],
+                                    'memoire' => $materiel['memoire'],
+                                    'disqdur' => $materiel['disqdur'],
+                                    'graphique' => $materiel['graphique'],
+                                    'pouce' => $materiel['pouce'],
+                                    'ecran' => $materiel['ecran'],
+                                    'mhtz' => $materiel['mhtz'],
+                                    'mo' => $materiel['mo'],
+                                    'ip' => $materiel['ip'],
+                                    'classification' => $materiel['classification'],
+                                    'STE' => $materiel['STE']
+                                ];
+                                $insert_stmt->execute($params);
 
                                 // Delete from the main materiel table
                                 $delete_stmt = $pdo->prepare("DELETE FROM materiel WHERE NumSerie = ?");
                                 $delete_stmt->execute([$numSerie]);
+                                
+                                $moved_count++;
                             }
                         }
                         $pdo->commit();
-                        $success_message = "L'inventaire a été finalisé avec succès.";
+                        
+                        // Log the operation details for debugging
+                        file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Success: Moved $moved_count items to inventaire table for STE: $ste_filter\n", FILE_APPEND);
+                        $success_message = "L'inventaire a été finalisé avec succès. $moved_count matériels déplacés.";
                     } catch (Exception $e) {
                         $pdo->rollBack();
-                        $error_message = "Erreur lors de la finalisation de l'inventaire: " . $e->getMessage();
+                        // Log the actual error to a file for debugging
+                        file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Error: " . $e->getMessage() . "\n", FILE_APPEND);
+                        $error_message = "Erreur lors de la finalisation de l'inventaire. Veuillez consulter les logs.";
                     }
                     header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_filter) . '&success=1');
                     exit;
@@ -581,19 +623,58 @@ if ($_POST) {
                     if ($numSerie !== '') {
                         $pdo->beginTransaction();
                         try {
-                            // Copy from inventaire back to materiel
-                            $copy_stmt = $pdo->prepare(
-                                "INSERT INTO materiel SELECT `NumSerie`, `Dateentree`, `Model`, `CodeType`, `CodeMarque`, `CodeFournisseur`, `STE`, `CodeUtilisateur`, `Processeur`, `graphique`, `disqdur`, `mhtz`, `mo`, `memoire`, `ip`, `ecran`, `pouce`, `observation`, `stock`, `classification`, `damage_cause`, `inventair`, `dateinvent` FROM inventaire WHERE NumSerie = ?"
-                            );
-                            $copy_stmt->execute([$numSerie]);
+                            // Get the record from inventaire table
+                            $select_stmt = $pdo->prepare("SELECT * FROM inventaire WHERE NumSerie = ?");
+                            $select_stmt->execute([$numSerie]);
+                            $inventaire_item = $select_stmt->fetch(PDO::FETCH_ASSOC);
+                            
+                            if ($inventaire_item) {
+                                // Insert back into materiel table with correct structure
+                                $insert_stmt = $pdo->prepare(
+                                    "INSERT INTO materiel (
+                                        NumSerie, CodeMarque, CodeType, Model, CodeUtilisateur, Dateentree,
+                                        stock, observation, Processeur, memoire, disqdur, graphique, 
+                                        pouce, ecran, mhtz, mo, ip, classification, STE, CodeFournisseur, damage_cause
+                                    ) VALUES (
+                                        :NumSerie, :CodeMarque, :CodeType, :Model, :CodeUtilisateur, :Dateentree,
+                                        :stock, :observation, :Processeur, :memoire, :disqdur, :graphique,
+                                        :pouce, :ecran, :mhtz, :mo, :ip, :classification, :STE, NULL, NULL
+                                    )"
+                                );
+                                
+                                $params = [
+                                    'NumSerie' => $inventaire_item['NumSerie'],
+                                    'CodeMarque' => $inventaire_item['CodeMarque'],
+                                    'CodeType' => $inventaire_item['CodeType'],
+                                    'Model' => $inventaire_item['Model'],
+                                    'CodeUtilisateur' => $inventaire_item['CodeUtilisateur'],
+                                    'Dateentree' => $inventaire_item['Dateentree'],
+                                    'stock' => $inventaire_item['stock'],
+                                    'observation' => $inventaire_item['observation'],
+                                    'Processeur' => $inventaire_item['Processeur'],
+                                    'memoire' => $inventaire_item['memoire'],
+                                    'disqdur' => $inventaire_item['disqdur'],
+                                    'graphique' => $inventaire_item['graphique'],
+                                    'pouce' => $inventaire_item['pouce'],
+                                    'ecran' => $inventaire_item['ecran'],
+                                    'mhtz' => $inventaire_item['mhtz'],
+                                    'mo' => $inventaire_item['mo'],
+                                    'ip' => $inventaire_item['ip'],
+                                    'classification' => $inventaire_item['classification'],
+                                    'STE' => $inventaire_item['STE']
+                                ];
+                                
+                                $insert_stmt->execute($params);
 
-                            // Delete from inventaire
-                            $delete_stmt = $pdo->prepare("DELETE FROM inventaire WHERE NumSerie = ?");
-                            $delete_stmt->execute([$numSerie]);
+                                // Delete from inventaire table
+                                $delete_stmt = $pdo->prepare("DELETE FROM inventaire WHERE NumSerie = ?");
+                                $delete_stmt->execute([$numSerie]);
+                            }
                             
                             $pdo->commit();
                         } catch (Exception $e) {
                             $pdo->rollBack();
+                            file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Recuperer Inventaire Error: " . $e->getMessage() . "\n", FILE_APPEND);
                             $error_message = "Erreur lors de la récupération du matériel: " . $e->getMessage();
                             header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&error=1');
                             exit;
@@ -629,7 +710,7 @@ $success_messages = [
     'modify_fournisseur' => "Le fournisseur a été modifié avec succès.",
     'transfer_materiel' => "Le matériel a été transféré avec succès.",
     'transfer_user' => "L'utilisateur a été transféré avec succès.",
-    '1' => "Opération réalisée avec succès!" // Generic for inventaire
+    '1' => "Opération réalisée avec succès!"
 ];
 
 $success_code = $_GET['success'] ?? null;
