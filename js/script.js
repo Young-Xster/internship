@@ -1,10 +1,10 @@
 function showTab(tabName) {
   document
     .querySelectorAll(".tab-content")
-    .forEach(c => c.classList.remove("active"));
+    .forEach((c) => c.classList.remove("active"));
   document
     .querySelectorAll(".tab-btn")
-    .forEach(b => b.classList.remove("active"));
+    .forEach((b) => b.classList.remove("active"));
   const content = document.getElementById(tabName);
   if (content) content.classList.add("active");
   const btn = document.querySelector(`[onclick="showTab('${tabName}')"]`);
@@ -28,10 +28,10 @@ function exportTableToExcel(tableId, filename = "") {
   // Remove the "Actions" header and column from the cloned table
   const actionHeaderIndex = Array.from(
     clonedTable.querySelectorAll("th")
-  ).findIndex(th => th.textContent.trim() === "Actions");
+  ).findIndex((th) => th.textContent.trim() === "Actions");
   if (actionHeaderIndex !== -1) {
     clonedTable.querySelector("thead tr").deleteCell(actionHeaderIndex);
-    Array.from(clonedTable.querySelectorAll("tbody tr")).forEach(row => {
+    Array.from(clonedTable.querySelectorAll("tbody tr")).forEach((row) => {
       row.deleteCell(actionHeaderIndex);
     });
   }
@@ -80,7 +80,7 @@ function exportTableToExcel(tableId, filename = "") {
 // Function to immediately enable all tabs and hide forms (for instant feedback)
 function enableAllTabsAndHideForms() {
   // Enable all tab buttons
-  document.querySelectorAll(".tab-btn").forEach(button => {
+  document.querySelectorAll(".tab-btn").forEach((button) => {
     button.removeAttribute("disabled");
     button.style.opacity = "1";
     button.style.pointerEvents = "auto";
@@ -89,7 +89,7 @@ function enableAllTabsAndHideForms() {
   });
 
   // Hide all forms
-  document.querySelectorAll(".section[class*='-form']").forEach(form => {
+  document.querySelectorAll(".section[class*='-form']").forEach((form) => {
     form.classList.add("hide");
   });
 }
@@ -175,9 +175,9 @@ function performSearch(searchType) {
 
     const checkedFilters = Array.from(
       document.querySelectorAll("#materiel .search-filter:checked")
-    ).map(checkbox => checkbox.getAttribute("data-column"));
+    ).map((checkbox) => checkbox.getAttribute("data-column"));
 
-    Array.from(rows).forEach(row => {
+    Array.from(rows).forEach((row) => {
       const stateCell = row.querySelector(".materiel-state-value");
       const materialState = stateCell
         ? stateCell.getAttribute("data-state")
@@ -233,17 +233,17 @@ function performSearch(searchType) {
   const containerId = containerMapping[searchType] || searchType;
   const checkedFilters = Array.from(
     document.querySelectorAll(`#${containerId} .search-filter:checked`)
-  ).map(checkbox => checkbox.getAttribute("data-column"));
+  ).map((checkbox) => checkbox.getAttribute("data-column"));
 
   // If no filters are checked, show all rows
   if (checkedFilters.length === 0) {
-    Array.from(rows).forEach(row => {
+    Array.from(rows).forEach((row) => {
       row.style.display = "";
     });
     return;
   }
 
-  Array.from(rows).forEach(row => {
+  Array.from(rows).forEach((row) => {
     let shouldShow = false;
 
     if (searchTerm === "") {
@@ -252,7 +252,7 @@ function performSearch(searchType) {
       const cells = row.getElementsByTagName("td");
       const columnMapping = getColumnMapping(searchType);
 
-      checkedFilters.forEach(column => {
+      checkedFilters.forEach((column) => {
         const cellIndex = columnMapping[column];
         if (cellIndex !== undefined && cells[cellIndex]) {
           const cellText = cells[cellIndex].textContent.toLowerCase();
@@ -332,7 +332,7 @@ function clearSearch(searchType) {
     searchInput.value = "";
   }
 
-  checkboxes.forEach(checkbox => {
+  checkboxes.forEach((checkbox) => {
     const isDefault =
       checkbox.hasAttribute("checked") ||
       (searchType === "materiel" &&
@@ -377,7 +377,7 @@ function initializeSearch() {
     fournisseur: "fournisseurs",
   };
 
-  searchTypes.forEach(searchType => {
+  searchTypes.forEach((searchType) => {
     const searchInput = document.getElementById(`search-${searchType}`);
     const containerId = containerMapping[searchType] || searchType;
     const searchContainer = document.querySelector(
@@ -390,13 +390,13 @@ function initializeSearch() {
       });
 
       const checkboxes = searchContainer.querySelectorAll(".search-filter");
-      checkboxes.forEach(checkbox => {
+      checkboxes.forEach((checkbox) => {
         checkbox.addEventListener("change", () => {
           performSearch(searchType);
         });
       });
 
-      searchInput.addEventListener("keypress", e => {
+      searchInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
           performSearch(searchType);
@@ -409,7 +409,7 @@ function initializeSearch() {
 // Function to add event listeners to cancel buttons and other navigation elements
 function initializeFormStateClearers() {
   // Add event listeners to all cancel/annuler buttons to clear form state
-  document.querySelectorAll("a.btn-cancel, a.btn-close").forEach(button => {
+  document.querySelectorAll("a.btn-cancel, a.btn-close").forEach((button) => {
     button.addEventListener("click", function (e) {
       e.preventDefault();
       // Immediately enable tabs and hide forms
@@ -420,7 +420,7 @@ function initializeFormStateClearers() {
   });
 
   // Add event listeners to ALL export buttons to immediately clear form state
-  document.querySelectorAll(".btn-export").forEach(button => {
+  document.querySelectorAll(".btn-export").forEach((button) => {
     button.addEventListener("click", function (e) {
       // Immediately enable tabs and hide forms for instant feedback
       enableAllTabsAndHideForms();
@@ -428,7 +428,7 @@ function initializeFormStateClearers() {
   });
 
   // Add event listeners to tab buttons to clear form state when switching tabs
-  document.querySelectorAll(".tab-btn").forEach(button => {
+  document.querySelectorAll(".tab-btn").forEach((button) => {
     button.addEventListener("click", function (e) {
       // If we're in a form view, clear it before navigating
       const urlParams = new URLSearchParams(window.location.search);
@@ -450,7 +450,7 @@ function initializeFormStateClearers() {
   });
 
   // Add event listener to state filter links to clear form state
-  document.querySelectorAll(".state-filters a").forEach(link => {
+  document.querySelectorAll(".state-filters a").forEach((link) => {
     link.addEventListener("click", function (e) {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("showForm")) {
@@ -482,7 +482,7 @@ document.addEventListener("DOMContentLoaded", function () {
     "fournisseur",
   ];
 
-  entities.forEach(entity => {
+  entities.forEach((entity) => {
     const addBtn = document.getElementById(`add-${entity}-btn`);
     const closeBtn = document.getElementById(`close-${entity}-form-btn`);
     const formClass = `${entity}-form`;
@@ -496,12 +496,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  document.querySelectorAll("form").forEach(form => {
+  document.querySelectorAll("form").forEach((form) => {
     form.addEventListener("submit", function (e) {
       // Skip validation for Fin Inventaire form
       if (form.id === "fin-inventaire-form") return;
       let valid = true;
-      form.querySelectorAll("[required]").forEach(f => {
+      form.querySelectorAll("[required]").forEach((f) => {
         if (!f.value.trim()) {
           f.style.borderColor = "#e74c3c";
           valid = false;
@@ -517,7 +517,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   const alerts = document.querySelectorAll(".alert-success, .alert-error");
-  alerts.forEach(alert => {
+  alerts.forEach((alert) => {
     setTimeout(() => {
       alert.style.display = "none";
     }, 5000);
@@ -536,6 +536,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
   initializeSearch();
   initializeFormStateClearers();
+
+  // Fix for Annuler and Annuler Inventaire buttons
+  document.querySelectorAll(".btn-cancel").forEach((btn) => {
+    btn.addEventListener("click", function (e) {
+      // If the button is for cancelling inventory, always go to the clean URL
+      if (this.textContent.includes("Inventaire")) {
+        e.preventDefault();
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", "materiel");
+        url.searchParams.set("ste", url.searchParams.get("ste") || "prod");
+        url.searchParams.delete("inventaire_mode");
+        url.searchParams.delete("state");
+        window.location.href = url.pathname + "?" + url.searchParams.toString();
+      }
+    });
+  });
 });
 
 function toggleDamageCause(stockValue) {
