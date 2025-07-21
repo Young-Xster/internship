@@ -38,9 +38,9 @@ if ($_POST) {
     try {
         switch ($action) {
             case 'add_materiel':
-                // Before adding, check if the serial number is in inventaire
+                // Check if the serial number exists in inventaire
                 $serial = $_POST['NumSerie'] ?? null;
-                $checkInventaireStmt = $pdo->prepare("SELECT * FROM materiel WHERE NumSerie = ? AND inventair = 1");
+                $checkInventaireStmt = $pdo->prepare("SELECT * FROM inventaire WHERE NumSerie = ?");
                 $checkInventaireStmt->execute([$serial]);
                 $inventaireMateriel = $checkInventaireStmt->fetch(PDO::FETCH_ASSOC);
                 if ($inventaireMateriel && !isset($_POST['recuperer_inventaire_confirm']) && !isset($_GET['force_add']) && !isset($_POST['force_add'])) {
@@ -67,10 +67,51 @@ if ($_POST) {
                     exit();
                 } elseif ($inventaireMateriel && isset($_POST['recuperer_inventaire_confirm'])) {
                     // User confirmed to recover from inventaire
-                    $update = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
-                    $update->execute([$serial]);
-                    header('Location: index.php?tab=materiel&ste=' . urlencode($_POST['STE']) . '&success=1');
-                    exit();
+                    // Move from inventaire to materiel
+                    $pdo->beginTransaction();
+                    try {
+                        $insert_stmt = $pdo->prepare(
+                            "INSERT INTO materiel (
+                                NumSerie, CodeMarque, CodeType, Model, CodeUtilisateur, Dateentree,
+                                stock, observation, Processeur, memoire, disqdur, graphique, 
+                                pouce, ecran, mhtz, mo, ip, classification, STE, CodeFournisseur, damage_cause
+                            ) VALUES (
+                                :NumSerie, :CodeMarque, :CodeType, :Model, :CodeUtilisateur, :Dateentree,
+                                :stock, :observation, :Processeur, :memoire, :disqdur, :graphique,
+                                :pouce, :ecran, :mhtz, :mo, :ip, :classification, :STE, NULL, NULL
+                            )"
+                        );
+                        $params = [
+                            'NumSerie' => $inventaireMateriel['NumSerie'],
+                            'CodeMarque' => $inventaireMateriel['CodeMarque'],
+                            'CodeType' => $inventaireMateriel['CodeType'],
+                            'Model' => $inventaireMateriel['Model'],
+                            'CodeUtilisateur' => $inventaireMateriel['CodeUtilisateur'],
+                            'Dateentree' => $inventaireMateriel['Dateentree'],
+                            'stock' => $inventaireMateriel['stock'],
+                            'observation' => $inventaireMateriel['observation'],
+                            'Processeur' => $inventaireMateriel['Processeur'],
+                            'memoire' => $inventaireMateriel['memoire'],
+                            'disqdur' => $inventaireMateriel['disqdur'],
+                            'graphique' => $inventaireMateriel['graphique'],
+                            'pouce' => $inventaireMateriel['pouce'],
+                            'ecran' => $inventaireMateriel['ecran'],
+                            'mhtz' => $inventaireMateriel['mhtz'],
+                            'mo' => $inventaireMateriel['mo'],
+                            'ip' => $inventaireMateriel['ip'],
+                            'classification' => $inventaireMateriel['classification'],
+                            'STE' => $inventaireMateriel['STE']
+                        ];
+                        $insert_stmt->execute($params);
+                        $delete_stmt = $pdo->prepare("DELETE FROM inventaire WHERE NumSerie = ?");
+                        $delete_stmt->execute([$inventaireMateriel['NumSerie']]);
+                        $pdo->commit();
+                        header('Location: index.php?tab=materiel&ste=' . urlencode($_POST['STE']) . '&success=1');
+                        exit();
+                    } catch (Exception $e) {
+                        $pdo->rollBack();
+                        $error_message = "Erreur lors de la récupération du matériel: " . $e->getMessage();
+                    }
                 }
                     // Debug: log the POST data and present_serials
                     file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Debug: POST present[] = " . json_encode($present_serials) . "\n", FILE_APPEND);
@@ -184,6 +225,24 @@ if ($_POST) {
                     exit();
                 } catch (PDOException $e) {
                     $error_message = "Une erreur est survenue lors de l'ajout de l'utilisateur: " . $e->getMessage();
+                }
+                break;
+            case 'modify_utilisateur':
+                try {
+                    $stmt = $pdo->prepare("UPDATE utilisateur SET CodeService = ?, Email = ?, NomPrenom = ?, Tel = ?, STE = ? WHERE Compte = ?");
+                    $codeService = !empty($_POST['CodeService']) ? $_POST['CodeService'] : NULL;
+                    $stmt->execute([
+                        $codeService,
+                        $_POST['Email'],
+                        $_POST['NomPrenom'],
+                        $_POST['Tel'],
+                        $_POST['STE'],
+                        $_POST['Compte']
+                    ]);
+                    header("Location: index.php?tab=utilisateur&ste=" . urlencode($_POST['STE']) . "&success=modify_user");
+                    exit();
+                } catch (PDOException $e) {
+                    $error_message = "Une erreur est survenue lors de la modification de l'utilisateur: " . $e->getMessage();
                 }
                 break;
                 
@@ -854,7 +913,7 @@ if ($editMode || $transferMode) {
         'marque' => 'marques',
         'type' => 'types',
         'service' => 'services',
-        'fournisseurs' => 'fournisseurs'
+        'fournisseur' => 'fournisseurs' // Fix: map 'fournisseur' to 'fournisseurs'
     ];
     $activeTab = $tabMapping[$editType ?? $transferType ?? 'materiel'] ?? 'materiel';
 } elseif (isset($_GET['tab'])) {

@@ -89,3 +89,50 @@ Type: kou3Namla
 2025-07-21 19:59:30 POST: {"action":"fin_inventaire","ste":"prod","state":"all","present":["jyfrd778"]}
 2025-07-21 20:00:26 POST: {"action":"fin_inventaire","ste":"comm","state":"all","present":["ugtvf888","mkjhyb877","klcn4"]}
 2025-07-21 20:00:30 POST: {"action":"recuperer_inventaire","NumSerie":"7754","STE":"comm"}
+2025-07-21 20:37:41 POST: {"action":"change_state","ste":"prod","state":"en-service","NumSerie":"jyfrd778","STE":"prod","redirect_state":"en-service","stock":"1"}
+2025-07-21 20:38:29 POST: {"action":"add_utilisateur","STE":"prod","Compte":"knfu77","NomPrenom":"mohsen","CodeService":"5","Email":"","Tel":""}
+2025-07-21 20:38:51 POST: {"action":"add_materiel","STE":"prod","NumSerie":"555415","CodeUtilisateur":"0","CodeFournisseur":"fedi@gmail.com","CodeMarque":"123457","CodeType":"17","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 20:41:05 POST: {"action":"add_materiel","STE":"prod","NumSerie":"888888x","CodeUtilisateur":"0","CodeFournisseur":"fedi3@gmail.com","CodeMarque":"123458","CodeType":"18","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 20:41:45 POST: {"action":"add_utilisateur","STE":"prod","Compte":"jgyjv88","NomPrenom":"dali","CodeService":"5","Email":"","Tel":""}
+2025-07-21 20:42:27 POST: {"action":"add_utilisateur","STE":"prod","Compte":"knb58899","NomPrenom":"fedi","CodeService":"5","Email":"","Tel":""}
+2025-07-21 20:42:47 POST: {"action":"add_marque","STE":"prod","Marque":"hf5bff"}
+2025-07-21 20:43:04 POST: {"action":"add_type","STE":"prod","Libelle":"bgggg"}
+2025-07-21 20:43:16 POST: {"action":"add_service","STE":"prod","Libelle":"nbhg"}
+2025-07-21 20:43:42 POST: {"action":"modify_materiel","STE":"prod","NumSerie":"jyfrd778","CodeUtilisateur":"123","CodeFournisseur":"hassen32@gmail.com","CodeMarque":"123459","CodeType":"17","Model":"","Dateentree":"2025-07-21","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 20:43:50 POST: {"action":"transfer_materiel","NumSerie":"jyfrd778","STE":"prod","target_STE":"COMM","CodeUtilisateur":"15941"}
+2025-07-21 20:44:56 POST: {"action":"add_utilisateur","STE":"prod","Compte":"555541","NomPrenom":"fedi","CodeService":"5","Email":"","Tel":""}
+2025-07-21 20:45:17 POST: {"action":"add_materiel","STE":"prod","NumSerie":"jbhfjyhbn4","CodeUtilisateur":"555541","CodeFournisseur":"fedi@gmail.com","CodeMarque":"16","CodeType":"19","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 20:46:31 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"155557","NomPrenom":"hassen","CodeService":"5","Email":"","Tel":"0"}
+2025-07-21 20:46:33 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"155557","NomPrenom":"hassen","CodeService":"2","Email":"","Tel":"0"}
+2025-07-21 20:46:35 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"155557","NomPrenom":"hassen","CodeService":"2","Email":"","Tel":"0"}
+2025-07-21 20:46:38 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"155557","NomPrenom":"hassen","CodeService":"2","Email":"","Tel":"0"}
+2025-07-21 20:47:24 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"14","NomPrenom":"mohsen ifa","CodeService":"5","Email":"","Tel":"0"}
+2025-07-21 20:47:42 POST: {"action":"modify_marque","STE":"prod","Code":"123457","Marque":"asuss"}
+2025-07-21 20:47:55 POST: {"action":"modify_type","STE":"prod","CodeType":"20","Libelle":"bggggh"}
+2025-07-21 20:51:19 POST: {"action":"recuperer_inventaire","NumSerie":"55555","STE":"prod"}
+2025-07-21 20:52:21 POST: {"action":"add_materiel","STE":"prod","NumSerie":"hghgh","CodeUtilisateur":"155557","CodeFournisseur":"khlifa@gmail.com","CodeMarque":"123457","CodeType":"18","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 20:53:43 POST: {"action":"modify_materiel","STE":"prod","NumSerie":"jbhfjyhbn4","CodeUtilisateur":"155557","CodeFournisseur":"fedi@gmail.com","CodeMarque":"16","CodeType":"19","Model":"","Dateentree":"2025-07-21","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 20:54:40 POST: {"action":"modify_materiel","STE":"prod","NumSerie":"jbhfjyhbn4","CodeUtilisateur":"0","CodeFournisseur":"fedi@gmail.com","CodeMarque":"16","CodeType":"19","Model":"","Dateentree":"2025-07-21","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 20:55:04 POST: {"action":"transfer_materiel","NumSerie":"jbhfjyhbn4","STE":"prod","target_STE":"COMM","CodeUtilisateur":"15941"}
+2025-07-21 20:57:41 POST: {"action":"recuperer_inventaire","NumSerie":"f555z848fzfz","STE":"prod"}
+2025-07-21 20:57:42 POST: {"action":"recuperer_inventaire","NumSerie":"hghgh","STE":"prod"}
+2025-07-21 20:57:45 POST: {"action":"recuperer_inventaire","NumSerie":"hghgh","STE":"prod"}
+2025-07-21 20:57:47 POST: {"action":"recuperer_inventaire","NumSerie":"5hkll","STE":"prod"}
+2025-07-21 20:57:49 POST: {"action":"recuperer_inventaire","NumSerie":"hghgh","STE":"prod"}
+2025-07-21 20:57:55 POST: {"action":"recuperer_inventaire","NumSerie":"e4fzzd","STE":"prod"}
+2025-07-21 20:58:03 POST: {"action":"recuperer_inventaire","NumSerie":"hghgh","STE":"prod"}
+2025-07-21 20:59:05 POST: {"action":"delete_materiel","NumSerie":"ugtvf888","STE":"comm"}
+2025-07-21 20:59:50 POST: {"action":"add_utilisateur","STE":"comm","Compte":"122511","NomPrenom":"abd l 7alim","CodeService":"6","Email":"","Tel":""}
+2025-07-21 21:00:00 POST: {"action":"modify_utilisateur","STE":"comm","Compte":"122511","NomPrenom":"abd l 7alim","CodeService":"9","Email":"","Tel":"0"}
+2025-07-21 21:00:59 POST: {"action":"add_fournisseur","STE":"prod","Email":"fedizbedi@gmail.com","CompanyName":"","NomComplet":"chikh bachar l asad","Adress":"","TelFix":"","TelMobile":""}
+2025-07-21 21:01:29 POST: {"action":"modify_materiel","STE":"COMM","NumSerie":"mkjhyb877","CodeUtilisateur":"1566","CodeFournisseur":"hassen32@gmail.com","CodeMarque":"16","CodeType":"18","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 21:20:52 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"555541","NomPrenom":"fediiii","CodeService":"5","Email":"","Tel":"0"}
+2025-07-21 21:24:16 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"555541","NomPrenom":"fediiii","CodeService":"5","Email":"","Tel":"0"}
+2025-07-21 21:24:31 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"555541","NomPrenom":"fediiii","CodeService":"10","Email":"","Tel":"0"}
+2025-07-21 21:26:53 POST: {"action":"modify_fournisseur","STE":"prod","Email":"fedi3@gmail.com","CompanyName":"hasna de la haute coture ","NomComplet":"mohsen ifaaaa","Adress":"","TelFix":"0","TelMobile":"0"}
+2025-07-21 21:31:22 POST: {"action":"add_materiel","STE":"prod","NumSerie":"145998","CodeUtilisateur":"555541","CodeFournisseur":"khlifa@gmail.com","CodeMarque":"123460","CodeType":"17","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 21:32:45 POST: {"action":"fin_inventaire","ste":"prod","state":"all","present":["hghgh","888888x","55555","555415","145998"]}
+2025-07-21 21:40:36 POST: {"action":"add_materiel","STE":"prod","NumSerie":"5hkll","CodeUtilisateur":"123","CodeFournisseur":"khlifa@gmail.com","CodeMarque":"123456","CodeType":"17","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 21:40:56 POST: {"action":"add_materiel","STE":"prod","NumSerie":"5hkll","CodeUtilisateur":"0","CodeFournisseur":"hassen32@gmail.com","CodeMarque":"123460","CodeType":"18","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 21:41:54 POST: {"action":"add_materiel","STE":"prod","NumSerie":"jczk58","CodeUtilisateur":"123","CodeFournisseur":"fedizbedi@gmail.com","CodeMarque":"123456","CodeType":"17","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-21 21:41:56 POST: {"action":"add_materiel","STE":"prod","NumSerie":"jczk58","CodeUtilisateur":"123","CodeFournisseur":"fedizbedi@gmail.com","CodeMarque":"123456","CodeType":"17","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":"","recuperer_inventaire_confirm":"1"}

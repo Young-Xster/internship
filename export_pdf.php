@@ -1,26 +1,22 @@
 <?php
 require_once 'php/config.php';
 
-// Fetch data from the database
+// Fetch all services and users, and left join materiel
 try {
     $stmt = $pdo->query("
         SELECT
-            m.NumSerie, m.Model, m.classification, t.Libelle as TypeLibelle,
-            u.NomPrenom, u.Compte,
             s.Libelle as ServiceLibelle,
-            u.STE
+            s.CodeService,
+            s.STE,
+            u.NomPrenom, u.Compte, u.CodeService as UserCodeService,
+            m.NumSerie, m.Model, m.classification, t.Libelle as TypeLibelle
         FROM
-            materiel m
-        JOIN
-            utilisateur u ON m.CodeUtilisateur = u.Compte
-        JOIN
-            service s ON u.CodeService = s.CodeService
-        LEFT JOIN
-            type t ON m.CodeType = t.CodeType
-        WHERE
-            m.CodeUtilisateur IS NOT NULL AND m.CodeUtilisateur != ''
+            service s
+        LEFT JOIN utilisateur u ON u.CodeService = s.CodeService
+        LEFT JOIN materiel m ON m.CodeUtilisateur = u.Compte
+        LEFT JOIN type t ON m.CodeType = t.CodeType
         ORDER BY
-            u.STE, s.Libelle, u.NomPrenom, m.NumSerie
+            s.STE, s.Libelle, u.NomPrenom, m.NumSerie
     ");
     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -32,8 +28,7 @@ $groupedData = [];
 foreach ($data as $row) {
     $ste = $row['STE'] ?: 'Non spécifié';
     $service = $row['ServiceLibelle'] ?: 'Non spécifié';
-    $user = $row['NomPrenom'] ?: 'Non spécifié';
-    
+    $user = $row['NomPrenom'] ?: ($row['Compte'] ? $row['Compte'] : 'Non spécifié');
     if (!isset($groupedData[$ste])) {
         $groupedData[$ste] = [];
     }
@@ -43,8 +38,10 @@ foreach ($data as $row) {
     if (!isset($groupedData[$ste][$service][$user])) {
         $groupedData[$ste][$service][$user] = [];
     }
-    
-    $groupedData[$ste][$service][$user][] = $row;
+    // Only add materiel if it exists
+    if ($row['NumSerie']) {
+        $groupedData[$ste][$service][$user][] = $row;
+    }
 }
 
 // Set headers for HTML export that looks like PDF
