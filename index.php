@@ -1,8 +1,9 @@
 <?php
+// Hey there! This is the main config import. Gotta have our DB and settings ready.
 require_once 'php/config.php';
 // Email functionality removed to improve performance
 
-// Add this mapping at the top of the file (if not already present)
+// This is a handy map to translate stock numbers to readable states
 $stockMap = [
     0 => 'en-service',
     1 => 'en-stock',
@@ -22,11 +23,12 @@ $stateToStock = [
     'casse' => 3
 ];
 
-// DEBUG: Log all POST requests for troubleshooting
+// Just logging all POST requests for debugging. Super useful if something goes wrong!
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     file_put_contents(__DIR__ . '/material_notifications.log', date('Y-m-d H:i:s') . ' POST: ' . json_encode($_POST) . "\n", FILE_APPEND);
 }
 
+// If there's a POST, let's see what action the user wants to do
 if ($_POST) {
     $action = $_POST['action'] ?? '';
     $tab = $_GET['tab'] ?? 'materiel';
@@ -35,11 +37,45 @@ if ($_POST) {
     try {
         switch ($action) {
             case 'add_materiel':
-                // The nested try...catch is redundant if the outer one catches PDOException.
-                // For consistency, each action will have its own try...catch.
+                // Before adding, check if the serial number is in inventaire
+                $serial = $_POST['NumSerie'] ?? null;
+                $checkInventaireStmt = $pdo->prepare("SELECT * FROM materiel WHERE NumSerie = ? AND inventair = 1");
+                $checkInventaireStmt->execute([$serial]);
+                $inventaireMateriel = $checkInventaireStmt->fetch(PDO::FETCH_ASSOC);
+                if ($inventaireMateriel && !isset($_POST['recuperer_inventaire_confirm']) && !isset($_GET['force_add']) && !isset($_POST['force_add'])) {
+                    // Show a minimal HTML page with two buttons for user choice
+                    echo '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Numéro déjà en inventaire</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;">';
+                    echo '<h2>Ce numéro de série existe déjà en inventaire.</h2>';
+                    echo '<p>Voulez-vous le récupérer ?</p>';
+                    echo '<form method="POST" style="display:inline;">';
+                    foreach ($_POST as $k => $v) {
+                        $v = htmlspecialchars($v, ENT_QUOTES);
+                        echo "<input type='hidden' name='".htmlspecialchars($k, ENT_QUOTES)."' value='".$v."'>";
+                    }
+                    echo '<input type="hidden" name="recuperer_inventaire_confirm" value="1">';
+                    echo '<button type="submit" style="margin:10px;padding:10px 20px;">Récupérer</button>';
+                    echo '</form>';
+                    echo '<form method="GET" action="index.php" style="display:inline;">';
+                    echo '<input type="hidden" name="tab" value="materiel">';
+                    echo '<input type="hidden" name="ste" value="' . htmlspecialchars($ste, ENT_QUOTES) . '">';
+                    echo '<input type="hidden" name="showForm" value="materiel">';
+                    echo '<input type="hidden" name="force_add" value="1">';
+                    echo '<button type="submit" style="margin:10px;padding:10px 20px;">Ajouter comme nouveau</button>';
+                    echo '</form>';
+                    echo '</body></html>';
+                    exit();
+                } elseif ($inventaireMateriel && isset($_POST['recuperer_inventaire_confirm'])) {
+                    // User confirmed to recover from inventaire
+                    $update = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
+                    $update->execute([$serial]);
+                    header('Location: index.php?tab=materiel&ste=' . urlencode($_POST['STE']) . '&success=1');
+                    exit();
+                }
+                // This block adds a new materiel to the database
                 try {
                     $stmt = $pdo->prepare("INSERT INTO MATERIEL (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
+                    // Grab all the form data, or set to null if missing
                     $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
                     $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
                     $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
@@ -76,9 +112,46 @@ if ($_POST) {
                         $_POST['classification'],
                         $damageCause
                     ]);
+
+                    // Now let's grab all the details (including user name, type, etc.) for the email
+                    $materielStmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle, f.CompanyName, f.NomComplet as FournisseurNom FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType LEFT JOIN fournisseur f ON m.CodeFournisseur = f.Email WHERE m.NumSerie = ?");
+                    $materielStmt->execute([$serial]);
+                    $mat = $materielStmt->fetch(PDO::FETCH_ASSOC);
+
+                    // Compose a nice email with all the details
+                    $to = '22kingofthedead17@gmail.com';
+                    $subject = 'Nouveau matériel ajouté: ' . htmlspecialchars($mat['NumSerie']);
+                    $body = '<h3>Un nouveau matériel a été ajouté</h3>' .
+                        '<ul>' .
+                        '<li><strong>Numéro de série:</strong> ' . htmlspecialchars($mat['NumSerie']) . '</li>' .
+                        '<li><strong>Modèle:</strong> ' . htmlspecialchars($mat['Model']) . '</li>' .
+                        '<li><strong>Type:</strong> ' . htmlspecialchars($mat['TypeLibelle']) . '</li>' .
+                        '<li><strong>Marque:</strong> ' . htmlspecialchars($mat['Marque']) . '</li>' .
+                        '<li><strong>Date d\'entrée:</strong> ' . htmlspecialchars($mat['Dateentree']) . '</li>' .
+                        '<li><strong>Processeur:</strong> ' . htmlspecialchars($mat['Processeur']) . '</li>' .
+                        '<li><strong>Carte Graphique:</strong> ' . htmlspecialchars($mat['graphique']) . '</li>' .
+                        '<li><strong>Disque Dur:</strong> ' . htmlspecialchars($mat['disqdur']) . '</li>' .
+                        '<li><strong>Fréquence (MHz):</strong> ' . htmlspecialchars($mat['mhtz']) . '</li>' .
+                        '<li><strong>MO:</strong> ' . htmlspecialchars($mat['mo']) . '</li>' .
+                        '<li><strong>Mémoire:</strong> ' . htmlspecialchars($mat['memoire']) . '</li>' .
+                        '<li><strong>Adresse IP:</strong> ' . htmlspecialchars($mat['ip']) . '</li>' .
+                        '<li><strong>Écran:</strong> ' . htmlspecialchars($mat['ecran']) . '</li>' .
+                        '<li><strong>Pouces:</strong> ' . htmlspecialchars($mat['pouce']) . '</li>' .
+                        '<li><strong>Classification:</strong> ' . htmlspecialchars($mat['classification']) . '</li>' .
+                        '<li><strong>État:</strong> ' . htmlspecialchars($mat['stock']) . '</li>' .
+                        '<li><strong>Cause du dommage:</strong> ' . htmlspecialchars($mat['damage_cause']) . '</li>' .
+                        '<li><strong>Observation:</strong> ' . htmlspecialchars($mat['observation']) . '</li>' .
+                        '<li><strong>Utilisateur:</strong> ' . htmlspecialchars($mat['NomPrenom']) . '</li>' .
+                        '<li><strong>Fournisseur:</strong> ' . htmlspecialchars($mat['CompanyName'] ?: $mat['FournisseurNom']) . '</li>' .
+                        '</ul>';
+                    require_once __DIR__ . '/lib/mail_helper.php';
+                    sendNewMaterielEmail($to, $subject, $body);
+
+                    // All done! Redirect back to the main page with a success message
                     header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&success=add_materiel");
                     exit();
                 } catch (PDOException $e) {
+                    // Oops, something went wrong with the DB insert
                     $error_message = "Une erreur est survenue lors de l'ajout du matériel: " . $e->getMessage();
                 }
                 break;
@@ -500,12 +573,9 @@ if ($_POST) {
                     } catch (Exception $e) {
                         $pdo->rollBack();
                         $error_message = "Erreur lors de la finalisation de l'inventaire: " . $e->getMessage();
-                        // To display the error, we can't redirect. We need to fall through.
-                        // But the rest of the script assumes a redirect. So we'll redirect with an error flag.
                         header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&error=1');
                         exit;
                     }
-
                     header('Location: index.php?tab=inventaire&ste=' . urlencode($ste_param) . '&success=1');
                     exit;
                 case 'recuperer_inventaire':
@@ -825,8 +895,22 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
         .state-filters a:hover {
             background-color: #e9e9e9;
         }
+        /* Remove underline from Exporter en PDF link */
+        a.btn-export-pdf {
+            text-decoration: none !important;
+        }
+        /* Excel button color for prod/comm */
+        .btn-excel-prod {
+            background-color: #28a745 !important; /* green */
+            color: #fff !important;
+        }
+        .btn-excel-comm {
+            background-color: #007bff !important; /* blue */
+            color: #fff !important;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="icon" type="image/jpeg" href="imgs/Logo_AAF.JPG">
 </head>
 <body class="theme-<?= htmlspecialchars($ste_filter) ?>">
     <div class="container">
@@ -1121,8 +1205,8 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                 <div class="button-group">
                     <?php if (!$inventaire_mode): ?>
                     <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=materiel'">Ajouter Matériel</button>
-                    <button class="btn-export" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
-                    <a href="export_pdf.php" class="btn btn-primary">
+                    <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                    <a href="export_pdf.php" class="btn btn-primary btn-export-pdf">
                         <i class="fas fa-file-pdf"></i> Exporter en PDF
                     </a>
                     <?php else: ?>
@@ -1225,6 +1309,11 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
         <div id="inventaire" class="tab-content <?= ($activeTab === 'inventaire') ? 'active' : '' ?>">
             <div class="section-header">
                 <h2>Matériel en Inventaire</h2>
+                <div class="button-group">
+                    <?php if (!$inventaire_mode): ?>
+                    <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&inventaire_mode=1" class="btn btn-primary btn-export-pdf">Début Inventaire</a>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="table-responsive">
                 <table id="inventaire-table" class="table-materiel">
@@ -1326,7 +1415,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                 <h2>Liste des Utilisateurs</h2>
                 <div class="button-group">
                     <button class="btn-primary" onclick="window.location.href='index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&showForm=utilisateur'">Ajouter Utilisateur</button>
-                    <button class="btn-export" onclick="exportTableToExcel('utilisateurs-table', 'utilisateurs_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                    <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('utilisateurs-table', 'utilisateurs_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1405,7 +1494,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                 <h2>Liste des Marques</h2>
                 <div class="button-group">
                     <button class="btn-primary" onclick="window.location.href='index.php?tab=marque&showForm=marque'">Ajouter Marque</button>
-                    <button class="btn-export" onclick="exportTableToExcel('marques-table', 'marques_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                    <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('marques-table', 'marques_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1477,7 +1566,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                 <h2>Liste des Types</h2>
                 <div class="button-group">
                     <button class="btn-primary" onclick="window.location.href='index.php?tab=type&showForm=type'">Ajouter Type</button>
-                    <button class="btn-export" onclick="exportTableToExcel('types-table', 'types_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                    <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('types-table', 'types_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1549,7 +1638,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                 <h2>Liste des Services</h2>
                 <div class="button-group">
                     <button class="btn-primary" onclick="window.location.href='index.php?tab=service&ste=<?= urlencode($ste_filter) ?>&showForm=service'">Ajouter Service</button>
-                    <button class="btn-export" onclick="exportTableToExcel('services-table', 'services_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                    <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('services-table', 'services_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1643,7 +1732,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
                 <h2>Liste des Fournisseurs</h2>
                 <div class="button-group">
                     <button class="btn-primary" onclick="window.location.href='index.php?tab=fournisseurs&showForm=fournisseur'">Ajouter Fournisseur</button>
-                    <button class="btn-export" onclick="exportTableToExcel('fournisseurs-table', 'fournisseurs_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                    <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('fournisseurs-table', 'fournisseurs_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
@@ -1735,7 +1824,7 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
     <div id="notification-container"></div>
 
     <script src="js/script.js?v=<?= time() ?>"></script>
-    <script src="js/export.js?v=<?= time() ?>"></script>
+    <!-- <script src="js/export.js?v=<?= time() ?>"></script> -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const themeToggle = document.getElementById('theme-toggle');

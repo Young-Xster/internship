@@ -91,10 +91,6 @@ function initMaterielStateTabs() {
     if (activeTab) {
       activeTab.classList.add("active");
       filterMaterielByState(); // Filter based on the now-active tab
-      console.log(
-        "Materiel state tabs initialized. Active tab:",
-        activeTab.getAttribute("data-state")
-      );
     }
   }
 }
@@ -135,15 +131,12 @@ function updateTabCounters() {
     const stateCell = row.querySelector(".materiel-state-value");
     if (stateCell) {
       const state = stateCell.getAttribute("data-state");
-      console.log(`Counting material with state: ${state}`);
       if (counts.hasOwnProperty(state)) {
         counts[state]++;
       }
       counts.all++; // Always increment total count
     }
   });
-
-  console.log("Tab counts:", counts);
 
   // Update badge counters if they exist
   Object.keys(counts).forEach(state => {
@@ -152,7 +145,6 @@ function updateTabCounters() {
     );
     if (badge) {
       badge.textContent = counts[state];
-      console.log(`Updated tab ${state} badge to ${counts[state]}`);
     }
   });
 }
@@ -328,14 +320,6 @@ function updateMaterialStateInUI(numSerie, newState) {
       // Update the parent <tr>'s data-state attribute for filtering
       row.setAttribute("data-state", normalizedState);
 
-      // Debug output
-      console.log(`Updated material ${numSerie} to state:`, normalizedState);
-      console.log(
-        `.materiel-state-value data-state:`,
-        stateCell.getAttribute("data-state")
-      );
-      console.log(`<tr> data-state:`, row.getAttribute("data-state"));
-
       // Show a success notification
       showNotification(`État du matériel mis à jour: ${stateText}`, "success");
 
@@ -383,7 +367,6 @@ function showStateChangeForm(numSerie, targetState) {
 
   // Always set the form action for AJAX state change
   form.setAttribute("action", "php/change_material_state.php");
-  console.log("State change form action set to:", form.getAttribute("action"));
 
   // Show the modal
   modal.style.display = "block";
