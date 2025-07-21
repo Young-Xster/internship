@@ -72,6 +72,8 @@ if ($_POST) {
                     header('Location: index.php?tab=materiel&ste=' . urlencode($_POST['STE']) . '&success=1');
                     exit();
                 }
+                    // Debug: log the POST data and present_serials
+                    file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Debug: POST present[] = " . json_encode($present_serials) . "\n", FILE_APPEND);
                 // This block adds a new materiel to the database
                 try {
                     $stmt = $pdo->prepare("INSERT INTO MATERIEL (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -81,9 +83,11 @@ if ($_POST) {
                     $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
                     $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
                     $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
+                        $not_present_count = 0;
                     $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : date('Y-m-d');
                     $serial = $_POST['NumSerie'] ?? null;
 
+                                $not_present_count++;
                     // Only include damage_cause if state requires it
                     $damageCause = null;
                     if (isset($_POST['stock']) && ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse')) {
@@ -130,6 +134,11 @@ if ($_POST) {
                         '<li><strong>Marque:</strong> ' . htmlspecialchars($mat['Marque']) . '</li>' .
                         '<li><strong>Date d\'entrée:</strong> ' . htmlspecialchars($mat['Dateentree']) . '</li>' .
                         '<li><strong>Processeur:</strong> ' . htmlspecialchars($mat['Processeur']) . '</li>' .
+                        // Debug: log how many items were not present and moved
+                        file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Debug: not_present_count = $not_present_count, moved_count = $moved_count\n", FILE_APPEND);
+                        if ($moved_count === 0) {
+                            file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Debug: No items moved. Check present[] and form submission.\n", FILE_APPEND);
+                        }
                         '<li><strong>Carte Graphique:</strong> ' . htmlspecialchars($mat['graphique']) . '</li>' .
                         '<li><strong>Disque Dur:</strong> ' . htmlspecialchars($mat['disqdur']) . '</li>' .
                         '<li><strong>Fréquence (MHz):</strong> ' . htmlspecialchars($mat['mhtz']) . '</li>' .
