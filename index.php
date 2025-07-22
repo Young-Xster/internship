@@ -1529,17 +1529,41 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                                 <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
                                 <td class="materiel-state">
                                     <?php if (!$inventaire_mode): ?>
-                                    <form method="POST" style="display:inline; margin:0;">
+                                    <form method="POST" style="display:inline; margin:0;" onsubmit="return handleInlineStateChange(this)">
                                         <input type="hidden" name="action" value="change_state">
                                         <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
                                         <input type="hidden" name="STE" value="<?= htmlspecialchars($ste_filter) ?>">
                                         <input type="hidden" name="redirect_state" value="<?= htmlspecialchars($selected_state) ?>">
-                                        <select name="stock" onchange="this.form.submit()">
+                                        <input type="hidden" name="datefinservice" value="" class="datefinservice-inline">
+                                        <select name="stock" onchange="handleInlineStateSelect(this)">
                                             <?php foreach ($stockLabelMap as $val => $label): ?>
                                             <option value="<?= $val ?>" <?= (isset($materiel['stock']) && $materiel['stock'] == $val) ? 'selected' : '' ?>><?= $label ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </form>
+                                    <script>
+                                    function handleInlineStateSelect(select) {
+                                        var form = select.form;
+                                        var dateInput = form.querySelector('.datefinservice-inline');
+                                        if (select.value == '3') {
+                                            var now = new Date();
+                                            var formatted = now.getFullYear() + '-' +
+                                                String(now.getMonth()+1).padStart(2,'0') + '-' +
+                                                String(now.getDate()).padStart(2,'0') + ' ' +
+                                                String(now.getHours()).padStart(2,'0') + ':' +
+                                                String(now.getMinutes()).padStart(2,'0') + ':' +
+                                                String(now.getSeconds()).padStart(2,'0');
+                                            dateInput.value = formatted;
+                                        } else {
+                                            dateInput.value = '';
+                                        }
+                                        form.submit();
+                                    }
+                                    function handleInlineStateChange(form) {
+                                        // Always allow submit
+                                        return true;
+                                    }
+                                    </script>
                                     <?php else: ?>
                                         <?php 
                                             $stockVal = $materiel['stock'] ?? 0;
