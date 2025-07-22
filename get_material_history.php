@@ -214,7 +214,7 @@ try {
                             </div>
                         <?php endif; ?>
 
-                        <?php if (isset($record['prev_state']) && isset($record['new_state']) && $record['prev_state'] !== $record['new_state']): ?>
+                        <?php if (isset($record['prev_state']) && isset($record['new_state'])): ?>
                             <div class="state-change">
                                 <span class="state-box"><?= htmlspecialchars($stockLabelMap[$record['prev_state']] ?? $record['prev_state']) ?></span>
                                 <span class="transfer-icon">→</span>
