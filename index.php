@@ -117,6 +117,7 @@ if ($_POST) {
                     file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Debug: POST present[] = " . json_encode($present_serials) . "\n", FILE_APPEND);
                 // This block adds a new materiel to the database
                 try {
+
                     $stmt = $pdo->prepare("INSERT INTO MATERIEL (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause, datefinservice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
                     // Grab all the form data, or set to null if missing
@@ -124,26 +125,21 @@ if ($_POST) {
                     $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
                     $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
                     $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
-                        $not_present_count = 0;
                     $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : date('Y-m-d');
                     $serial = $_POST['NumSerie'] ?? null;
 
-                                $not_present_count++;
                     // Only include damage_cause if state requires it
                     $damageCause = null;
                     if (isset($_POST['stock']) && ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse')) {
                         $damageCause = $_POST['damage_cause'] ?? null;
                     }
-                    
+
                     $stock = $_POST['stock'] ?? 'en-service';
                     $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
-                    $datefinservice = null;
-                    if (isset($stockValue) && $stockValue == 3) {
-                        $datefinservice = date('Y-m-d H:i:s');
-                    }
-                    // Debug log for troubleshooting
+                    // Always set datefinservice to current date/time if stockValue == 3 (fin de service), else NULL
+                    $datefinservice = ($stockValue == 3) ? date('Y-m-d H:i:s') : null;
                     error_log('DEBUG: datefinservice value: ' . var_export($datefinservice, true));
-                    
+
                     $stmt->execute([
                         $serial,
                         $dateentree,
@@ -166,7 +162,7 @@ if ($_POST) {
                         $stockValue,
                         $_POST['classification'],
                         $damageCause,
-                        $datefinservice !== null ? $datefinservice : null
+                        $datefinservice
                     ]);
 
                     // Now let's grab all the details (including user name, type, etc.) for the email
