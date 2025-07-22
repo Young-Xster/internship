@@ -1244,6 +1244,7 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                 <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
                     <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
                     <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : $ste_filter ?>">
+                    <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= $editMode ? htmlspecialchars($editMateriel['datefinservice'] ?? '') : '' ?>">
                     
                     <div class="form-group">
                         <label>Numéro de Série:</label>
@@ -1361,6 +1362,39 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                             <option value="endommage" <?= ($editMode && $editMateriel['stock'] === 'endommage') || (!$editMode && $default_state === 'endommage') ? 'selected' : '' ?>>Endommagé</option>
                             <option value="casse" <?= ($editMode && $editMateriel['stock'] === 'casse') || (!$editMode && $default_state === 'casse') ? 'selected' : '' ?>>Casse</option>
                         </select>
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            var stateSelect = document.getElementById('materiel-state-select');
+                            var dateInput = document.getElementById('datefinservice-input');
+                            if (stateSelect) {
+                                stateSelect.addEventListener('change', function() {
+                                    if (this.value === 'casse') {
+                                        var now = new Date();
+                                        var formatted = now.getFullYear() + '-' +
+                                            String(now.getMonth()+1).padStart(2,'0') + '-' +
+                                            String(now.getDate()).padStart(2,'0') + ' ' +
+                                            String(now.getHours()).padStart(2,'0') + ':' +
+                                            String(now.getMinutes()).padStart(2,'0') + ':' +
+                                            String(now.getSeconds()).padStart(2,'0');
+                                        dateInput.value = formatted;
+                                    } else {
+                                        dateInput.value = '';
+                                    }
+                                });
+                                // If already selected on load
+                                if (stateSelect.value === 'casse') {
+                                    var now = new Date();
+                                    var formatted = now.getFullYear() + '-' +
+                                        String(now.getMonth()+1).padStart(2,'0') + '-' +
+                                        String(now.getDate()).padStart(2,'0') + ' ' +
+                                        String(now.getHours()).padStart(2,'0') + ':' +
+                                        String(now.getMinutes()).padStart(2,'0') + ':' +
+                                        String(now.getSeconds()).padStart(2,'0');
+                                    dateInput.value = formatted;
+                                }
+                            }
+                        });
+                        </script>
                     </div>
 
                     <div id="damage-cause-group" class="form-group" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
@@ -1384,6 +1418,22 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
 
             <!-- Transfer Materiel Form -->
             <div class="section materiel-transfer-form <?= ($transferMode && $transferType === 'materiel') ? '' : 'hide' ?>">
+            <!-- Display datefinservice in Casse tab -->
+            <?php if ($activeTab === 'materiel' && $selected_state === 'casse'): ?>
+                <div class="casse-datefinservice-list">
+                    <h3>Date de fin de service</h3>
+                    <ul>
+                    <?php foreach ($materiels as $mat): ?>
+                        <?php if ($mat['stock'] == 3 && !empty($mat['datefinservice'])): ?>
+                            <li>
+                                <strong><?= htmlspecialchars($mat['NumSerie']) ?>:</strong>
+                                <?= htmlspecialchars($mat['datefinservice']) ?>
+                            </li>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
                 <div class="form-header">
                     <h2>Transférer le Matériel</h2>
                 </div>
