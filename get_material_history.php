@@ -77,6 +77,15 @@ try {
             return strtotime($b['date_change']) - strtotime($a['date_change']);
         });
     }
+    // Remove duplicate records (same numserie, prev_state, new_state, date_change)
+    $unique = [];
+    foreach ($history as $rec) {
+        $key = $rec['numserie'] . '|' . $rec['prev_state'] . '|' . $rec['new_state'] . '|' . $rec['date_change'];
+        if (!isset($unique[$key])) {
+            $unique[$key] = $rec;
+        }
+    }
+    $history = array_values($unique);
 
 } catch (PDOException $e) {
     echo "Erreur lors de la récupération de l'historique : " . $e->getMessage();
