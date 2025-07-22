@@ -117,7 +117,7 @@ if ($_POST) {
                     file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Debug: POST present[] = " . json_encode($present_serials) . "\n", FILE_APPEND);
                 // This block adds a new materiel to the database
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO MATERIEL (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt = $pdo->prepare("INSERT INTO MATERIEL (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause, datefinservice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
                     // Grab all the form data, or set to null if missing
                     $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
@@ -134,6 +134,15 @@ if ($_POST) {
                     if (isset($_POST['stock']) && ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse')) {
                         $damageCause = $_POST['damage_cause'] ?? null;
                     }
+                    
+                    $stock = $_POST['stock'] ?? 'en-service';
+                    $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
+                    $datefinservice = null;
+                    if (isset($stockValue) && $stockValue == 3) {
+                        $datefinservice = date('Y-m-d H:i:s');
+                    }
+                    // Debug log for troubleshooting
+                    error_log('DEBUG: datefinservice value: ' . var_export($datefinservice, true));
                     
                     $stmt->execute([
                         $serial,
@@ -154,9 +163,10 @@ if ($_POST) {
                         $_POST['ecran'],
                         $_POST['pouce'],
                         $_POST['observation'],
-                        $_POST['stock'],
+                        $stockValue,
                         $_POST['classification'],
-                        $damageCause
+                        $damageCause,
+                        $datefinservice !== null ? $datefinservice : null
                     ]);
 
                     // Now let's grab all the details (including user name, type, etc.) for the email
@@ -431,21 +441,43 @@ if ($_POST) {
 
                     // Use the stock value directly as string
                     $stock = $_POST['stock'] ?? 'en-service';
+                    $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
+                    // Set datefinservice only when transitioning to casse, otherwise do not update it
+                    $datefinservice = null;
+                    $updateDateFinService = false;
+                    if ($original_stock != 3 && $stockValue == 3) {
+                        $datefinservice = date('Y-m-d H:i:s');
+                        $updateDateFinService = true;
+                    }
                             
                     // Update material first
-                    $stmt = $pdo->prepare("UPDATE materiel SET 
-                        Dateentree = ?, Model = ?, CodeType = ?, CodeMarque = ?, CodeFournisseur = ?, 
-                        STE = ?, CodeUtilisateur = ?, Processeur = ?, graphique = ?, disqdur = ?, 
-                        mhtz = ?, mo = ?, memoire = ?, ip = ?, ecran = ?, pouce = ?, 
-                        observation = ?, stock = ?, classification = ?, damage_cause = ? 
-                        WHERE NumSerie = ?");
-
-                    $stmt->execute([
-                        $dateentree, $_POST['Model'], $codeType, $codeMarque, $codeFournisseur,
-                        $_POST['STE'], $codeUtilisateur, $_POST['Processeur'], $_POST['graphique'], $_POST['disqdur'],
-                        $_POST['mhtz'], $_POST['mo'], $_POST['memoire'], $_POST['ip'], $_POST['ecran'], $_POST['pouce'],
-                        $_POST['observation'], $stock, $_POST['classification'], $damageCause, $serial
-                    ]);
+                    if ($updateDateFinService) {
+                        $stmt = $pdo->prepare("UPDATE materiel SET 
+                            Dateentree = ?, Model = ?, CodeType = ?, CodeMarque = ?, CodeFournisseur = ?, 
+                            STE = ?, CodeUtilisateur = ?, Processeur = ?, graphique = ?, disqdur = ?, 
+                            mhtz = ?, mo = ?, memoire = ?, ip = ?, ecran = ?, pouce = ?, 
+                            observation = ?, stock = ?, classification = ?, damage_cause = ?, datefinservice = ?
+                            WHERE NumSerie = ?");
+                        $stmt->execute([
+                            $dateentree, $_POST['Model'], $codeType, $codeMarque, $codeFournisseur,
+                            $_POST['STE'], $codeUtilisateur, $_POST['Processeur'], $_POST['graphique'], $_POST['disqdur'],
+                            $_POST['mhtz'], $_POST['mo'], $_POST['memoire'], $_POST['ip'], $_POST['ecran'], $_POST['pouce'],
+                            $_POST['observation'], $stockValue, $_POST['classification'], $damageCause, $datefinservice !== null ? $datefinservice : null, $serial
+                        ]);
+                    } else {
+                        $stmt = $pdo->prepare("UPDATE materiel SET 
+                            Dateentree = ?, Model = ?, CodeType = ?, CodeMarque = ?, CodeFournisseur = ?, 
+                            STE = ?, CodeUtilisateur = ?, Processeur = ?, graphique = ?, disqdur = ?, 
+                            mhtz = ?, mo = ?, memoire = ?, ip = ?, ecran = ?, pouce = ?, 
+                            observation = ?, stock = ?, classification = ?, damage_cause = ?
+                            WHERE NumSerie = ?");
+                        $stmt->execute([
+                            $dateentree, $_POST['Model'], $codeType, $codeMarque, $codeFournisseur,
+                            $_POST['STE'], $codeUtilisateur, $_POST['Processeur'], $_POST['graphique'], $_POST['disqdur'],
+                            $_POST['mhtz'], $_POST['mo'], $_POST['memoire'], $_POST['ip'], $_POST['ecran'], $_POST['pouce'],
+                            $_POST['observation'], $stockValue, $_POST['classification'], $damageCause, $serial
+                        ]);
+                    }
 
                     
                 try {
@@ -1186,13 +1218,13 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=en-service" class="<?= $selected_state === 'en-service' ? 'active' : '' ?>">En service</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=en-stock" class="<?= $selected_state === 'en-stock' ? 'active' : '' ?>">En stock</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=endommage" class="<?= $selected_state === 'endommage' ? 'active' : '' ?>">Endommagé</a>
-                <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Cassé</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Casse</a>
             <?php else: ?>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=all" class="<?= $selected_state === 'all' ? 'active' : '' ?>">Tous</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-service" class="<?= $selected_state === 'en-service' ? 'active' : '' ?>">En service</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-stock" class="<?= $selected_state === 'en-stock' ? 'active' : '' ?>">En stock</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=endommage" class="<?= $selected_state === 'endommage' ? 'active' : '' ?>">Endommagé</a>
-                <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Cassé</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Casse</a>
             <?php endif; ?>
         </div>
         <?php endif; ?>
@@ -1326,7 +1358,7 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                             <option value="en-service" <?= ($editMode && $editMateriel['stock'] === 'en-service') || (!$editMode && $default_state === 'en-service') ? 'selected' : '' ?>>En service</option>
                             <option value="en-stock" <?= ($editMode && $editMateriel['stock'] === 'en-stock') || (!$editMode && $default_state === 'en-stock') ? 'selected' : '' ?>>En stock</option>
                             <option value="endommage" <?= ($editMode && $editMateriel['stock'] === 'endommage') || (!$editMode && $default_state === 'endommage') ? 'selected' : '' ?>>Endommagé</option>
-                            <option value="casse" <?= ($editMode && $editMateriel['stock'] === 'casse') || (!$editMode && $default_state === 'casse') ? 'selected' : '' ?>>Cassé</option>
+                            <option value="casse" <?= ($editMode && $editMateriel['stock'] === 'casse') || (!$editMode && $default_state === 'casse') ? 'selected' : '' ?>>Casse</option>
                         </select>
                     </div>
 
@@ -1424,8 +1456,12 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                                 <th>Modèle</th>
                                 <th>Date Entrée</th>
                                 <th>État</th>
-                                <th>observation</th>
-                                                               <th>Actions</th>
+                                <?php if ($selected_state === 'casse'): ?>
+                                    <th>Date de fin de service</th>
+                                <?php else: ?>
+                                    <th>Observation</th>
+                                <?php endif; ?>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1466,7 +1502,11 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                                         <span class="<?= $stateClass ?>" style="margin-left:8px;"> <?= $stateLabel ?> </span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?= $materiel['observation'] ?? 'N/A' ?></td>
+                                <?php if (($selected_state === 'casse') || (isset($materiel['stock']) && ($materiel['stock'] == 3 || $materiel['stock'] === 'casse'))): ?>
+                                    <td><?= ($materiel['datefinservice'] && $materiel['datefinservice'] != '0000-00-00 00:00:00') ? $materiel['datefinservice'] : '' ?></td>
+                                <?php else: ?>
+                                    <td><?= $materiel['observation'] ?? 'N/A' ?></td>
+                                <?php endif; ?>
                                 <td>
                                     <?php if (!$inventaire_mode): ?>
                                     <div class="action-buttons">
