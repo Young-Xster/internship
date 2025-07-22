@@ -637,9 +637,18 @@ if ($_POST) {
                     $stock = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
                     $redirectState = $_POST['redirect_state'] ?? $selected_state ?? 'en-service';
                     $redirectSte = $_POST['STE'] ?? $ste_filter ?? 'prod';
+                    $datefinservice = $_POST['datefinservice'] ?? null;
                     if ($numSerie !== '') {
-                        $stmt = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
-                        $stmt->execute([$stock, $numSerie]);
+                        if ($stock == 3) {
+                            if (!$datefinservice) {
+                                $datefinservice = date('Y-m-d H:i:s');
+                            }
+                            $stmt = $pdo->prepare('UPDATE materiel SET stock = ?, datefinservice = ? WHERE NumSerie = ?');
+                            $stmt->execute([$stock, $datefinservice, $numSerie]);
+                        } else {
+                            $stmt = $pdo->prepare('UPDATE materiel SET stock = ?, datefinservice = NULL WHERE NumSerie = ?');
+                            $stmt->execute([$stock, $numSerie]);
+                        }
                     }
                     header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState));
                     exit;
