@@ -1043,6 +1043,11 @@ if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
 }
 
 require_once 'php/initialize_db.php';
+
+// Determine the default state for the add form
+$default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-service','en-stock','endommage','casse']))
+    ? $selected_state
+    : 'en-service';
 ?>
 
 <!DOCTYPE html>
@@ -1318,10 +1323,10 @@ require_once 'php/initialize_db.php';
                     <div class="form-group">
                         <label>État:</label>
                         <select name="stock" id="materiel-state-select" onchange="toggleDamageCause(this.value)">
-                            <option value="en-service" <?= $editMode && $editMateriel['stock'] === 'en-service' ? 'selected' : '' ?>>En service</option>
-                            <option value="en-stock" <?= $editMode && $editMateriel['stock'] === 'en-stock' ? 'selected' : '' ?>>En stock</option>
-                            <option value="endommage" <?= $editMode && $editMateriel['stock'] === 'endommage' ? 'selected' : '' ?>>Endommagé</option>
-                            <option value="casse" <?= $editMode && $editMateriel['stock'] === 'casse' ? 'selected' : '' ?>>Cassé</option>
+                            <option value="en-service" <?= ($editMode && $editMateriel['stock'] === 'en-service') || (!$editMode && $default_state === 'en-service') ? 'selected' : '' ?>>En service</option>
+                            <option value="en-stock" <?= ($editMode && $editMateriel['stock'] === 'en-stock') || (!$editMode && $default_state === 'en-stock') ? 'selected' : '' ?>>En stock</option>
+                            <option value="endommage" <?= ($editMode && $editMateriel['stock'] === 'endommage') || (!$editMode && $default_state === 'endommage') ? 'selected' : '' ?>>Endommagé</option>
+                            <option value="casse" <?= ($editMode && $editMateriel['stock'] === 'casse') || (!$editMode && $default_state === 'casse') ? 'selected' : '' ?>>Cassé</option>
                         </select>
                     </div>
 
@@ -1391,9 +1396,9 @@ require_once 'php/initialize_db.php';
                 <h2>Liste du Matériel</h2>
                 <div class="button-group">
                     <?php if (!$inventaire_mode): ?>
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=materiel'">Ajouter Matériel</button>
+                    <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=<?= urlencode($selected_state) ?>&showForm=materiel'">Ajouter Matériel</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
-                    <a href="export_pdf.php" class="btn btn-primary btn-export-pdf">
+                    <a href="export_pdf.php?ste=<?= urlencode($ste_filter) ?>" class="btn btn-primary btn-export-pdf">
                         <i class="fas fa-file-pdf"></i> Exporter en PDF
                     </a>
                     <?php else: ?>

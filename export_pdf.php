@@ -2,22 +2,29 @@
 require_once 'php/config.php';
 
 // Fetch all services and users, and left join materiel
+$ste = $_GET['ste'] ?? 'prod'; 
+
 try {
-    $stmt = $pdo->query("
+    $stmt = $pdo->prepare("
         SELECT
             s.Libelle as ServiceLibelle,
             s.CodeService,
             s.STE,
             u.NomPrenom, u.Compte, u.CodeService as UserCodeService,
-            m.NumSerie, m.Model, m.classification, t.Libelle as TypeLibelle
+            m.NumSerie, m.Model, m.classification, m.Dateentree,
+            t.Libelle as TypeLibelle,
+            ma.Marque as Marque
         FROM
             service s
         LEFT JOIN utilisateur u ON u.CodeService = s.CodeService
         LEFT JOIN materiel m ON m.CodeUtilisateur = u.Compte
         LEFT JOIN type t ON m.CodeType = t.CodeType
+        LEFT JOIN marque ma ON m.CodeMarque = ma.Code
+        WHERE s.STE = :ste
         ORDER BY
             s.STE, s.Libelle, u.NomPrenom, m.NumSerie
     ");
+    $stmt->execute(['ste' => $ste]);
     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     die("Erreur de base de données: " . $e->getMessage());
@@ -180,18 +187,20 @@ header('Content-Disposition: inline; filename="inventaire_materiel_AAF_' . date(
                                     <thead>
                                         <tr>
                                             <th>N° Série</th>
+                                            <th>Marque</th>
                                             <th>Type</th>
                                             <th>Modèle</th>
-                                            <th>Classification</th>
+                                            <th>Date d'entrée</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($materials as $material): ?>
                                             <tr>
                                                 <td><?php echo htmlspecialchars($material['NumSerie']); ?></td>
+                                                <td><?php echo htmlspecialchars($material['Marque']); ?></td>
                                                 <td><?php echo htmlspecialchars($material['TypeLibelle']); ?></td>
                                                 <td><?php echo htmlspecialchars($material['Model']); ?></td>
-                                                <td><?php echo htmlspecialchars($material['classification']); ?></td>
+                                                <td><?php echo htmlspecialchars($material['Dateentree']); ?></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
