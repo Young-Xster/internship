@@ -1684,32 +1684,32 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                     <?php endif; ?>
                 </div>
                 <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'utilisateur' ? 'modify_utilisateur' : 'add_utilisateur' ?>">
-                    <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editUtilisateur['STE']) : $ste_filter ?>">
-                    
+                    <input type="hidden" name="action" value="<?= ($editMode && $editType === 'utilisateur') ? 'modify_utilisateur' : 'add_utilisateur' ?>">
+                    <input type="hidden" name="STE" value="<?= $editMode && isset($editUtilisateur['STE']) ? htmlspecialchars($editUtilisateur['STE']) : htmlspecialchars($ste_filter) ?>">
+
                     <div class="form-group">
                         <label>Compte:</label>
-                        <input type="text" name="Compte" value="<?= $editMode ? htmlspecialchars($editUtilisateur['Compte']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?>>
+                        <input type="text" name="Compte" value="<?= $editMode && isset($editUtilisateur['Compte']) ? htmlspecialchars($editUtilisateur['Compte']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?> >
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Nom et Prénom:</label>
-                        <input type="text" name="NomPrenom" value="<?= $editMode ? htmlspecialchars($editUtilisateur['NomPrenom']) : '' ?>" required>
+                        <input type="text" name="NomPrenom" value="<?= $editMode && isset($editUtilisateur['NomPrenom']) ? htmlspecialchars($editUtilisateur['NomPrenom']) : '' ?>" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Service:</label>
-                        <select name="CodeService">
+                        <select name="CodeService" required>
                             <option value="">Non spécifié</option>
                             <?php foreach ($services as $service): ?>
-                                <option value="<?= $service['CodeService'] ?>" <?= $editMode && $service['CodeService'] == $editUtilisateur['CodeService'] ? 'selected' : '' ?>><?= $service['Libelle'] ?></option>
+                                <option value="<?= $service['CodeService'] ?>" <?= $editMode && isset($editUtilisateur['CodeService']) && $service['CodeService'] == $editUtilisateur['CodeService'] ? 'selected' : '' ?>><?= $service['Libelle'] ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Email:</label>
-                        <input type="email" name="Email" value="<?= $editMode ? htmlspecialchars($editUtilisateur['Email']) : '' ?>">
+                        <input type="email" name="Email" value="<?= $editMode && isset($editUtilisateur['Email']) ? htmlspecialchars($editUtilisateur['Email']) : '' ?>">
                     </div>
                     
                     <div class="form-group">
