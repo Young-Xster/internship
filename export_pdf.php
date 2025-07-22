@@ -166,7 +166,7 @@ header('Content-Disposition: inline; filename="inventaire_materiel_AAF_' . date(
     <div class="header">
         <img src="imgs/Logo_AAF.JPG" alt="Logo AAF">
         <h1>Inventaire Matériel - AAF</h1>
-        <p><strong>Date d'export:</strong> <?php echo date('d/m/Y à H:i'); ?></p>
+        <p><strong>Date d'export:</strong> <?php echo date('d/m/Y'); ?></p>
     </div>
 
     <?php if (empty($groupedData)): ?>
@@ -176,7 +176,7 @@ header('Content-Disposition: inline; filename="inventaire_materiel_AAF_' . date(
     <?php else: ?>
         <?php foreach ($groupedData as $ste => $services): ?>
             <div class="societe-block">
-                <h2>Société: <?php echo strtoupper(htmlspecialchars($ste)); ?></h2>
+                <h2>Société: AAF- <?php echo strtoupper($ste == "prod" ? "PRODUCTION" : "COMMUNICATION"); ?></h2>
                 <?php foreach ($services as $service => $users): ?>
                     <div class="service-block">
                         <h3>📁 Service: <?php echo htmlspecialchars($service); ?></h3>
