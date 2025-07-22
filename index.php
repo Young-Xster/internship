@@ -137,7 +137,12 @@ if ($_POST) {
                     $stock = $_POST['stock'] ?? 'en-service';
                     $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
                     // Always set datefinservice to current date/time if stockValue == 3 (fin de service), else NULL
-                    $datefinservice = ($stockValue == 3) ? date('Y-m-d H:i:s') : null;
+                    // Accept datefinservice from POST (JS), fallback to PHP if not provided
+                    if (isset($_POST['datefinservice']) && !empty($_POST['datefinservice'])) {
+                        $datefinservice = $_POST['datefinservice'];
+                    } else {
+                        $datefinservice = ($stockValue == 3) ? date('Y-m-d H:i:s') : null;
+                    }
                     error_log('DEBUG: datefinservice value: ' . var_export($datefinservice, true));
 
                     $stmt->execute([
