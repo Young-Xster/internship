@@ -11,22 +11,21 @@ if (isset($_SESSION['user_email'])) {
     exit;
 }
 
-$email = $_POST['email'] ?? '';
-$password = $_POST['password'] ?? '';
-
-$stmt = $pdo->prepare("SELECT * FROM login WHERE email = ?");
-$stmt->execute([$email]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if ($user && password_verify($password, $user['passwordHash'])) {
-    // Login success
-    $_SESSION['user_email'] = $user['email'];
-    $_SESSION['is_admin'] = $user['admin'];
-    header('Location: index.php');
-    exit;
-} else {
-    // Login failed
-    echo "Invalid email or password";
+$message = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $stmt = $pdo->prepare("SELECT * FROM login WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($user && password_verify($password, $user['passwordHash'])) {
+        $_SESSION['user_email'] = $user['email'];
+        $_SESSION['is_admin'] = $user['admin'];
+        header('Location: index.php');
+        exit;
+    } else {
+        $message = "<span style='color:red'>Email ou mot de passe invalide.</span>";
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -42,23 +41,25 @@ if ($user && password_verify($password, $user['passwordHash'])) {
     .login-card h2 { text-align: center; margin-bottom: 28px; }
     .login-card form { display: flex; flex-direction: column; gap: 20px; }
     .login-card label { font-weight: 500; margin-bottom: 4px; }
-    .login-card input { padding: 12px; border-radius: 7px; border: 1px solid #ccc; font-size: 1.1rem; }
-    .login-card button { background: #007bff; color: #fff; border: none; border-radius: 7px; padding: 13px; font-size: 1.1rem; cursor: pointer; transition: background 0.18s; }
+    .login-card input { padding: 12px; border-radius: 7px; border: 1px solid #ccc; font-size: 1rem; }
+    .login-card button { background: #007bff; color: #fff; border: none; border-radius: 7px; padding: 14px; font-size: 1.1rem; cursor: pointer; margin-top: 10px; }
     .login-card button:hover { background: #0056b3; }
-    .login-card .register-link { text-align: center; margin-top: 20px; }
+    .login-card .bottom-link { text-align: center; margin-top: 18px; }
+    .login-card .error, .login-card .success { text-align: center; margin-bottom: 10px; }
   </style>
 </head>
 <body>
   <div class="login-card">
     <h2>Login</h2>
-    <form action="login.php" method="post">
+    <?php if ($message) echo "<div class='error'>$message</div>"; ?>
+    <form action="login.php" method="post" autocomplete="off">
       <label for="email">Email:</label>
       <input type="email" id="email" name="email" required>
       <label for="password">Password:</label>
       <input type="password" id="password" name="password" required>
       <button type="submit">Login</button>
     </form>
-    <div class="register-link">
+    <div class="bottom-link">
       Don't have an account? <a href="signup.php">Sign up</a>
     </div>
   </div>
