@@ -340,7 +340,8 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        $error_message = "L'utilisateur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
+                        header("Location: index.php?tab=utilisateurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=linked_user");
+                        exit();
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM utilisateur WHERE Compte = ?");
                         $stmt->execute([$_POST['Compte']]);
@@ -348,7 +349,8 @@ if ($_POST) {
                         exit();
                     }
                 } catch (PDOException $e) {
-                    $error_message = "Une erreur est survenue lors de la suppression de l'utilisateur.";
+                    header("Location: index.php?tab=utilisateurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=delete_user");
+                    exit();
                 }
                 break;
             case 'delete_marque':
@@ -358,7 +360,8 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        $error_message = "La marque ne peut pas être supprimée car elle est liée à " . $count . " matériel(s).";
+                        header("Location: index.php?tab=marques&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=linked_marque");
+                        exit();
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM marque WHERE Code = ?");
                         $stmt->execute([$_POST['Code']]);
@@ -366,7 +369,8 @@ if ($_POST) {
                         exit();
                     }
                 } catch (PDOException $e) {
-                    $error_message = "Une erreur est survenue lors de la suppression de la marque.";
+                    header("Location: index.php?tab=marques&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=delete_marque");
+                    exit();
                 }
                 break;
             case 'delete_type':
@@ -376,7 +380,8 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        $error_message = "Le type ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
+                        header("Location: index.php?tab=types&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=linked_type");
+                        exit();
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM type WHERE CodeType = ?");
                         $stmt->execute([$_POST['CodeType']]);
@@ -384,7 +389,8 @@ if ($_POST) {
                         exit();
                     }
                 } catch (PDOException $e) {
-                    $error_message = "Une erreur est survenue lors de la suppression du type.";
+                    header("Location: index.php?tab=types&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=delete_type");
+                    exit();
                 }
                 break;
             case 'delete_service':
@@ -394,7 +400,8 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        $error_message = "Le service ne peut pas être supprimé car il est lié à " . $count . " utilisateur(s).";
+                        header("Location: index.php?tab=services&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=linked_service");
+                        exit();
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM service WHERE CodeService = ?");
                         $stmt->execute([$_POST['CodeService']]);
@@ -402,7 +409,8 @@ if ($_POST) {
                         exit();
                     }
                 } catch (PDOException $e) {
-                    $error_message = "Une erreur est survenue lors de la suppression du service.";
+                    header("Location: index.php?tab=services&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=delete_service");
+                    exit();
                 }
                 break;
                     
@@ -413,7 +421,8 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        $error_message = "Le fournisseur ne peut pas être supprimé car il est lié à " . $count . " matériel(s).";
+                        header("Location: index.php?tab=fournisseurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=linked_fournisseur");
+                        exit();
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM fournisseur WHERE Email = ?");
                         $stmt->execute([$_POST['Email']]);
@@ -421,7 +430,8 @@ if ($_POST) {
                         exit();
                     }
                 } catch (PDOException $e) {
-                    $error_message = "Une erreur est survenue lors de la suppression du fournisseur.";
+                    header("Location: index.php?tab=fournisseurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=delete_fournisseur");
+                    exit();
                 }
                 break;
             
@@ -563,7 +573,7 @@ if ($_POST) {
                 try {
                     $stmt = $pdo->prepare("UPDATE marque SET Marque = ? WHERE Code = ?");
                     $stmt->execute([$_POST['Marque'], $_POST['Code']]);
-                    header("Location: index.php?tab=marque&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_marque");
+                    header("Location: index.php?tab=marques&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_marque");
                     exit();
                 } catch (PDOException $e) {
                     $error_message = "Une erreur est survenue lors de la modification de la marque. Veuillez réessayer.";
@@ -573,7 +583,7 @@ if ($_POST) {
                 try {
                     $stmt = $pdo->prepare("UPDATE type SET Libelle = ? WHERE CodeType = ?");
                     $stmt->execute([$_POST['Libelle'], $_POST['CodeType']]);
-                    header("Location: index.php?tab=type&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_type");
+                    header("Location: index.php?tab=types&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_type");
                     exit();
                 } catch (PDOException $e) {
                     $error_message = "Une erreur est survenue lors de la modification du type. Veuillez réessayer.";
@@ -583,7 +593,7 @@ if ($_POST) {
                 try {
                     $stmt = $pdo->prepare("UPDATE service SET Libelle = ?, STE = ? WHERE CodeService = ?");
                     $stmt->execute([$_POST['Libelle'], $_POST['STE'], $_POST['CodeService']]);
-                    header("Location: index.php?tab=service&ste=" . urlencode($_POST['STE']) . "&success=modify_service");
+                    header("Location: index.php?tab=services&ste=" . urlencode($_POST['STE']) . "&success=modify_service");
                     exit();
                 } catch (PDOException $e) {
                     $error_message = "Une erreur est survenue lors de la modification du service. Veuillez réessayer.";
@@ -876,7 +886,17 @@ $success_messages = [
 ];
 
 $error_messages = [
-    '1' => "Erreur lors de la finalisation de l'inventaire. Consultez les logs pour plus de détails."
+    '1' => "Erreur lors de la finalisation de l'inventaire. Consultez les logs pour plus de détails.",
+    'linked_user' => "L'utilisateur ne peut pas être supprimé car il est lié à un ou plusieurs matériels.",
+    'linked_marque' => "La marque ne peut pas être supprimée car elle est liée à un ou plusieurs matériels.",
+    'linked_type' => "Le type ne peut pas être supprimé car il est lié à un ou plusieurs matériels.",
+    'linked_service' => "Le service ne peut pas être supprimé car il est lié à un ou plusieurs utilisateurs.",
+    'linked_fournisseur' => "Le fournisseur ne peut pas être supprimé car il est lié à un ou plusieurs matériels.",
+    'delete_user' => "Une erreur est survenue lors de la suppression de l'utilisateur.",
+    'delete_marque' => "Une erreur est survenue lors de la suppression de la marque.",
+    'delete_type' => "Une erreur est survenue lors de la suppression du type.",
+    'delete_service' => "Une erreur est survenue lors de la suppression du service.",
+    'delete_fournisseur' => "Une erreur est survenue lors de la suppression du fournisseur."
 ];
 
 $success_code = $_GET['success'] ?? null;

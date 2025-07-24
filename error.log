@@ -1957,3 +1957,18 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 2025-07-24 13:46:19 POST: {"action":"delete_utilisateur","Compte":"185","STE":"prod"} TAB: utilisateurs
 2025-07-24 13:46:25 POST: {"action":"delete_type","CodeType":"20","STE":"prod"} TAB: types
 2025-07-24 13:46:39 POST: {"action":"delete_utilisateur","Compte":"555541","STE":"prod"} TAB: utilisateurs
+2025-07-24 13:55:38 POST: {"action":"delete_utilisateur","Compte":"555541","STE":"prod"} TAB: utilisateurs
+2025-07-24 14:04:11 POST: {"action":"delete_utilisateur","Compte":"555541","STE":"prod"} TAB: utilisateurs
+2025-07-24 14:06:58 POST: {"action":"delete_utilisateur","Compte":"555541","STE":"prod"} TAB: utilisateurs
+2025-07-24 14:07:37 POST: {"action":"add_utilisateur","STE":"prod","Compte":"5588588","NomPrenom":"hassen ddos","CodeService":"2","Email":"","Tel":""} TAB: utilisateurs
+2025-07-24 14:07:44 POST: {"action":"delete_utilisateur","Compte":"5588588","STE":"prod"} TAB: utilisateurs
+2025-07-24 14:07:54 POST: {"action":"delete_utilisateur","Compte":"555541","STE":"prod"} TAB: utilisateurs
+2025-07-24 14:08:03 POST: {"action":"delete_marque","Code":"123460","STE":"prod"} TAB: marques
+2025-07-24 14:08:19 POST: {"action":"add_marque","STE":"prod","Marque":"aaa"} TAB: marques
+2025-07-24 14:08:25 POST: {"action":"delete_marque","Code":"123461","STE":"prod"} TAB: marques
+2025-07-24 14:08:40 POST: {"action":"add_type","STE":"prod","Libelle":"sx"} TAB: types
+2025-07-24 14:08:45 POST: {"action":"delete_type","CodeType":"22","STE":"prod"} TAB: types
+2025-07-24 14:08:58 POST: {"action":"add_service","STE":"prod","Libelle":"s3x"} TAB: services
+2025-07-24 14:09:02 POST: {"action":"delete_service","CodeService":"12","STE":"prod"} TAB: services
+2025-07-24 14:09:41 POST: {"action":"add_fournisseur","STE":"prod","Email":"ita@gmail.com","CompanyName":"","NomComplet":"mmm lll","Adress":"","TelFix":"","TelMobile":""} TAB: fournisseurs
+2025-07-24 14:09:45 POST: {"action":"delete_fournisseur","Email":"ita@gmail.com","STE":"prod"} TAB: fournisseurs
