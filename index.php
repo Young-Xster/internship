@@ -4,6 +4,10 @@ if (!isset($_SESSION['user_email'])) {
     header('Location: login.php');
     exit;
 }
+// Debug: log all POST requests and tab
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . ' POST: ' . json_encode($_POST) . ' TAB: ' . ($_GET['tab'] ?? '') . "\n", FILE_APPEND);
+}
 $is_admin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'];
 // Hey there! This is the main config import. Gotta have our DB and settings ready.
 require_once 'php/config.php';
@@ -1183,11 +1187,11 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
         }
         /* Excel button color for prod/comm */
         .btn-excel-prod {
-            background-color: #28a745 !important; /* green */
+            background-color: #28a745 !important; 
             color: #fff !important;
         }
         .btn-excel-comm {
-            background-color: #007bff !important; /* blue */
+            background-color: #007bff !important; 
             color: #fff !important;
         }
         .maintenance-tabs {
