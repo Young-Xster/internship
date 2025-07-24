@@ -594,7 +594,7 @@ if ($_POST) {
                 try {
                     $stmt = $pdo->prepare("UPDATE fournisseur SET CompanyName = ?, NomComplet = ?, Adress = ?, TelFix = ?, TelMobile = ? WHERE Email = ?");
                     $stmt->execute([$_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile'], $_POST['Email']]);
-                    header("Location: index.php?tab=fournisseur&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_fournisseur");
+                    header("Location: index.php?tab=fournisseurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_fournisseur");
                     exit();
                 } catch (PDOException $e) {
                     $error_message = "Une erreur est survenue lors de la modification du fournisseur. Veuillez vérifier les informations et réessayer.";
