@@ -6,25 +6,25 @@ function HashPassword($password) {
     return password_hash($password, PASSWORD_DEFAULT);
 }
 
-if (isset($_SESSION['user_email'])) {
+if (isset($_SESSION['userName'])) {
     header('Location: index.php');
     exit;
 }
 
 $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
+    $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
-    $stmt = $pdo->prepare("SELECT * FROM login WHERE email = ?");
-    $stmt->execute([$email]);
+    $stmt = $pdo->prepare("SELECT * FROM login WHERE userName = ?");
+    $stmt->execute([$username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($user && password_verify($password, $user['passwordHash'])) {
-        $_SESSION['user_email'] = $user['email'];
+        $_SESSION['userName'] = $user['userName'];
         $_SESSION['is_admin'] = $user['admin'];
         header('Location: index.php');
         exit;
     } else {
-        $message = "<span style='color:red'>Email ou mot de passe invalide.</span>";
+        $message = "<span style='color:red'>Nom d'utilisateur ou mot de passe invalide.</span>";
     }
 }
 ?>
@@ -62,15 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h2>Login</h2>
     <?php if ($message) echo "<div class='error'>$message</div>"; ?>
     <form action="login.php" method="post" autocomplete="off">
-      <label for="email">Email:</label>
-      <input type="email" id="email" name="email" required>
-      <label for="password">Password:</label>
-      <input type="password" id="password" name="password" required>
+      <label for="username">Nom d'utilisateur :</label>
+      <input type="text" id="username" name="username" required minlength="3" maxlength="64">
+      <label for="password">Mot de passe :</label>
+      <input type="password" id="password" name="password" required minlength="8">
       <button type="submit">Login</button>
     </form>
-    <div class="bottom-link">
-      Vous n'avez pas de compte ? <a href="signup.php">Inscrivez-vous</a>
-    </div>
   </div>
 </body>
 </html>

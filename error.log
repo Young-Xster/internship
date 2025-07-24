@@ -1972,3 +1972,5 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 2025-07-24 14:09:02 POST: {"action":"delete_service","CodeService":"12","STE":"prod"} TAB: services
 2025-07-24 14:09:41 POST: {"action":"add_fournisseur","STE":"prod","Email":"ita@gmail.com","CompanyName":"","NomComplet":"mmm lll","Adress":"","TelFix":"","TelMobile":""} TAB: fournisseurs
 2025-07-24 14:09:45 POST: {"action":"delete_fournisseur","Email":"ita@gmail.com","STE":"prod"} TAB: fournisseurs
+2025-07-24 14:56:09 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"jczk58","STE":"prod","redirect_state":"all","datefinservice":"2025-07-24 05:56:09","stock":"3"} TAB: materiel
+2025-07-24 14:56:19 POST: {"action":"change_state","ste":"prod","state":"casse","NumSerie":"jczk58","STE":"prod","redirect_state":"casse","datefinservice":"","stock":"2"} TAB: materiel
