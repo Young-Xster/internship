@@ -185,7 +185,9 @@ try {
         <?php if (empty($history)): ?>
             <p>Aucun historique disponible pour ce matériel.</p>
         <?php else: ?>
-            <?php foreach ($history as $record): ?>
+            <?php $i = 0; foreach ($history as $record): ?>
+                <?php if ($i++ % 2 !== 0) continue; ?>
+
                 <div class="history-item">
                     <div class="timeline-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -225,9 +227,7 @@ try {
                             </div>
                         <?php endif; ?>
                         
-                        <div class="changed-by">
-                            <small>Modifié par: <?= htmlspecialchars($record['changed_by_name'] ?? $record['user_id'] ?? 'Système') ?></small>
-                        </div>
+                        
                     </div>
                 </div>
             <?php endforeach; ?>

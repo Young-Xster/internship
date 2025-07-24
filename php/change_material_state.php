@@ -13,7 +13,7 @@ $target_state = $_POST['target_state'] ?? null;
 $cause = $_POST['cause'] ?? null;
 $notes = $_POST['notes'] ?? null;
 $ste = $_POST['ste'] ?? null;
-$user_id = $_POST['user_id'] ?? null;
+$user_id = 'system';
 
 
 if (!$numserie || $target_state === null) {

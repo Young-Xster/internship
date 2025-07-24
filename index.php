@@ -508,7 +508,9 @@ if ($_POST) {
                     }
                     
                     // Log changes in user or state
-                    if ($original_user !== $new_user || $original_stock !== $stock) {
+                    $normalized_old = strtolower(str_replace([' ', '-'], '', $stockLabelMap[$original_stock] ?? $original_stock));
+                    $normalized_new = strtolower(str_replace([' ', '-'], '', $stockLabelMap[$stock] ?? $stock));
+                    if ((($original_user !== $new_user) xor ($normalized_old !== $normalized_new)) && $stock !== 'en_reparation' && $original_stock !== 'en_reparation') {
                         // Use the actual table structure from your screenshot
                         $history_stmt = $pdo->prepare("INSERT INTO materiel_history 
                             (numserie, prev_state, new_state, date_change, user_id, notes) 
@@ -518,7 +520,7 @@ if ($_POST) {
                         if ($original_user !== $new_user) {
                             $notes .= "Utilisateur changé de $prev_user_name à $new_user_name. ";
                         }
-                        if ($original_stock !== $stock) {
+                        if ($normalized_old !== $normalized_new) {
                             $notes .= "État changé de " . ($stockLabelMap[$original_stock] ?? $original_stock) . " à " . ($stockLabelMap[$stock] ?? $stock) . ".";
                         }
                         
@@ -945,7 +947,8 @@ if ($editMode || $transferMode) {
         'marque' => 'marques',
         'type' => 'types',
         'service' => 'services',
-        'fournisseur' => 'fournisseurs' // Fix: map 'fournisseur' to 'fournisseurs'
+        'fournisseur' => 'fournisseurs',
+        'maintenance' => 'maintenance'
     ];
     $activeTab = $tabMapping[$editType ?? $transferType ?? 'materiel'] ?? 'materiel';
 } elseif (isset($_GET['tab'])) {
@@ -957,7 +960,8 @@ if ($editMode || $transferMode) {
         'marque' => 'marques',
         'type' => 'types',
         'service' => 'services',
-        'fournisseurs' => 'fournisseurs'
+        'fournisseurs' => 'fournisseurs',
+        'maintenance' => 'maintenance'
     ];
     $activeTab = $tabMapping[$_GET['tab']] ?? 'materiel';
 }
@@ -1080,6 +1084,9 @@ require_once 'php/initialize_db.php';
 $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-service','en-stock','endommage','casse']))
     ? $selected_state
     : 'en-service';
+
+// Count materiels for display summary
+$materiel_count = isset($materiels) ? count($materiels) : 0;
 ?>
 
 <!DOCTYPE html>
@@ -1088,7 +1095,7 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion de Matériel</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=<?= time() ?>">
     <link rel="stylesheet" href="css/materiel_state.css">
     <link rel="stylesheet" href="css/export_styles.css">
     <style>
@@ -1131,6 +1138,34 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
         .btn-excel-comm {
             background-color: #007bff !important; /* blue */
             color: #fff !important;
+        }
+        .maintenance-tabs {
+            margin-bottom: 10px;
+        }
+        .maintenance-tab-btn {
+            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px 6px 0 0;
+            padding: 10px 22px;
+            margin-right: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            outline: none;
+            box-shadow: 0 2px 6px rgba(100,100,100,0.08);
+        }
+        .maintenance-tab-btn.active, .maintenance-tab-btn:focus {
+            background: linear-gradient(90deg, #fc5c7d 0%, #6a82fb 100%);
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(100,100,100,0.12);
+        }
+        .maintenance-tab-btn:hover {
+            background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
+            color: #fff;
+            opacity: 0.92;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1209,6 +1244,11 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                     <?= ($isFormOpen && $activeTab !== 'fournisseurs') ? 'disabled' : '' ?>>
                 Fournisseurs
             </button>
+            <button class="tab-btn <?= ($activeTab === 'maintenance') ? 'active' : '' ?>" 
+                    onclick="window.location.href='index.php?tab=maintenance&ste=<?= urlencode($ste_filter) ?>'" 
+                    <?= ($isFormOpen && $activeTab !== 'maintenance') ? 'disabled' : '' ?>>
+                Maintenance
+            </button>
         </nav>
 
         <?php if ($activeTab === 'materiel'): ?>
@@ -1260,7 +1300,7 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                     </div>
                     <div class="form-group">
                         <label>Fournisseur:</label>
-                        <select name="CodeFournisseur" required>
+                        <select name="CodeFournisseur" <?= $editMode ? 'disabled' : '' ?>>
                             <option value="">Sélectionner un fournisseur</option>
                             <?php foreach ($fournisseurs as $four):
                                 $isSelected = $editMode && isset($editMateriel['CodeFournisseur']) && $four['Email'] == $editMateriel['CodeFournisseur'];
@@ -1438,6 +1478,57 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                     <?php endif; ?>
                 </div>
             </div>
+
+            <!-- Restored search bar -->
+            <div class="search-container">
+                <div class="search-row">
+                    <div class="search-input-group">
+                        <input
+                            type="text"
+                            id="search-materiel"
+                            class="search-input"
+                            placeholder="Rechercher dans le matériel..."
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Filtres :</label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="NumSerie"> N° Série
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="NomPrenom"> Utilisateur
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Marque"> Marque
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="TypeLibelle"> Type
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="classification"> Classification
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Model"> Modèle
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Dateentree"> Date Entrée
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="État"> État
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="observation"> Observation
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <!-- End search bar -->
+
+            <!-- Display count of materiels -->
+            <div id="materiel-count-summary" class="materiel-count-summary" style="margin: 10px 0 10px 0; font-weight: bold; color: #333;">
+                Nombre de matériels affichés : <?= $materiel_count ?>
+            </div>
             <form method="POST" id="fin-inventaire-form">
                 <input type="hidden" name="action" value="fin_inventaire">
                 <input type="hidden" name="ste" value="<?= htmlspecialchars($ste_filter) ?>">
@@ -1453,6 +1544,7 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                                 <th>Utilisateur</th>
                                 <th>Marque</th>
                                 <th>Type</th>
+                                <th>Classification</th>
                                 <th>Modèle</th>
                                 <th>Date Entrée</th>
                                 <th>État</th>
@@ -1463,7 +1555,7 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                                 <?php endif; ?>
                                 <th>Actions</th>
                             </tr>
-                        </thead>
+                        </thead>        
                         <tbody>
                             <?php foreach ($materiels as $materiel): ?>
                             <tr>
@@ -1474,6 +1566,7 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                                 <td><?= htmlspecialchars($materiel['NomPrenom'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($materiel['TypeLibelle'] ?? 'N/A') ?></td>
+                                <td><?= htmlspecialchars($materiel['classification'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($materiel['Model'] ?? 'N/A') ?></td>
                                 <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
                                 <td class="materiel-state">
@@ -1605,7 +1698,7 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                     
                     <div class="form-group">
                         <label>Compte:</label>
-                        <input type="text" name="Compte" value="<?= $editMode ? htmlspecialchars($editUtilisateur['Compte']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?>>
+                        <input type="number" name="Compte" value="<?= $editMode ? htmlspecialchars($editUtilisateur['Compte']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?>>
                     </div>
                     
                     <div class="form-group">
@@ -2006,6 +2099,118 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
                 </table>
             </div>
         </div>
+
+        <div id="maintenance" class="tab-content <?= ($activeTab === 'maintenance') ? 'active' : '' ?>">
+            <div class="section-header">
+                <h2>Maintenance</h2>
+            </div>
+            <div class="section">
+                <div class="state-filters">
+                    <a class="active" onclick="showMaintenanceSubtab('list')" id="maintenance-list-tab">Matériels à réparer</a>
+                    <a class="" onclick="showMaintenanceSubtab('en_reparation')" id="maintenance-en-reparation-tab">Matériel en réparation</a>
+                </div>
+                <div id="maintenance-list" class="maintenance-subtab">
+                    <table class="table-materiel">
+                        <thead>
+                            <tr>
+                                <th>Numéro de Série</th>
+                                <th>Utilisateur</th>
+                                <th>Marque</th>
+                                <th>Type</th>
+                                <th>Classification</th>
+                                <th>Modèle</th>
+                                <th>Date Entrée</th>
+                                <th>État</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($materiels as $materiel): ?>
+                                <?php if (isset($materiel['stock']) && ($materiel['stock'] == 0 || $materiel['stock'] == 1)): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($materiel['NumSerie']) ?></td>
+                                    <td><?= htmlspecialchars($materiel['NomPrenom'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['TypeLibelle'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['classification'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['Model'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
+                                    <td><?= ($materiel['stock'] == 0) ? 'En service' : 'En stock' ?></td>
+                                    <td>
+                                        <a href="fiche_reparation.php?numserie=<?= urlencode($materiel['NumSerie']) ?>" class="btn-primary" target="_blank">Fiche de réparation</a>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="maintenance-en-reparation" class="maintenance-subtab" style="display:none;">
+                    <?php
+                    // Fetch materiel en reparation from the new table
+                    try {
+                        $reparation_stmt = $pdo->query("SELECT * FROM materiel_en_reparation ORDER BY date_sent DESC");
+                        $materiels_en_reparation = $reparation_stmt->fetchAll();
+                        // Fetch user, marque, and type names for each materiel
+                        foreach ($materiels_en_reparation as &$mat) {
+                            // User name
+                            $userStmt = $pdo->prepare("SELECT NomPrenom FROM utilisateur WHERE Compte = ?");
+                            $userStmt->execute([$mat['CodeUtilisateur']]);
+                            $mat['NomPrenom'] = $userStmt->fetchColumn() ?: $mat['CodeUtilisateur'];
+                            // Marque
+                            $marqueStmt = $pdo->prepare("SELECT Marque FROM marque WHERE Code = ?");
+                            $marqueStmt->execute([$mat['CodeMarque']]);
+                            $mat['Marque'] = $marqueStmt->fetchColumn() ?: $mat['CodeMarque'];
+                            // Type
+                            $typeStmt = $pdo->prepare("SELECT Libelle FROM type WHERE CodeType = ?");
+                            $typeStmt->execute([$mat['CodeType']]);
+                            $mat['TypeLibelle'] = $typeStmt->fetchColumn() ?: $mat['CodeType'];
+                        }
+                        unset($mat);
+                    } catch (PDOException $e) {
+                        $materiels_en_reparation = [];
+                    }
+                    ?>
+                    <table class="table-materiel">
+                        <thead>
+                            <tr>
+                                <th>Numéro de Série</th>
+                                <th>Utilisateur</th>
+                                <th>Marque</th>
+                                <th>Type</th>
+                                <th>Classification</th>
+                                <th>Modèle</th>
+                                <th>Date Entrée</th>
+                                <th>État</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($materiels_en_reparation as $mat): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($mat['NumSerie']) ?></td>
+                                    <td><?= htmlspecialchars($mat['NomPrenom'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($mat['Marque'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($mat['TypeLibelle'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($mat['classification'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($mat['Model'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($mat['Dateentree'] ?? 'N/A') ?></td>
+                                    <td><?= ($mat['stock'] == 0) ? 'En service' : (($mat['stock'] == 1) ? 'En stock' : $mat['stock']) ?></td>
+                                    <td>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="action" value="recuperer_reparation">
+                                            <input type="hidden" name="NumSerie" value="<?= htmlspecialchars($mat['NumSerie']) ?>">
+                                            <button type="submit" class="btn-primary">Récupérer</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Modal for fiche de reparation will be implemented next -->
+        </div>
     </div>
 
     <!-- State Change Modal -->
@@ -2106,5 +2311,53 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
             }
         }
     </script>
+    <!-- Fiche de réparation modal -->
+    <div id="fiche-reparation-modal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:600px;">
+            <span class="close" onclick="closeFicheReparationModal()">&times;</span>
+            <h2>Fiche de réparation</h2>
+            <form id="fiche-reparation-form" method="POST">
+                <input type="hidden" name="action" value="send_to_reparation">
+                <input type="hidden" name="NumSerie" id="fiche-numserie" value="">
+                <div class="form-group">
+                    <label>Numéro de Série:</label>
+                    <span id="fiche-numserie-label"></span>
+                </div>
+                <div class="form-group">
+                    <label>Marque:</label>
+                    <span id="fiche-marque-label"></span>
+                </div>
+                <div class="form-group">
+                    <label>Type:</label>
+                    <span id="fiche-type-label"></span>
+                </div>
+                <div class="form-group">
+                    <label>Modèle:</label>
+                    <span id="fiche-model-label"></span>
+                </div>
+                <div class="form-group">
+                    <label>Utilisateur:</label>
+                    <span id="fiche-user-label"></span>
+                </div>
+                <div class="form-group">
+                    <label>Date d'entrée:</label>
+                    <span id="fiche-date-label"></span>
+                </div>
+                <div class="form-group">
+                    <label>Ce qu'il faut réparer:</label>
+                    <textarea name="repair_request" id="fiche-repair-request" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Zone pour écriture manuelle après impression:</label>
+                    <div style="border:1px dashed #888; height:100px; margin-bottom:10px;"></div>
+                </div>
+                <div class="form-group" style="display:flex; gap:10px;">
+                    <button type="button" class="btn-primary" onclick="printFicheReparation()">Imprimer la fiche</button>
+                    <button type="submit" class="btn-primary">Envoyer en réparation</button>
+                    <button type="button" class="btn-cancel" onclick="closeFicheReparationModal()">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

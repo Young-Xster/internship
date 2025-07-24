@@ -214,6 +214,7 @@ function performSearch(searchType) {
       row.style.display = matchesTab && matchesSearch ? "" : "none";
     });
 
+    updateMaterielCount();
     // After filtering, we don't need the generic logic below for materiel.
     return;
   }
@@ -563,3 +564,113 @@ function toggleDamageCause(stockValue) {
     damageCauseGroup.style.display = "none";
   }
 }
+
+function updateMaterielCount() {
+  const table = document.getElementById("materiel-table");
+  if (!table) return;
+  const rows = table.querySelectorAll("tbody tr");
+  let visibleCount = 0;
+  rows.forEach((row) => {
+    if (row.style.display !== "none") {
+      visibleCount++;
+    }
+  });
+  const countDiv = document.getElementById("materiel-count-summary");
+  if (countDiv) {
+    countDiv.textContent = "Nombre de matériels affichés : " + visibleCount;
+  }
+}
+
+// Maintenance tab subtabs logic
+function showMaintenanceSubtab(tab) {
+  const listTab = document.getElementById("maintenance-list");
+  const reparTab = document.getElementById("maintenance-en-reparation");
+  const listBtn = document.getElementById("maintenance-list-tab");
+  const reparBtn = document.getElementById("maintenance-en-reparation-tab");
+  if (!listTab || !reparTab || !listBtn || !reparBtn) return;
+  if (tab === "list") {
+    listTab.style.display = "";
+    reparTab.style.display = "none";
+    listBtn.classList.add("active");
+    reparBtn.classList.remove("active");
+  } else {
+    listTab.style.display = "none";
+    reparTab.style.display = "";
+    listBtn.classList.remove("active");
+    reparBtn.classList.add("active");
+  }
+}
+
+// Placeholder for fiche de reparation modal logic
+function openFicheReparationModal(numSerie) {
+  console.log("openFicheReparationModal called with:", numSerie);
+  const modal = document.getElementById("fiche-reparation-modal");
+  if (!modal) {
+    console.error("fiche-reparation-modal not found in DOM");
+    return;
+  }
+  // Try to forcibly show the modal
+  modal.style.display = "block";
+  // Optionally, highlight the modal for debug
+  modal.style.border = "5px solid red";
+  // Find the row in the maintenance list
+  const table = document.querySelector("#maintenance-list .table-materiel");
+  if (!table) return;
+  let found = false;
+  for (const row of table.querySelectorAll("tbody tr")) {
+    const cells = row.querySelectorAll("td");
+    if (cells.length && cells[0].textContent.trim() === numSerie) {
+      document.getElementById("fiche-numserie").value = numSerie;
+      document.getElementById("fiche-numserie-label").textContent = numSerie;
+      document.getElementById("fiche-marque-label").textContent =
+        cells[2].textContent;
+      document.getElementById("fiche-type-label").textContent =
+        cells[3].textContent;
+      document.getElementById("fiche-model-label").textContent =
+        cells[5].textContent;
+      document.getElementById("fiche-user-label").textContent =
+        cells[1].textContent;
+      document.getElementById("fiche-date-label").textContent =
+        cells[6].textContent;
+      document.getElementById("fiche-repair-request").value = "";
+      found = true;
+      break;
+    }
+  }
+  if (found) {
+    document.getElementById("fiche-reparation-modal").style.display = "";
+  }
+}
+
+function closeFicheReparationModal() {
+  document.getElementById("fiche-reparation-modal").style.display = "none";
+}
+
+function printFicheReparation() {
+  const modal = document.getElementById("fiche-reparation-modal");
+  if (!modal) return;
+  // Clone modal content for print
+  const printContents = modal.querySelector(".modal-content").cloneNode(true);
+  // Remove buttons
+  printContents
+    .querySelectorAll("button, .close")
+    .forEach((btn) => (btn.style.display = "none"));
+  const win = window.open("", "", "width=800,height=600");
+  win.document.write("<html><head><title>Fiche de réparation</title>");
+  win.document.write(
+    "<style>body{font-family:sans-serif;} label{font-weight:bold;} .form-group{margin-bottom:10px;} </style>"
+  );
+  win.document.write("</head><body>");
+  win.document.write(printContents.innerHTML);
+  win.document.write("</body></html>");
+  win.document.close();
+  win.focus();
+  win.print();
+  win.close();
+}
+
+window.openFicheReparationModal = openFicheReparationModal;
+window.closeFicheReparationModal = closeFicheReparationModal;
+window.printFicheReparation = printFicheReparation;
+
+// Remove the AJAX handler for materiel-state-dropdowns (no-op)

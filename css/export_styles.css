@@ -8,4 +8,6 @@
   background-color: #5a6268;
 }
 
+/* Remove any .maintenance-tab-btn or gradient background rules here if present */
+
 /* Responsive styles moved to style.css to avoid conflicts */

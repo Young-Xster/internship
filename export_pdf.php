@@ -3,9 +3,19 @@ require_once 'php/config.php';
 
 // Fetch all services and users, and left join materiel
 $ste = $_GET['ste'] ?? 'prod'; 
+$user_filter = isset($_GET['user']) ? $_GET['user'] : '';
+
+// Fetch all users for the dropdown
+try {
+    $userStmt = $pdo->prepare("SELECT DISTINCT u.Compte, u.NomPrenom FROM utilisateur u WHERE u.STE = :ste ORDER BY u.NomPrenom");
+    $userStmt->execute(['ste' => $ste]);
+    $allUsers = $userStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $allUsers = [];
+}
 
 try {
-    $stmt = $pdo->prepare("
+    $query = "
         SELECT
             s.Libelle as ServiceLibelle,
             s.CodeService,
@@ -21,10 +31,15 @@ try {
         LEFT JOIN type t ON m.CodeType = t.CodeType
         LEFT JOIN marque ma ON m.CodeMarque = ma.Code
         WHERE s.STE = :ste
-        ORDER BY
-            s.STE, s.Libelle, u.NomPrenom, m.NumSerie
-    ");
-    $stmt->execute(['ste' => $ste]);
+    ";
+    $params = ['ste' => $ste];
+    if ($user_filter) {
+        $query .= " AND u.Compte = :user ";
+        $params['user'] = $user_filter;
+    }
+    $query .= " ORDER BY s.STE, s.Libelle, u.NomPrenom, m.NumSerie ";
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     die("Erreur de base de données: " . $e->getMessage());
@@ -65,7 +80,7 @@ header('Content-Disposition: inline; filename="inventaire_materiel_AAF_' . date(
     <style>
         @media print {
             body { margin: 0; }
-            .no-print { display: none; }
+            .no-print { display: none !important; }
         }
         body {
             font-family: Arial, sans-serif;
@@ -158,9 +173,51 @@ header('Content-Disposition: inline; filename="inventaire_materiel_AAF_' . date(
         .print-btn:hover {
             background: #005a8b;
         }
+        .user-select-container {
+            margin: 20px 0 10px 0;
+            text-align: center;
+        }
+        .user-select-container label {
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .signature-block {
+            margin-top: 40px;
+            padding: 30px 0 0 0;
+            border-top: 2px solid #333;
+            width: 60%;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+        .signature-label {
+            font-size: 15px;
+            margin-bottom: 30px;
+            display: block;
+        }
+        .signature-line {
+            border-bottom: 1px solid #333;
+            width: 300px;
+            height: 40px;
+            margin-top: 30px;
+        }
     </style>
 </head>
 <body>
+    <div class="user-select-container no-print">
+        <form method="get" action="export_pdf.php" style="display:inline-block;">
+            <input type="hidden" name="ste" value="<?php echo htmlspecialchars($ste); ?>">
+            <label for="user">Filtrer par utilisateur :</label>
+            <select name="user" id="user" onchange="this.form.submit()">
+                <option value="">-- Tous les utilisateurs --</option>
+                <?php foreach ($allUsers as $user): ?>
+                    <option value="<?php echo htmlspecialchars($user['Compte']); ?>" <?php if ($user_filter == $user['Compte']) echo 'selected'; ?>>
+                        <?php echo htmlspecialchars($user['NomPrenom']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+    </div>
     <button class="print-btn no-print" onclick="window.print()">🖨️ Imprimer PDF</button>
     
     <div class="header">
@@ -205,6 +262,12 @@ header('Content-Disposition: inline; filename="inventaire_materiel_AAF_' . date(
                                         <?php endforeach; ?>
                                     </tbody>
                                 </table>
+                                <?php if ($user_filter && $user_filter == ($materials[0]['Compte'] ?? '')): ?>
+                                    <div class="signature-block">
+                                        <span class="signature-label">Signature de l'utilisateur :</span>
+                                        <div class="signature-line"></div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     </div>
