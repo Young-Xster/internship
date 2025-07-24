@@ -2233,7 +2233,8 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                     <?php
                     // Fetch materiel en reparation from the new table
                     try {
-                        $reparation_stmt = $pdo->query("SELECT * FROM materiel_en_reparation ORDER BY date_sent DESC");
+                        $reparation_stmt = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE STE = ? ORDER BY date_sent DESC");
+                        $reparation_stmt->execute([$ste_filter]);
                         $materiels_en_reparation = $reparation_stmt->fetchAll();
                         // Fetch user, marque, and type names for each materiel
                         foreach ($materiels_en_reparation as &$mat) {

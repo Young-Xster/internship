@@ -1,6 +1,38 @@
 <?php
 require_once 'php/config.php';
 $numserie = $_GET['numserie'] ?? '';
+// Handle send to repair POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_to_repair']) && isset($_POST['numserie'])) {
+    $numserie = $_POST['numserie'];
+    // Fetch the material
+    $stmt = $pdo->prepare("SELECT * FROM materiel WHERE NumSerie = ?");
+    $stmt->execute([$numserie]);
+    $mat = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($mat) {
+        // Only use columns that exist in materiel_en_reparation
+        $fields = [
+            'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
+            'stock', 'observation', 'Processeur', 'memoire', 'disqdur', 'graphique',
+            'pouce', 'ecran', 'mhtz', 'mo', 'ip', 'classification', 'STE', 'CodeFournisseur', 'damage_cause'
+        ];
+        $insert_fields = implode(", ", $fields) . ", date_sent";
+        $insert_placeholders = ":" . implode(", :", $fields) . ", :date_sent";
+        $insert = $pdo->prepare("INSERT INTO materiel_en_reparation ($insert_fields) VALUES ($insert_placeholders)");
+        $params = [];
+        foreach ($fields as $f) {
+            $params[$f] = $mat[$f] ?? null;
+        }
+        $params['date_sent'] = date('Y-m-d H:i:s');
+        $insert->execute($params);
+        // Remove from materiel
+        $del = $pdo->prepare("DELETE FROM materiel WHERE NumSerie = ?");
+        $del->execute([$numserie]);
+        header('Location: index.php?tab=maintenance&sent=1');
+        exit();
+    } else {
+        $error = 'Matériel introuvable.';
+    }
+}
 if (!$numserie) {
     die('Numéro de série manquant.');
 }
@@ -53,7 +85,47 @@ if (!$mat) {
     </style>
 </head>
 <body>
-<button class="print-btn" onclick="window.print()">🖨️ Imprimer / PDF</button>
+<!-- Redesigned action bar for PDF and Send buttons at the bottom -->
+<style>
+.fiche-action-bar {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin: 48px auto 0 auto;
+    padding: 28px 0 40px 0;
+    background: #f8f8f8;
+    border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    max-width: 900px;
+    position: relative;
+}
+.fiche-action-bar .fiche-btn {
+    font-size: 1.25rem;
+    font-weight: bold;
+    padding: 18px 38px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.fiche-action-bar .fiche-btn.pdf {
+    background: #FFD600;
+    color: #222;
+}
+.fiche-action-bar .fiche-btn.pdf:hover {
+    background: #ffe066;
+    color: #111;
+}
+.fiche-action-bar .fiche-btn.send {
+    background: #4CAF50;
+    color: #fff;
+}
+.fiche-action-bar .fiche-btn.send:hover {
+    background: #6fdc7a;
+    color: #fff;
+}
+</style>
 <div class="fiche-container">
     <div class="fiche-header">FICHE DE RÉPARATION</div>
     <table class="fiche-table">
@@ -109,6 +181,13 @@ if (!$mat) {
         </tbody>
     </table>
     <div class="fiche-total">TOTAL TEMPS ___________________________</div>
+</div>
+<div class="fiche-action-bar no-print">
+    <button type="button" class="fiche-btn pdf" onclick="window.print()" title="Cliquez pour exporter cette fiche en PDF via l'impression du navigateur">Importer PDF</button>
+    <form method="POST" style="display:inline; margin:0;">
+        <input type="hidden" name="numserie" value="<?= htmlspecialchars($mat['NumSerie']) ?>">
+        <button type="submit" name="send_to_repair" class="fiche-btn send" onclick="return confirm('Envoyer ce matériel en réparation ? Il sera retiré de la liste principale.');">Envoyer en réparation</button>
+    </form>
 </div>
 </body>
 </html> 
