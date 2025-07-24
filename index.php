@@ -1,4 +1,9 @@
 <?php
+session_start();
+if (!isset($_SESSION['user_email'])) {
+    header('Location: login.php');
+    exit;
+}
 // Hey there! This is the main config import. Gotta have our DB and settings ready.
 require_once 'php/config.php';
 require_once 'php/initialize_db.php';
@@ -1211,6 +1216,30 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
             background: linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%);
             color: #fff;
             opacity: 0.92;
+        }
+        .user-profile-icon {
+            position: fixed;
+            top: 24px;
+            right: 32px;
+            width: 44px;
+            height: 44px;
+            background: #e0e7ef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer;
+            z-index: 1000;
+            transition: background 0.18s;
+        }
+        .user-profile-icon:hover {
+            background: #c7d2e5;
+        }
+        .user-profile-icon img {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -2479,5 +2508,8 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
             </form>
         </div>
     </div>
+    <a href="user.php" class="user-profile-icon" title="User Profile">
+        <img src="https://ui-avatars.com/api/?name=U&background=e0e7ef&color=222" alt="User" />
+    </a>
 </body>
 </html>
