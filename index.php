@@ -800,6 +800,41 @@ if ($_POST) {
                     // Redirect back to the inventaire tab to see the list update
                     header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
                     exit;
+            case 'recuperer_reparation':
+                $numSerie = $_POST['NumSerie'] ?? '';
+                if ($numSerie !== '') {
+                    $pdo->beginTransaction();
+                    try {
+                        // Get the record from materiel_en_reparation table
+                        $select_stmt = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE NumSerie = ?");
+                        $select_stmt->execute([$numSerie]);
+                        $reparation_item = $select_stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($reparation_item) {
+                            // Only use valid columns for materiel
+                            $fields = [
+                                'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
+                                'stock', 'observation', 'Processeur', 'memoire', 'disqdur', 'graphique',
+                                'pouce', 'ecran', 'mhtz', 'mo', 'ip', 'classification', 'STE', 'CodeFournisseur', 'damage_cause'
+                            ];
+                            $insert_fields = implode(", ", $fields);
+                            $insert_placeholders = ":" . implode(", :", $fields);
+                            $insert_stmt = $pdo->prepare("INSERT INTO materiel ($insert_fields) VALUES ($insert_placeholders)");
+                            $params = [];
+                            foreach ($fields as $f) {
+                                $params[$f] = $reparation_item[$f] ?? null;
+                            }
+                            $insert_stmt->execute($params);
+                            // Delete from materiel_en_reparation
+                            $delete_stmt = $pdo->prepare("DELETE FROM materiel_en_reparation WHERE NumSerie = ?");
+                            $delete_stmt->execute([$numSerie]);
+                        }
+                        $pdo->commit();
+                    } catch (Exception $e) {
+                        $pdo->rollBack();
+                    }
+                }
+                header('Location: index.php?tab=maintenance&ste=' . urlencode($ste_filter));
+                exit;
         }
     } catch (Exception $e) {
         $error_message = "Erreur lors du traitement de la demande: " . $e->getMessage();
