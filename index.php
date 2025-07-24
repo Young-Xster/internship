@@ -344,7 +344,7 @@ if ($_POST) {
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM utilisateur WHERE Compte = ?");
                         $stmt->execute([$_POST['Compte']]);
-                        header("Location: index.php?tab=utilisateur&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_user");
+                        header("Location: index.php?tab=utilisateurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_user");
                         exit();
                     }
                 } catch (PDOException $e) {
@@ -362,7 +362,7 @@ if ($_POST) {
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM marque WHERE Code = ?");
                         $stmt->execute([$_POST['Code']]);
-                        header("Location: index.php?tab=marque&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_marque");
+                        header("Location: index.php?tab=marques&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_marque");
                         exit();
                     }
                 } catch (PDOException $e) {
@@ -380,7 +380,7 @@ if ($_POST) {
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM type WHERE CodeType = ?");
                         $stmt->execute([$_POST['CodeType']]);
-                        header("Location: index.php?tab=type&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_type");
+                        header("Location: index.php?tab=types&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_type");
                         exit();
                     }
                 } catch (PDOException $e) {
@@ -398,7 +398,7 @@ if ($_POST) {
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM service WHERE CodeService = ?");
                         $stmt->execute([$_POST['CodeService']]);
-                        header("Location: index.php?tab=service&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_service");
+                        header("Location: index.php?tab=services&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_service");
                         exit();
                     }
                 } catch (PDOException $e) {
@@ -594,7 +594,7 @@ if ($_POST) {
                 try {
                     $stmt = $pdo->prepare("UPDATE fournisseur SET CompanyName = ?, NomComplet = ?, Adress = ?, TelFix = ?, TelMobile = ? WHERE Email = ?");
                     $stmt->execute([$_POST['CompanyName'], $_POST['NomComplet'], $_POST['Adress'], $_POST['TelFix'], $_POST['TelMobile'], $_POST['Email']]);
-                    header("Location: index.php?tab=fournisseurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_fournisseur");
+                    header("Location: index.php?tab=fournisseur&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_fournisseur");
                     exit();
                 } catch (PDOException $e) {
                     $error_message = "Une erreur est survenue lors de la modification du fournisseur. Veuillez vérifier les informations et réessayer.";

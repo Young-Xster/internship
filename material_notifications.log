@@ -210,3 +210,6 @@ Type: kou3Namla
 2025-07-24 12:42:48 POST: {"action":"delete_materiel","NumSerie":"jldhaio8","STE":"prod"}
 2025-07-24 13:01:13 POST: {"action":"recuperer_inventaire","NumSerie":"888888x","STE":"prod"}
 2025-07-24 13:02:38 POST: {"action":"add_materiel","STE":"prod","datefinservice":"","NumSerie":"4d47ad","CodeUtilisateur":"155557","CodeFournisseur":"","CodeMarque":"123460","CodeType":"21","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
+2025-07-24 13:46:19 POST: {"action":"delete_utilisateur","Compte":"185","STE":"prod"}
+2025-07-24 13:46:25 POST: {"action":"delete_type","CodeType":"20","STE":"prod"}
+2025-07-24 13:46:39 POST: {"action":"delete_utilisateur","Compte":"555541","STE":"prod"}

@@ -1954,3 +1954,6 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 
 2025-07-24 13:02:40 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
 
+2025-07-24 13:46:19 POST: {"action":"delete_utilisateur","Compte":"185","STE":"prod"} TAB: utilisateurs
+2025-07-24 13:46:25 POST: {"action":"delete_type","CodeType":"20","STE":"prod"} TAB: types
+2025-07-24 13:46:39 POST: {"action":"delete_utilisateur","Compte":"555541","STE":"prod"} TAB: utilisateurs
