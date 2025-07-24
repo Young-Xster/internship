@@ -36,11 +36,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Up</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>Sign Up - AAF Gestion de Matériel</title>
+  <link rel="stylesheet" href="css/style.css?v=<?= time() ?>">
   <style>
     body { background: #f6f8fa; }
-    .signup-card { max-width: 400px; margin: 80px auto; background: #fff; border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 40px 32px; }
+    .aaf-branding { text-align: center; margin-top: 48px; margin-bottom: 18px; }
+    .aaf-logo { width: 80px; height: 80px; border-radius: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .aaf-title { font-size: 2.1rem; font-weight: bold; margin: 18px 0 6px 0; color: #222; letter-spacing: 1px; }
+    .aaf-subtitle { color: #666; font-size: 1.1rem; margin-bottom: 18px; }
+    .signup-card { max-width: 400px; margin: 0 auto 80px auto; background: #fff; border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 40px 32px; }
     .signup-card h2 { text-align: center; margin-bottom: 28px; }
     .signup-card form { display: flex; flex-direction: column; gap: 20px; }
     .signup-card label { font-weight: 500; margin-bottom: 4px; }
@@ -52,6 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </style>
 </head>
 <body>
+  <div class="aaf-branding">
+    <img src="imgs/Logo_AAF.JPG" alt="AAF Logo" class="aaf-logo">
+    <div class="aaf-title">Inscription à l'Espace AAF</div>
+    <div class="aaf-subtitle">Créer un compte pour accéder au système de gestion de matériel de l'AAF</div>
+  </div>
   <div class="signup-card">
     <h2>Sign Up</h2>
     <?php if ($message) echo "<div class='error'>$message</div>"; ?>
