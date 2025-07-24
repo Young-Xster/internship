@@ -23,28 +23,45 @@ if (!$numserie || $target_state === null) {
 }
 
 try {
-    // Get previous state
-    $stmt = $pdo->prepare('SELECT stock FROM materiel WHERE NumSerie = ?');
+    // Get previous state and user
+    $stmt = $pdo->prepare('SELECT stock, CodeUtilisateur FROM materiel WHERE NumSerie = ?');
     $stmt->execute([$numserie]);
-    $prev_state = $stmt->fetchColumn();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $prev_state = $row['stock'];
+    $prev_user = $row['CodeUtilisateur'];
 
-    // Update materiel state
-    $update = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
-    $update->execute([$target_state, $numserie]);
-    log_debug("UPDATE materiel SET stock = $target_state WHERE NumSerie = $numserie");
+    $new_user = $_POST['new_user'] ?? $prev_user;
+    $changed = false;
+    // Check if state or user changed
+    if ($target_state != $prev_state || $new_user != $prev_user) {
+        $changed = true;
+        // Update state if changed
+        if ($target_state != $prev_state) {
+            $update = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
+            $update->execute([$target_state, $numserie]);
+            log_debug("UPDATE materiel SET stock = $target_state WHERE NumSerie = $numserie");
+        }
+        // Update user if changed
+        if ($new_user != $prev_user) {
+            $updateUser = $pdo->prepare('UPDATE materiel SET CodeUtilisateur = ? WHERE NumSerie = ?');
+            $updateUser->execute([$new_user, $numserie]);
+            log_debug("UPDATE materiel SET CodeUtilisateur = $new_user WHERE NumSerie = $numserie");
+        }
+        // Record in history
+        $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
+        $history->execute([
+            $numserie,
+            $prev_state,
+            $target_state,
+            $prev_user,
+            $new_user,
+            $user_id,
+            $notes ?: $cause
+        ]);
+        log_debug("History recorded for $numserie: $prev_state -> $target_state, $prev_user -> $new_user");
+    }
 
-    // Record in history
-    $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, date_change, user_id, notes) VALUES (?, ?, ?, NOW(), ?, ?)');
-    $history->execute([
-        $numserie,
-        $prev_state,
-        $target_state,
-        $user_id,
-        $notes ?: $cause
-    ]);
-    log_debug("History recorded for $numserie: $prev_state -> $target_state");
-
-    echo json_encode(['success' => true, 'newState' => $target_state]);
+    echo json_encode(['success' => true, 'newState' => $target_state, 'history_recorded' => $changed]);
 } catch (PDOException $e) {
     log_debug('SQL Error: ' . $e->getMessage());
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);

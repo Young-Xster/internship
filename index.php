@@ -117,6 +117,7 @@ if ($_POST) {
                     file_put_contents(__DIR__ . '/error.log', date('Y-m-d H:i:s') . " - Fin Inventaire Debug: POST present[] = " . json_encode($present_serials) . "\n", FILE_APPEND);
                 // This block adds a new materiel to the database
                 try {
+
                     $stmt = $pdo->prepare("INSERT INTO MATERIEL (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause, datefinservice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
                     // Grab all the form data, or set to null if missing
@@ -124,26 +125,26 @@ if ($_POST) {
                     $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
                     $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
                     $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
-                        $not_present_count = 0;
                     $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : date('Y-m-d');
                     $serial = $_POST['NumSerie'] ?? null;
 
-                                $not_present_count++;
                     // Only include damage_cause if state requires it
                     $damageCause = null;
                     if (isset($_POST['stock']) && ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse')) {
                         $damageCause = $_POST['damage_cause'] ?? null;
                     }
-                    
+
                     $stock = $_POST['stock'] ?? 'en-service';
                     $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
-                    $datefinservice = null;
-                    if (isset($stockValue) && $stockValue == 3) {
-                        $datefinservice = date('Y-m-d H:i:s');
+                    // Always set datefinservice to current date/time if stockValue == 3 (fin de service), else NULL
+                    // Accept datefinservice from POST (JS), fallback to PHP if not provided
+                    if (isset($_POST['datefinservice']) && !empty($_POST['datefinservice'])) {
+                        $datefinservice = $_POST['datefinservice'];
+                    } else {
+                        $datefinservice = ($stockValue == 3) ? date('Y-m-d H:i:s') : null;
                     }
-                    // Debug log for troubleshooting
                     error_log('DEBUG: datefinservice value: ' . var_export($datefinservice, true));
-                    
+
                     $stmt->execute([
                         $serial,
                         $dateentree,
@@ -166,7 +167,7 @@ if ($_POST) {
                         $stockValue,
                         $_POST['classification'],
                         $damageCause,
-                        $datefinservice !== null ? $datefinservice : null
+                        $datefinservice
                     ]);
 
                     // Now let's grab all the details (including user name, type, etc.) for the email
@@ -638,9 +639,18 @@ if ($_POST) {
                     $stock = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
                     $redirectState = $_POST['redirect_state'] ?? $selected_state ?? 'en-service';
                     $redirectSte = $_POST['STE'] ?? $ste_filter ?? 'prod';
+                    $datefinservice = $_POST['datefinservice'] ?? null;
                     if ($numSerie !== '') {
-                        $stmt = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
-                        $stmt->execute([$stock, $numSerie]);
+                        if ($stock == 3) {
+                            if (!$datefinservice) {
+                                $datefinservice = date('Y-m-d H:i:s');
+                            }
+                            $stmt = $pdo->prepare('UPDATE materiel SET stock = ?, datefinservice = ? WHERE NumSerie = ?');
+                            $stmt->execute([$stock, $datefinservice, $numSerie]);
+                        } else {
+                            $stmt = $pdo->prepare('UPDATE materiel SET stock = ?, datefinservice = NULL WHERE NumSerie = ?');
+                            $stmt->execute([$stock, $numSerie]);
+                        }
                     }
                     header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState));
                     exit;
@@ -1283,6 +1293,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                 <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
                     <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
                     <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : $ste_filter ?>">
+                    <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= $editMode ? htmlspecialchars($editMateriel['datefinservice'] ?? '') : '' ?>">
                     
                     <div class="form-group">
                         <label>Numéro de Série:</label>
@@ -1400,6 +1411,39 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                             <option value="endommage" <?= ($editMode && $editMateriel['stock'] === 'endommage') || (!$editMode && $default_state === 'endommage') ? 'selected' : '' ?>>Endommagé</option>
                             <option value="casse" <?= ($editMode && $editMateriel['stock'] === 'casse') || (!$editMode && $default_state === 'casse') ? 'selected' : '' ?>>Casse</option>
                         </select>
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            var stateSelect = document.getElementById('materiel-state-select');
+                            var dateInput = document.getElementById('datefinservice-input');
+                            if (stateSelect) {
+                                stateSelect.addEventListener('change', function() {
+                                    if (this.value === 'casse') {
+                                        var now = new Date();
+                                        var formatted = now.getFullYear() + '-' +
+                                            String(now.getMonth()+1).padStart(2,'0') + '-' +
+                                            String(now.getDate()).padStart(2,'0') + ' ' +
+                                            String(now.getHours()).padStart(2,'0') + ':' +
+                                            String(now.getMinutes()).padStart(2,'0') + ':' +
+                                            String(now.getSeconds()).padStart(2,'0');
+                                        dateInput.value = formatted;
+                                    } else {
+                                        dateInput.value = '';
+                                    }
+                                });
+                                // If already selected on load
+                                if (stateSelect.value === 'casse') {
+                                    var now = new Date();
+                                    var formatted = now.getFullYear() + '-' +
+                                        String(now.getMonth()+1).padStart(2,'0') + '-' +
+                                        String(now.getDate()).padStart(2,'0') + ' ' +
+                                        String(now.getHours()).padStart(2,'0') + ':' +
+                                        String(now.getMinutes()).padStart(2,'0') + ':' +
+                                        String(now.getSeconds()).padStart(2,'0');
+                                    dateInput.value = formatted;
+                                }
+                            }
+                        });
+                        </script>
                     </div>
 
                     <div id="damage-cause-group" class="form-group" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
@@ -1423,6 +1467,22 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
 
             <!-- Transfer Materiel Form -->
             <div class="section materiel-transfer-form <?= ($transferMode && $transferType === 'materiel') ? '' : 'hide' ?>">
+            <!-- Display datefinservice in Casse tab -->
+            <?php if ($activeTab === 'materiel' && $selected_state === 'casse'): ?>
+                <div class="casse-datefinservice-list">
+                    <h3>Date de fin de service</h3>
+                    <ul>
+                    <?php foreach ($materiels as $mat): ?>
+                        <?php if ($mat['stock'] == 3 && !empty($mat['datefinservice'])): ?>
+                            <li>
+                                <strong><?= htmlspecialchars($mat['NumSerie']) ?>:</strong>
+                                <?= htmlspecialchars($mat['datefinservice']) ?>
+                            </li>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
                 <div class="form-header">
                     <h2>Transférer le Matériel</h2>
                 </div>
@@ -1571,17 +1631,41 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                                 <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
                                 <td class="materiel-state">
                                     <?php if (!$inventaire_mode): ?>
-                                    <form method="POST" style="display:inline; margin:0;">
+                                    <form method="POST" style="display:inline; margin:0;" onsubmit="return handleInlineStateChange(this)">
                                         <input type="hidden" name="action" value="change_state">
                                         <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
                                         <input type="hidden" name="STE" value="<?= htmlspecialchars($ste_filter) ?>">
                                         <input type="hidden" name="redirect_state" value="<?= htmlspecialchars($selected_state) ?>">
-                                        <select name="stock" onchange="this.form.submit()">
+                                        <input type="hidden" name="datefinservice" value="" class="datefinservice-inline">
+                                        <select name="stock" onchange="handleInlineStateSelect(this)">
                                             <?php foreach ($stockLabelMap as $val => $label): ?>
                                             <option value="<?= $val ?>" <?= (isset($materiel['stock']) && $materiel['stock'] == $val) ? 'selected' : '' ?>><?= $label ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </form>
+                                    <script>
+                                    function handleInlineStateSelect(select) {
+                                        var form = select.form;
+                                        var dateInput = form.querySelector('.datefinservice-inline');
+                                        if (select.value == '3') {
+                                            var now = new Date();
+                                            var formatted = now.getFullYear() + '-' +
+                                                String(now.getMonth()+1).padStart(2,'0') + '-' +
+                                                String(now.getDate()).padStart(2,'0') + ' ' +
+                                                String(now.getHours()).padStart(2,'0') + ':' +
+                                                String(now.getMinutes()).padStart(2,'0') + ':' +
+                                                String(now.getSeconds()).padStart(2,'0');
+                                            dateInput.value = formatted;
+                                        } else {
+                                            dateInput.value = '';
+                                        }
+                                        form.submit();
+                                    }
+                                    function handleInlineStateChange(form) {
+                                        // Always allow submit
+                                        return true;
+                                    }
+                                    </script>
                                     <?php else: ?>
                                         <?php 
                                             $stockVal = $materiel['stock'] ?? 0;
@@ -1693,32 +1777,32 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                     <?php endif; ?>
                 </div>
                 <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'utilisateur' ? 'modify_utilisateur' : 'add_utilisateur' ?>">
-                    <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editUtilisateur['STE']) : $ste_filter ?>">
-                    
+                    <input type="hidden" name="action" value="<?= ($editMode && $editType === 'utilisateur') ? 'modify_utilisateur' : 'add_utilisateur' ?>">
+                    <input type="hidden" name="STE" value="<?= $editMode && isset($editUtilisateur['STE']) ? htmlspecialchars($editUtilisateur['STE']) : htmlspecialchars($ste_filter) ?>">
+
                     <div class="form-group">
                         <label>Compte:</label>
-                        <input type="number" name="Compte" value="<?= $editMode ? htmlspecialchars($editUtilisateur['Compte']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?>>
+                        <input type="text" name="Compte" value="<?= $editMode && isset($editUtilisateur['Compte']) ? htmlspecialchars($editUtilisateur['Compte']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?> >
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Nom et Prénom:</label>
-                        <input type="text" name="NomPrenom" value="<?= $editMode ? htmlspecialchars($editUtilisateur['NomPrenom']) : '' ?>" required>
+                        <input type="text" name="NomPrenom" value="<?= $editMode && isset($editUtilisateur['NomPrenom']) ? htmlspecialchars($editUtilisateur['NomPrenom']) : '' ?>" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Service:</label>
-                        <select name="CodeService">
+                        <select name="CodeService" required>
                             <option value="">Non spécifié</option>
                             <?php foreach ($services as $service): ?>
-                                <option value="<?= $service['CodeService'] ?>" <?= $editMode && $service['CodeService'] == $editUtilisateur['CodeService'] ? 'selected' : '' ?>><?= $service['Libelle'] ?></option>
+                                <option value="<?= $service['CodeService'] ?>" <?= $editMode && isset($editUtilisateur['CodeService']) && $service['CodeService'] == $editUtilisateur['CodeService'] ? 'selected' : '' ?>><?= $service['Libelle'] ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>Email:</label>
-                        <input type="email" name="Email" value="<?= $editMode ? htmlspecialchars($editUtilisateur['Email']) : '' ?>">
+                        <input type="email" name="Email" value="<?= $editMode && isset($editUtilisateur['Email']) ? htmlspecialchars($editUtilisateur['Email']) : '' ?>">
                     </div>
                     
                     <div class="form-group">
