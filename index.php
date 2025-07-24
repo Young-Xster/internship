@@ -4,6 +4,7 @@ if (!isset($_SESSION['user_email'])) {
     header('Location: login.php');
     exit;
 }
+$is_admin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'];
 // Hey there! This is the main config import. Gotta have our DB and settings ready.
 require_once 'php/config.php';
 require_once 'php/initialize_db.php';
@@ -1592,7 +1593,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                 <h2>Liste du Matériel</h2>
                 <div class="button-group">
                     <?php if (!$inventaire_mode): ?>
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=<?= urlencode($selected_state) ?>&showForm=materiel'">Ajouter Matériel</button>
+                    <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=<?= urlencode($selected_state) ?>&showForm=materiel'">Ajouter Matériel</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                     <a href="export_pdf.php?ste=<?= urlencode($ste_filter) ?>" class="btn btn-primary btn-export-pdf">
                         <i class="fas fa-file-pdf"></i> Exporter en PDF
@@ -1751,15 +1752,19 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                                 <td>
                                     <?php if (!$inventaire_mode): ?>
                                     <div class="action-buttons">
-                                        <a href="index.php?edit=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                        <a href="index.php?transfer=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer"><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
-                                        <a href="get_material_history.php?numserie=<?= $materiel['NumSerie'] ?>&ste=<?= urlencode($ste_filter) ?>" class="btn-history" title="Historique"><img width="20px" height="20px" src="imgs/history.png" alt="historique"/></a>
+                                        <a href="index.php?edit=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                            <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
+                                        </a>
                                         <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?');">
                                             <input type="hidden" name="action" value="delete_materiel">
                                             <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
                                             <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                            <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                            <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
+                                                <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
+                                            </button>
                                         </form>
+                                        <a href="index.php?transfer=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
+                                        <a href="get_material_history.php?numserie=<?= $materiel['NumSerie'] ?>&ste=<?= urlencode($ste_filter) ?>" class="btn-history" title="Historique"><img width="20px" height="20px" src="imgs/history.png" alt="historique"/></a>
                                     </div>
                                     <?php endif; ?>
                                 </td>
@@ -1784,7 +1789,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                 <h2>Matériel en Inventaire</h2>
                 <div class="button-group">
                     <?php if (!$inventaire_mode): ?>
-                    <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&inventaire_mode=1" class="btn btn-primary btn-export-pdf">Début Inventaire</a>
+                    <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&inventaire_mode=1" class="btn btn-primary btn-export-pdf" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>Début Inventaire</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -1818,7 +1823,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                                             <input type="hidden" name="action" value="recuperer_inventaire">
                                             <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
                                             <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                            <button type="submit" class="btn-primary">Récupérer</button>
+                                            <button type="submit" class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?>>Récupérer</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -1887,7 +1892,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
             <div class="section-header">
                 <h2>Liste des Utilisateurs</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&showForm=utilisateur'">Ajouter Utilisateur</button>
+                    <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&showForm=utilisateur'">Ajouter Utilisateur</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('utilisateurs-table', 'utilisateurs_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
@@ -1913,17 +1918,20 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                             <td><?= htmlspecialchars($utilisateur['Tel'] ?? 'N/A') ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="index.php?edit=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
-                                    <!-- <a href="index.php?transfer=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer"><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a> -->
+                                    <a href="index.php?edit=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                        <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
+                                    </a>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
                                         <input type="hidden" name="action" value="delete_utilisateur">
                                         <input type="hidden" name="Compte" value="<?= $utilisateur['Compte'] ?>">
                                         <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                        <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
+                                            <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
+                                        </button>
                                     </form>
                                 </div>
                             </td>
-                                               </tr>
+                        </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -1966,14 +1974,14 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
             <div class="section-header">
                 <h2>Liste des Marques</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=marque&showForm=marque'">Ajouter Marque</button>
+                    <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=marque&showForm=marque'">Ajouter Marque</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('marques-table', 'marques_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
             <div class="table-container">
                 <table id="marques-table" class="table-materiel">
                     <thead>
-                                               <tr>
+                        <tr>
                             <th>Code</th>
                             <th>Marque</th>
                             <th>Actions</th>
@@ -1986,12 +1994,16 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                             <td><?= htmlspecialchars($marque['Marque']) ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="index.php?edit=<?= $marque['Code'] ?>&type=marque&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <a href="index.php?edit=<?= $marque['Code'] ?>&type=marque&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                        <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
+                                    </a>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette marque ?');">
                                         <input type="hidden" name="action" value="delete_marque">
                                         <input type="hidden" name="Code" value="<?= $marque['Code'] ?>">
                                         <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                        <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
+                                            <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -2038,7 +2050,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
             <div class="section-header">
                 <h2>Liste des Types</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=type&showForm=type'">Ajouter Type</button>
+                    <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=type&showForm=type'">Ajouter Type</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('types-table', 'types_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
@@ -2058,12 +2070,16 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                             <td><?= htmlspecialchars($type['Libelle']) ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="index.php?edit=<?= $type['CodeType'] ?>&type=type&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <a href="index.php?edit=<?= $type['CodeType'] ?>&type=type&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                        <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
+                                    </a>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce type ?');">
                                         <input type="hidden" name="action" value="delete_type">
                                         <input type="hidden" name="CodeType" value="<?= $type['CodeType'] ?>">
                                         <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                        <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
+                                            <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -2110,7 +2126,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
             <div class="section-header">
                 <h2>Liste des Services</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=service&ste=<?= urlencode($ste_filter) ?>&showForm=service'">Ajouter Service</button>
+                    <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=service&ste=<?= urlencode($ste_filter) ?>&showForm=service'">Ajouter Service</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('services-table', 'services_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
@@ -2130,12 +2146,16 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                             <td><?= htmlspecialchars($service['Libelle']) ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="index.php?edit=<?= $service['CodeService'] ?>&type=service&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <a href="index.php?edit=<?= $service['CodeService'] ?>&type=service&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                        <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
+                                    </a>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce service ?');">
                                         <input type="hidden" name="action" value="delete_service">
                                         <input type="hidden" name="CodeService" value="<?= $service['CodeService'] ?>">
                                         <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                        <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
+                                            <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -2204,7 +2224,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
             <div class="section-header">
                 <h2>Liste des Fournisseurs</h2>
                 <div class="button-group">
-                    <button class="btn-primary" onclick="window.location.href='index.php?tab=fournisseurs&showForm=fournisseur'">Ajouter Fournisseur</button>
+                    <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=fournisseurs&showForm=fournisseur'">Ajouter Fournisseur</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('fournisseurs-table', 'fournisseurs_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
@@ -2232,12 +2252,16 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                             <td><?= htmlspecialchars($fournisseur['TelMobile']) ?></td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="index.php?edit=<?= urlencode($fournisseur['Email']) ?>&type=fournisseur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier"><img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/></a>
+                                    <a href="index.php?edit=<?= urlencode($fournisseur['Email']) ?>&type=fournisseur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                        <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
+                                    </a>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce fournisseur ?');">
                                         <input type="hidden" name="action" value="delete_fournisseur">
                                         <input type="hidden" name="Email" value="<?= $fournisseur['Email'] ?>">
                                         <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                        <button type="submit" class="btn-delete" title="Supprimer"><img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/></button>
+                                        <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
+                                            <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -2254,8 +2278,8 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
             </div>
             <div class="section">
                 <div class="state-filters">
-                    <a class="active" onclick="showMaintenanceSubtab('list')" id="maintenance-list-tab">Matériels à réparer</a>
-                    <a class="" onclick="showMaintenanceSubtab('en_reparation')" id="maintenance-en-reparation-tab">Matériel en réparation</a>
+                    <a class="active" <?= !$is_admin ? 'disabled' : '' ?> onclick="showMaintenanceSubtab('list')" id="maintenance-list-tab">Matériels à réparer</a>
+                    <a class="" <?= !$is_admin ? 'disabled' : '' ?> onclick="showMaintenanceSubtab('en_reparation')" id="maintenance-en-reparation-tab">Matériel en réparation</a>
                 </div>
                 <div id="maintenance-list" class="maintenance-subtab">
                     <table class="table-materiel">
@@ -2285,7 +2309,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                                     <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
                                     <td><?= ($materiel['stock'] == 0) ? 'En service' : 'En stock' ?></td>
                                     <td>
-                                        <a href="fiche_reparation.php?numserie=<?= urlencode($materiel['NumSerie']) ?>" class="btn-primary" target="_blank">Fiche de réparation</a>
+                                        <a href="fiche_reparation.php?numserie=<?= urlencode($materiel['NumSerie']) ?>" class="btn-primary" target="_blank" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>Fiche de réparation</a>
                                     </td>
                                 </tr>
                                 <?php endif; ?>

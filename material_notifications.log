@@ -206,3 +206,7 @@ Type: kou3Namla
 2025-07-24 09:56:44 POST: {"action":"recuperer_reparation","NumSerie":"mkjhyb877"}
 2025-07-24 09:56:56 POST: {"action":"recuperer_reparation","NumSerie":"jczk58"}
 2025-07-24 09:58:32 POST: {"action":"recuperer_reparation","NumSerie":"jczk58"}
+2025-07-24 12:36:09 POST: {"action":"add_type","STE":"prod","Libelle":"mmmm"}
+2025-07-24 12:42:48 POST: {"action":"delete_materiel","NumSerie":"jldhaio8","STE":"prod"}
+2025-07-24 13:01:13 POST: {"action":"recuperer_inventaire","NumSerie":"888888x","STE":"prod"}
+2025-07-24 13:02:38 POST: {"action":"add_materiel","STE":"prod","datefinservice":"","NumSerie":"4d47ad","CodeUtilisateur":"155557","CodeFournisseur":"","CodeMarque":"123460","CodeType":"21","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}
