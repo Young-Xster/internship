@@ -2373,7 +2373,7 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                                         <form method="POST" style="display:inline;">
                                             <input type="hidden" name="action" value="recuperer_reparation">
                                             <input type="hidden" name="NumSerie" value="<?= htmlspecialchars($mat['NumSerie']) ?>">
-                                            <button type="submit" class="btn-primary">Récupérer</button>
+                                            <button type="submit" class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?>>Récupérer</button>
                                         </form>
                                     </td>
                                 </tr>
