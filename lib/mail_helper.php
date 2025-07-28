@@ -15,8 +15,8 @@ function sendNewMaterielEmail($to, $subject, $body) {
         $mail->isSMTP();
         $mail->Host = 'smtp.mailersend.net';
         $mail->SMTPAuth = true;
-        $mail->Username = 'MS_jZ3nTy@test-69oxl5ezjnkl785k.mlsender.net';
-        $mail->Password = 'mssp.njKEU5x.pq3enl633q7l2vwr.NMCRQAa';
+        $mail->Username = 'MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net';
+        $mail->Password = 'mssp.11BSy93.neqvygmy8pdg0p7w.68ztHd2';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
@@ -27,7 +27,7 @@ function sendNewMaterielEmail($to, $subject, $body) {
         };
 
         // Sender and recipient
-        $mail->setFrom('MS_jZ3nTy@test-69oxl5ezjnkl785k.mlsender.net', 'No Reply');
+        $mail->setFrom('MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net', 'No Reply');
         $mail->addAddress($to);
 
         // Content

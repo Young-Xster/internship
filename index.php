@@ -186,7 +186,7 @@ if ($_POST) {
                     $mat = $materielStmt->fetch(PDO::FETCH_ASSOC);
 
                     // Compose a nice email with all the details
-                    $to = '22kingofthedead17@gmail.com';
+                    $to = 'amarahelmi81@gmail.com';
                     $subject = 'Nouveau matériel ajouté: ' . htmlspecialchars($mat['NumSerie']);
                     $body = '<h3>Un nouveau matériel a été ajouté</h3>' .
                         '<ul>' .
