@@ -821,37 +821,44 @@ if ($_POST) {
                     header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
                     exit;
             case 'recuperer_reparation':
-                $numSerie = $_POST['NumSerie'] ?? '';
-                if ($numSerie !== '') {
-                    $pdo->beginTransaction();
-                    try {
-                        // Get the record from materiel_en_reparation table
-                        $select_stmt = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE NumSerie = ?");
-                        $select_stmt->execute([$numSerie]);
-                        $reparation_item = $select_stmt->fetch(PDO::FETCH_ASSOC);
-                        if ($reparation_item) {
-                            // Only use valid columns for materiel
-                            $fields = [
-                                'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
-                                'stock', 'observation', 'Processeur', 'memoire', 'disqdur', 'graphique',
-                                'pouce', 'ecran', 'mhtz', 'mo', 'ip', 'classification', 'STE', 'CodeFournisseur', 'damage_cause'
-                            ];
-                            $insert_fields = implode(", ", $fields);
-                            $insert_placeholders = ":" . implode(", :", $fields);
-                            $insert_stmt = $pdo->prepare("INSERT INTO materiel ($insert_fields) VALUES ($insert_placeholders)");
-                            $params = [];
-                            foreach ($fields as $f) {
-                                $params[$f] = $reparation_item[$f] ?? null;
-                            }
-                            $insert_stmt->execute($params);
-                            // Delete from materiel_en_reparation
-                            $delete_stmt = $pdo->prepare("DELETE FROM materiel_en_reparation WHERE NumSerie = ?");
-                            $delete_stmt->execute([$numSerie]);
-                        }
-                        $pdo->commit();
-                    } catch (Exception $e) {
-                        $pdo->rollBack();
+                $date_recuperated = date('Y-m-d H:i:s');
+                $numserie = $_POST['NumSerie'] ?? '';
+                if($numserie !== ''){
+                    // 1. Update repair history
+                    $select = $pdo->prepare("SELECT id FROM materiel_repair_history WHERE NumSerie = ? AND date_recuperated IS NULL ORDER BY date_sent DESC LIMIT 1");
+                    $select->execute([$numserie]);
+                    $row = $select->fetch(PDO::FETCH_ASSOC);
+                    if ($row && isset($row['id'])) {
+                        $update = $pdo->prepare("UPDATE materiel_repair_history SET date_recuperated = ? WHERE id = ?");
+                        $update->execute([$date_recuperated, $row['id']]);
                     }
+
+                    // 2. Move from materiel_en_reparation back to materiel
+                    $selectMat = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE NumSerie = ?");
+                    $selectMat->execute([$numserie]);
+                    $mat = $selectMat->fetch(PDO::FETCH_ASSOC);
+                    if ($mat) {
+                        // Insert into materiel (adjust columns as needed)
+                        $fields = [
+                            'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
+                            'stock', 'observation', 'Processeur', 'memoire', 'disqdur', 'graphique',
+                            'pouce', 'ecran', 'mhtz', 'mo', 'ip', 'classification', 'STE', 'CodeFournisseur', 'damage_cause'
+                        ];
+                        $insert_fields = implode(", ", $fields);
+                        $insert_placeholders = ":" . implode(", :", $fields);
+                        $insert = $pdo->prepare("INSERT INTO materiel ($insert_fields) VALUES ($insert_placeholders)");
+                        $params = [];
+                        foreach ($fields as $f) {
+                            $params[$f] = $mat[$f] ?? null;
+                        }
+                        $insert->execute($params);
+
+                        // Delete from materiel_en_reparation
+                        $del = $pdo->prepare("DELETE FROM materiel_en_reparation WHERE NumSerie = ?");
+                        $del->execute([$numserie]);
+                    }
+
+                    $success_message = "Le matériel a été récupéré dans la liste principale.";
                 }
                 header('Location: index.php?tab=maintenance&ste=' . urlencode($ste_filter));
                 exit;
@@ -1162,6 +1169,51 @@ $default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-se
 
 // Count materiels for display summary
 $materiel_count = isset($materiels) ? count($materiels) : 0;
+
+if($_POST && $_POST['action'] === 'recuperer_reparation'){
+    $date_recuperated = date('Y-m-d H:i:s');
+    $numserie = $_POST['NumSerie'] ?? '';
+    if($numserie !== ''){
+        // 1. Update repair history
+        $select = $pdo->prepare("SELECT id FROM materiel_repair_history WHERE NumSerie = ? AND date_recuperated IS NULL ORDER BY date_sent DESC LIMIT 1");
+        $select->execute([$numserie]);
+        $row = $select->fetch(PDO::FETCH_ASSOC);
+        if ($row && isset($row['id'])) {
+            $update = $pdo->prepare("UPDATE materiel_repair_history SET date_recuperated = ? WHERE id = ?");
+            $update->execute([$date_recuperated, $row['id']]);
+        }
+
+        // 2. Move from materiel_en_reparation back to materiel
+        $selectMat = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE NumSerie = ?");
+        $selectMat->execute([$numserie]);
+        $mat = $selectMat->fetch(PDO::FETCH_ASSOC);
+        if ($mat) {
+            // Insert into materiel (adjust columns as needed)
+            $fields = [
+                'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
+                'stock', 'observation', 'Processeur', 'memoire', 'disqdur', 'graphique',
+                'pouce', 'ecran', 'mhtz', 'mo', 'ip', 'classification', 'STE', 'CodeFournisseur', 'damage_cause'
+            ];
+            $insert_fields = implode(", ", $fields);
+            $insert_placeholders = ":" . implode(", :", $fields);
+            $insert = $pdo->prepare("INSERT INTO materiel ($insert_fields) VALUES ($insert_placeholders)");
+            $params = [];
+            foreach ($fields as $f) {
+                $params[$f] = $mat[$f] ?? null;
+            }
+            $insert->execute($params);
+
+            // Delete from materiel_en_reparation
+            $del = $pdo->prepare("DELETE FROM materiel_en_reparation WHERE NumSerie = ?");
+            $del->execute([$numserie]);
+        }
+
+        $success_message = "Le matériel a été récupéré dans la liste principale.";
+    }
+    header('Location: index.php?tab=maintenance&ste=' . urlencode($ste_filter));
+    exit;
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -2435,6 +2487,9 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
         <div id="maintenance" class="tab-content <?= ($activeTab === 'maintenance') ? 'active' : '' ?>">
             <div class="section-header">
                 <h2>Maintenance</h2>
+                <div class="button-group">
+                    <a href="reparation_history.php?ste=<?= urlencode($ste_filter) ?>" class="btn btn-primary" target="_blank" style="margin-left:10px;">Historique des réparations</a>
+                </div>
             </div>
             <!-- Search bar for Maintenance -->
             <div class="search-container">

@@ -4,11 +4,16 @@ $numserie = $_GET['numserie'] ?? '';
 // Handle send to repair POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_to_repair']) && isset($_POST['numserie'])) {
     $numserie = $_POST['numserie'];
+    $date_sent = date('Y-m-d H:i:s');
     // Fetch the material
     $stmt = $pdo->prepare("SELECT * FROM materiel WHERE NumSerie = ?");
     $stmt->execute([$numserie]);
     $mat = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($mat) {
+        $insert = $pdo-> prepare("INSERT INTO materiel_repair_history (NumSerie ,CodeMarque, CodeType, Model, CodeUtilisateur, Dateentree, stock, observation, Processeur, memoire, disqdur, graphique, pouce, ecran, mhtz, mo, ip, classification, STE, CodeFournisseur, damage_cause, date_sent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $insert->execute([
+            $mat['NumSerie'], $mat['CodeMarque'], $mat['CodeType'], $mat['Model'], $mat['CodeUtilisateur'], $mat['Dateentree'], $mat['stock'], $mat['observation'], $mat['Processeur'], $mat['memoire'], $mat['disqdur'], $mat['graphique'], $mat['pouce'], $mat['ecran'], $mat['mhtz'], $mat['mo'], $mat['ip'], $mat['classification'], $mat['STE'], $mat['CodeFournisseur'], $mat['damage_cause'], $date_sent
+        ]);
         // Only use columns that exist in materiel_en_reparation
         $fields = [
             'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
@@ -186,7 +191,7 @@ if (!$mat) {
     <button type="button" class="fiche-btn pdf" onclick="window.print()" title="Cliquez pour exporter cette fiche en PDF via l'impression du navigateur">Importer PDF</button>
     <form method="POST" style="display:inline; margin:0;">
         <input type="hidden" name="numserie" value="<?= htmlspecialchars($mat['NumSerie']) ?>">
-        <button type="submit" name="send_to_repair" class="fiche-btn send" onclick="return confirm('Envoyer ce matériel en réparation ? Il sera retiré de la liste principale.');">Envoyer en réparation</button>
+        <button type="submit" name="send_to_repair" class="fiche-btn send"  onclick="return confirm('Envoyer ce matériel en réparation ? Il sera retiré de la liste principale.'); ">Envoyer en réparation</button>
     </form>
 </div>
 </body>

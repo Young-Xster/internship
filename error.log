@@ -2065,3 +2065,110 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 
 2025-07-28 16:34:26 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
 
+2025-07-28 17:12:32 POST: {"action":"recuperer_reparation","NumSerie":"ldododo856"} TAB: maintenance
+2025-07-28 17:21:13 POST: {"action":"recuperer_reparation","NumSerie":"ldododo856"} TAB: maintenance
+2025-07-28 17:26:49 POST: {"action":"recuperer_reparation","NumSerie":"ldododo856"} TAB: maintenance
+2025-07-28 11:35:23 POST: {"action":"recuperer_reparation","NumSerie":"ldododo856"} TAB: maintenance
+2025-07-28 11:35:32 POST: {"action":"recuperer_reparation","NumSerie":"ldododo856"} TAB: maintenance
+2025-07-28 11:39:01 POST: {"action":"recuperer_reparation","NumSerie":"ldododo856"} TAB: maintenance
+2025-07-28 11:43:08 POST: {"action":"recuperer_reparation","NumSerie":"hjf44"} TAB: maintenance
+2025-07-28 11:43:17 POST: {"action":"recuperer_reparation","NumSerie":"cr7suiiiii"} TAB: maintenance
+2025-07-28 11:43:21 POST: {"action":"recuperer_reparation","NumSerie":"ldododo856"} TAB: maintenance
+2025-07-28 11:44:10 POST: {"action":"recuperer_reparation","NumSerie":"ihufhy745"} TAB: maintenance
+2025-07-28 11:44:25 POST: {"action":"recuperer_reparation","NumSerie":"ldododo856"} TAB: maintenance
+2025-07-28 12:23:40 POST: {"action":"add_utilisateur","STE":"prod","Compte":"234DS","NomPrenom":"hassib","CodeService":"2","Email":"","Tel":""} TAB: utilisateurs
+2025-07-28 12:24:11 POST: {"action":"add_materiel","STE":"prod","datefinservice":"","NumSerie":"xc233A","CodeUtilisateur":"234","CodeFournisseur":"hassen32@gmail.com","CodeMarque":"123458","CodeType":"17","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""} TAB: materiel
+2025-07-28 12:24:11 - Fin Inventaire Debug: POST present[] = null
+2025-07-28 12:24:11 - Fin Inventaire Debug: not_present_count = , moved_count = 
+2025-07-28 12:24:11 PHPMailer SMTP: SERVER -> CLIENT: 220 smtp.mailersend.net ESMTP
+
+2025-07-28 12:24:11 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-28 12:24:11 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250-AUTH LOGIN PLAIN
+250 STARTTLS
+
+2025-07-28 12:24:11 PHPMailer SMTP: CLIENT -> SERVER: STARTTLS
+
+2025-07-28 12:24:11 PHPMailer SMTP: SERVER -> CLIENT: 220 Ready to start TLS
+
+2025-07-28 12:24:11 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-28 12:24:11 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250 AUTH LOGIN PLAIN
+
+2025-07-28 12:24:11 PHPMailer SMTP: CLIENT -> SERVER: AUTH LOGIN
+
+2025-07-28 12:24:11 PHPMailer SMTP: SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2025-07-28 12:24:11 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-28 12:24:11 PHPMailer SMTP: SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2025-07-28 12:24:11 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-28 12:24:12 PHPMailer SMTP: SERVER -> CLIENT: 235 Authentication successful
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: MAIL FROM:<MS_jZ3nTy@test-69oxl5ezjnkl785k.mlsender.net>
+
+2025-07-28 12:24:12 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: RCPT TO:<22kingofthedead17@gmail.com>
+
+2025-07-28 12:24:12 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: DATA
+
+2025-07-28 12:24:12 PHPMailer SMTP: SERVER -> CLIENT: 354 End data with <CR><LF>.<CR><LF>
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: Date: Mon, 28 Jul 2025 12:24:11 +0200
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: To: 22kingofthedead17@gmail.com
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: From: No Reply <MS_jZ3nTy@test-69oxl5ezjnkl785k.mlsender.net>
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: Subject: =?UTF-8?Q?Nouveau_mat=C3=A9riel_ajout=C3=A9:_xc233A?=
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: Message-ID: <DZ457PdmnwlDQQDwfl4KBXKCVmw4lWnAbU76ODLo@localhost>
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: X-Mailer: PHPMailer 6.8.0 (https://github.com/PHPMailer/PHPMailer)
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: MIME-Version: 1.0
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: Content-Type: text/html; charset=UTF-8
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: Content-Transfer-Encoding: base64
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: PGgzPlVuIG5vdXZlYXUgbWF0w6lyaWVsIGEgw6l0w6kgYWpvdXTDqTwvaDM+PHVsPjxsaT48c3Ry
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: b25nPk51bcOpcm8gZGUgc8OpcmllOjwvc3Ryb25nPiB4YzIzM0E8L2xpPjxsaT48c3Ryb25nPk1v
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: ZMOobGU6PC9zdHJvbmc+IDwvbGk+PGxpPjxzdHJvbmc+VHlwZTo8L3N0cm9uZz4gbGFwdG9wPC9s
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: aT48bGk+PHN0cm9uZz5NYXJxdWU6PC9zdHJvbmc+IHZpY3R1czwvbGk+PGxpPjxzdHJvbmc+RGF0
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: ZSBkJ2VudHLDqWU6PC9zdHJvbmc+IDIwMjUtMDctMjg8L2xpPjxsaT48c3Ryb25nPlByb2Nlc3Nl
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: dXI6PC9zdHJvbmc+IDwvbGk+ODE=
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: .
+
+2025-07-28 12:24:12 PHPMailer SMTP: SERVER -> CLIENT: 250 Message queued as 68874fcc79241aa57001a16a
+
+2025-07-28 12:24:12 PHPMailer SMTP: CLIENT -> SERVER: QUIT
+
+2025-07-28 12:24:12 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
+
+2025-07-28 12:24:32 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"xc233A","CodeUtilisateur":"234","CodeMarque":"123458","CodeType":"17","Model":"","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"endommage","damage_cause":"","observation":""} TAB: materiel
+2025-07-28 12:25:00 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"xc233A","CodeUtilisateur":"234","CodeMarque":"123458","CodeType":"17","Model":"","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"endommage","damage_cause":"","observation":""} TAB: materiel
+2025-07-28 12:25:12 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"xc233A","STE":"prod","redirect_state":"all","datefinservice":"","stock":"0"} TAB: materiel
+2025-07-28 12:25:29 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"xc233A","CodeUtilisateur":"185","CodeMarque":"123458","CodeType":"17","Model":"","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""} TAB: materiel
+2025-07-28 12:25:47 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"xc233A","CodeUtilisateur":"185","CodeMarque":"123458","CodeType":"17","Model":"","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-stock","damage_cause":"","observation":""} TAB: materiel
