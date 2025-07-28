@@ -157,7 +157,26 @@ function handleFormSubmit(form) {
 
 function performSearch(searchType) {
   const searchInput = document.getElementById(`search-${searchType}`);
-  const table = document.getElementById(`${searchType}-table`);
+  let table;
+  if (searchType === "maintenance") {
+    // For maintenance, use the first .table-materiel in the maintenance tab
+    const maintenanceTab = document.getElementById("maintenance");
+    table = maintenanceTab
+      ? maintenanceTab.querySelector(".table-materiel")
+      : null;
+  } else if (searchType === "utilisateurs") {
+    table = document.getElementById("utilisateurs-table");
+  } else if (searchType === "fournisseurs") {
+    table = document.getElementById("fournisseurs-table");
+  } else if (searchType === "marques") {
+    table = document.getElementById("marques-table");
+  } else if (searchType === "types") {
+    table = document.getElementById("types-table");
+  } else if (searchType === "services") {
+    table = document.getElementById("services-table");
+  } else {
+    table = document.getElementById(`${searchType}-table`);
+  }
   const searchTerm = searchInput.value.toLowerCase().trim();
 
   if (!table) return;
@@ -224,11 +243,12 @@ function performSearch(searchType) {
   // Container mapping
   const containerMapping = {
     materiel: "materiel",
-    utilisateur: "utilisateurs",
-    marque: "marques",
-    type: "types",
-    service: "services",
-    fournisseur: "fournisseurs",
+    utilisateurs: "utilisateurs",
+    marques: "marques",
+    types: "types",
+    services: "services",
+    fournisseurs: "fournisseurs",
+    maintenance: "maintenance",
   };
 
   const containerId = containerMapping[searchType] || searchType;
@@ -275,37 +295,48 @@ function getColumnMapping(searchType) {
       NomPrenom: 1,
       Marque: 2,
       TypeLibelle: 3,
-      Model: 4,
-      Dateentree: 5,
-      État: 6,
-      observation: 7,
+      classification: 4,
+      Model: 5,
+      Dateentree: 6,
+      État: 7,
+      observation: 8,
     },
-    utilisateur: {
+    utilisateurs: {
       Compte: 0,
       NomPrenom: 1,
-      Email: 2,
-      Tel: 3,
-      ServiceLibelle: 4,
+      ServiceLibelle: 2,
+      Email: 3,
+      Tel: 4,
     },
-    marque: {
+    marques: {
       Code: 0,
       Marque: 1,
     },
-    type: {
+    types: {
       CodeType: 0,
       Libelle: 1,
     },
-    service: {
+    services: {
       CodeService: 0,
       Libelle: 1,
     },
-    fournisseur: {
+    fournisseurs: {
       Email: 0,
       CompanyName: 1,
       NomComplet: 2,
       Adress: 3,
       TelFix: 4,
       TelMobile: 5,
+    },
+    maintenance: {
+      NumSerie: 0,
+      NomPrenom: 1,
+      Marque: 2,
+      TypeLibelle: 3,
+      classification: 4,
+      Model: 5,
+      Dateentree: 6,
+      État: 7,
     },
   };
 
@@ -362,20 +393,22 @@ function clearSearch(searchType) {
 function initializeSearch() {
   const searchTypes = [
     "materiel",
-    "utilisateur",
-    "marque",
-    "type",
-    "service",
-    "fournisseur",
+    "utilisateurs",
+    "marques",
+    "types",
+    "services",
+    "fournisseurs",
+    "maintenance",
   ];
 
   const containerMapping = {
     materiel: "materiel",
-    utilisateur: "utilisateurs",
-    marque: "marques",
-    type: "types",
-    service: "services",
-    fournisseur: "fournisseurs",
+    utilisateurs: "utilisateurs",
+    marques: "marques",
+    types: "types",
+    services: "services",
+    fournisseurs: "fournisseurs",
+    maintenance: "maintenance",
   };
 
   searchTypes.forEach((searchType) => {

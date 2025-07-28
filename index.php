@@ -1920,6 +1920,38 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('utilisateurs-table', 'utilisateurs_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
+            <!-- Search bar for Utilisateurs -->
+            <div class="search-container">
+                <div class="search-row">
+                    <div class="search-input-group">
+                        <input
+                            type="text"
+                            id="search-utilisateurs"
+                            class="search-input"
+                            placeholder="Rechercher dans les utilisateurs..."
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Filtres :</label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Compte"> Compte
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="NomPrenom"> Nom et Prénom
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="ServiceLibelle"> Service
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Email"> Email
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Tel"> Téléphone
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="table-container">
                 <table id="utilisateurs-table" class="table-materiel">
                     <thead>
@@ -2002,6 +2034,29 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('marques-table', 'marques_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
+            <!-- Search bar for Marques -->
+            <div class="search-container">
+                <div class="search-row">
+                    <div class="search-input-group">
+                        <input
+                            type="text"
+                            id="search-marques"
+                            class="search-input"
+                            placeholder="Rechercher dans les marques..."
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Filtres :</label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Code"> Code
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Marque"> Marque
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="table-container">
                 <table id="marques-table" class="table-materiel">
                     <thead>
@@ -2078,6 +2133,29 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('types-table', 'types_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
+            <!-- Search bar for Types -->
+            <div class="search-container">
+                <div class="search-row">
+                    <div class="search-input-group">
+                        <input
+                            type="text"
+                            id="search-types"
+                            class="search-input"
+                            placeholder="Rechercher dans les types..."
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Filtres :</label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="CodeType"> Code
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Libelle"> Libellé
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="table-container">
                 <table id="types-table" class="table-materiel">
                     <thead>
@@ -2152,6 +2230,29 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                 <div class="button-group">
                     <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=service&ste=<?= urlencode($ste_filter) ?>&showForm=service'">Ajouter Service</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('services-table', 'services_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
+                </div>
+            </div>
+            <!-- Search bar for Services -->
+            <div class="search-container">
+                <div class="search-row">
+                    <div class="search-input-group">
+                        <input
+                            type="text"
+                            id="search-services"
+                            class="search-input"
+                            placeholder="Rechercher dans les services..."
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Filtres :</label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="CodeService"> Code
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Libelle"> Libellé
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="table-container">
@@ -2252,6 +2353,41 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('fournisseurs-table', 'fournisseurs_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                 </div>
             </div>
+            <!-- Search bar for Fournisseurs -->
+            <div class="search-container">
+                <div class="search-row">
+                    <div class="search-input-group">
+                        <input
+                            type="text"
+                            id="search-fournisseurs"
+                            class="search-input"
+                            placeholder="Rechercher dans les fournisseurs..."
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Filtres :</label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Email"> Email
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="CompanyName"> Société
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="NomComplet"> Nom Complet
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Adress"> Adresse
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="TelFix"> Tel Fixe
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="TelMobile"> Tel Mobile
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="table-container">
                 <table id="fournisseurs-table" class="table-materiel">
                     <thead>
@@ -2299,6 +2435,47 @@ $materiel_count = isset($materiels) ? count($materiels) : 0;
         <div id="maintenance" class="tab-content <?= ($activeTab === 'maintenance') ? 'active' : '' ?>">
             <div class="section-header">
                 <h2>Maintenance</h2>
+            </div>
+            <!-- Search bar for Maintenance -->
+            <div class="search-container">
+                <div class="search-row">
+                    <div class="search-input-group">
+                        <input
+                            type="text"
+                            id="search-maintenance"
+                            class="search-input"
+                            placeholder="Rechercher dans la maintenance..."
+                            autocomplete="off"
+                        />
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Filtres :</label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="NumSerie"> N° Série
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="NomPrenom"> Utilisateur
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Marque"> Marque
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="TypeLibelle"> Type
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="classification"> Classification
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Model"> Modèle
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="Dateentree"> Date Entrée
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="État"> État
+                        </label>
+                    </div>
+                </div>
             </div>
             <div class="section">
                 <div class="state-filters">

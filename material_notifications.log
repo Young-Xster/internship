@@ -230,3 +230,5 @@ Type: kou3Namla
 2025-07-24 14:09:45 POST: {"action":"delete_fournisseur","Email":"ita@gmail.com","STE":"prod"}
 2025-07-24 14:56:09 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"jczk58","STE":"prod","redirect_state":"all","datefinservice":"2025-07-24 05:56:09","stock":"3"}
 2025-07-24 14:56:19 POST: {"action":"change_state","ste":"prod","state":"casse","NumSerie":"jczk58","STE":"prod","redirect_state":"casse","datefinservice":"","stock":"2"}
+2025-07-28 16:19:28 POST: {"action":"change_state","NumSerie":"5hkll","STE":"prod","redirect_state":"en-service","datefinservice":"2025-07-28 07:19:28","stock":"3"}
+2025-07-28 16:34:24 POST: {"action":"add_materiel","STE":"prod","datefinservice":"","NumSerie":"ldododo856","CodeUtilisateur":"555541","CodeFournisseur":"","CodeMarque":"123458","CodeType":"15","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""}

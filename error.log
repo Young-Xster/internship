@@ -1974,3 +1974,94 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 2025-07-24 14:09:45 POST: {"action":"delete_fournisseur","Email":"ita@gmail.com","STE":"prod"} TAB: fournisseurs
 2025-07-24 14:56:09 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"jczk58","STE":"prod","redirect_state":"all","datefinservice":"2025-07-24 05:56:09","stock":"3"} TAB: materiel
 2025-07-24 14:56:19 POST: {"action":"change_state","ste":"prod","state":"casse","NumSerie":"jczk58","STE":"prod","redirect_state":"casse","datefinservice":"","stock":"2"} TAB: materiel
+2025-07-28 16:19:28 POST: {"action":"change_state","NumSerie":"5hkll","STE":"prod","redirect_state":"en-service","datefinservice":"2025-07-28 07:19:28","stock":"3"} TAB: materiel
+2025-07-28 16:34:24 POST: {"action":"add_materiel","STE":"prod","datefinservice":"","NumSerie":"ldododo856","CodeUtilisateur":"555541","CodeFournisseur":"","CodeMarque":"123458","CodeType":"15","Model":"","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"","stock":"en-service","damage_cause":"","observation":""} TAB: materiel
+2025-07-28 16:34:24 - Fin Inventaire Debug: POST present[] = null
+2025-07-28 16:34:24 - Fin Inventaire Debug: not_present_count = , moved_count = 
+2025-07-28 16:34:25 PHPMailer SMTP: SERVER -> CLIENT: 220 smtp.mailersend.net ESMTP
+
+2025-07-28 16:34:25 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-28 16:34:25 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250-AUTH LOGIN PLAIN
+250 STARTTLS
+
+2025-07-28 16:34:25 PHPMailer SMTP: CLIENT -> SERVER: STARTTLS
+
+2025-07-28 16:34:25 PHPMailer SMTP: SERVER -> CLIENT: 220 Ready to start TLS
+
+2025-07-28 16:34:25 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-28 16:34:25 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250 AUTH LOGIN PLAIN
+
+2025-07-28 16:34:25 PHPMailer SMTP: CLIENT -> SERVER: AUTH LOGIN
+
+2025-07-28 16:34:25 PHPMailer SMTP: SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2025-07-28 16:34:25 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-28 16:34:25 PHPMailer SMTP: SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2025-07-28 16:34:25 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-28 16:34:26 PHPMailer SMTP: SERVER -> CLIENT: 235 Authentication successful
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: MAIL FROM:<MS_jZ3nTy@test-69oxl5ezjnkl785k.mlsender.net>
+
+2025-07-28 16:34:26 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: RCPT TO:<22kingofthedead17@gmail.com>
+
+2025-07-28 16:34:26 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: DATA
+
+2025-07-28 16:34:26 PHPMailer SMTP: SERVER -> CLIENT: 354 End data with <CR><LF>.<CR><LF>
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: Date: Mon, 28 Jul 2025 16:34:25 +0200
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: To: 22kingofthedead17@gmail.com
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: From: No Reply <MS_jZ3nTy@test-69oxl5ezjnkl785k.mlsender.net>
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: Subject: =?UTF-8?Q?Nouveau_mat=C3=A9riel_ajout=C3=A9:_ldododo856?=
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: Message-ID: <1gcNYQGhZdASoR4x19CQwJpo1AF1Yj0KEWXmOZUahU@localhost>
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: X-Mailer: PHPMailer 6.8.0 (https://github.com/PHPMailer/PHPMailer)
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: MIME-Version: 1.0
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: Content-Type: text/html; charset=UTF-8
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: Content-Transfer-Encoding: base64
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: PGgzPlVuIG5vdXZlYXUgbWF0w6lyaWVsIGEgw6l0w6kgYWpvdXTDqTwvaDM+PHVsPjxsaT48c3Ry
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: b25nPk51bcOpcm8gZGUgc8OpcmllOjwvc3Ryb25nPiBsZG9kb2RvODU2PC9saT48bGk+PHN0cm9u
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: Zz5Nb2TDqGxlOjwvc3Ryb25nPiA8L2xpPjxsaT48c3Ryb25nPlR5cGU6PC9zdHJvbmc+IGhwPC9s
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: aT48bGk+PHN0cm9uZz5NYXJxdWU6PC9zdHJvbmc+IHZpY3R1czwvbGk+PGxpPjxzdHJvbmc+RGF0
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: ZSBkJ2VudHLDqWU6PC9zdHJvbmc+IDIwMjUtMDctMjg8L2xpPjxsaT48c3Ryb25nPlByb2Nlc3Nl
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: dXI6PC9zdHJvbmc+IDwvbGk+ODE=
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: .
+
+2025-07-28 16:34:26 PHPMailer SMTP: SERVER -> CLIENT: 250 Message queued as 6887280346661f2e5fb888cc
+
+2025-07-28 16:34:26 PHPMailer SMTP: CLIENT -> SERVER: QUIT
+
+2025-07-28 16:34:26 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
+
