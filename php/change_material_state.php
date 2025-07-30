@@ -67,17 +67,26 @@ try {
         // Always record in history when user changes, even if state does not change
         // Extra debug: log all values before insert
         log_debug("History insert values: numserie=$numserie, prev_state=$prev_state, target_state=$target_state, prev_user_name=$prev_user_name, new_user_name=$new_user_name, user_id=$user_id, notes=" . ($notes ?: $cause));
-        $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
-        $history->execute([
-            $numserie ?: '',
-            $prev_state !== null ? $prev_state : '',
-            $target_state !== null ? $target_state : '',
-            $prev_user_name ?: '',
-            $new_user_name ?: '',
-            $user_id ?: '',
-            $notes ?: $cause ?: ''
-        ]);
-        log_debug("History recorded for $numserie: $prev_user_name -> $new_user_name | prev_owner: $prev_user_name | new_owner: $new_user_name");
+        try {
+            $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
+            $result = $history->execute([
+                $numserie ?: '',
+                $prev_state !== null ? $prev_state : '',
+                $target_state !== null ? $target_state : '',
+                $prev_user_name ?: '',
+                $new_user_name ?: '',
+                $user_id ?: '',
+                $notes ?: $cause ?: ''
+            ]);
+            if (!$result) {
+                $errorInfo = $history->errorInfo();
+                log_debug("ERROR inserting history: " . json_encode($errorInfo) . " | values: numserie=$numserie, prev_state=$prev_state, target_state=$target_state, prev_user_name=$prev_user_name, new_user_name=$new_user_name, user_id=$user_id, notes=" . ($notes ?: $cause));
+            } else {
+                log_debug("History recorded for $numserie: $prev_user_name -> $new_user_name | prev_owner: $prev_user_name | new_owner: $new_user_name");
+            }
+        } catch (Exception $ex) {
+            log_debug("Exception inserting history: " . $ex->getMessage() . " | values: numserie=$numserie, prev_state=$prev_state, target_state=$target_state, prev_user_name=$prev_user_name, new_user_name=$new_user_name, user_id=$user_id, notes=" . ($notes ?: $cause));
+        }
         // Optionally update state if changed
         if ($target_state != $prev_state) {
             $update = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
