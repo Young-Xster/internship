@@ -38,13 +38,7 @@ try {
         $updateUser = $pdo->prepare('UPDATE materiel SET CodeUtilisateur = ? WHERE NumSerie = ?');
         $updateUser->execute([$new_user, $numserie]);
         log_debug("UPDATE materiel SET CodeUtilisateur = $new_user WHERE NumSerie = $numserie");
-        // Optionally update state if changed
-        if ($target_state != $prev_state) {
-            $update = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
-            $update->execute([$target_state, $numserie]);
-            log_debug("UPDATE materiel SET stock = $target_state WHERE NumSerie = $numserie");
-        }
-        // Record in history (user transfer only)
+        // Always record in history when user changes, even if state does not change
         $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
         $history->execute([
             $numserie,
@@ -55,7 +49,13 @@ try {
             $user_id,
             $notes ?: $cause
         ]);
-        log_debug("History recorded for $numserie: $prev_user -> $new_user");
+        log_debug("History recorded for $numserie: $prev_user -> $new_user | prev_owner: $prev_user | new_owner: $new_user");
+        // Optionally update state if changed
+        if ($target_state != $prev_state) {
+            $update = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
+            $update->execute([$target_state, $numserie]);
+            log_debug("UPDATE materiel SET stock = $target_state WHERE NumSerie = $numserie");
+        }
         $changed = true;
     } else if ($target_state != $prev_state) {
         // Only update state, do not log history
