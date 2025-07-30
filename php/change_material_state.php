@@ -40,7 +40,7 @@ try {
         if ($rowPrevName && !empty($rowPrevName['NomPrenom'])) {
             $prev_user_name = $rowPrevName['NomPrenom'];
         } else {
-            $prev_user_name = $prev_user_id;
+            $prev_user_name = 'UNKNOWN';
         }
         log_debug("Previous user name lookup: id=$prev_user_id, name=$prev_user_name");
     }
@@ -55,7 +55,7 @@ try {
         if ($rowNewName && !empty($rowNewName['NomPrenom'])) {
             $new_user_name = $rowNewName['NomPrenom'];
         } else {
-            $new_user_name = $new_user_id;
+            $new_user_name = 'UNKNOWN';
         }
         log_debug("New user name lookup: id=$new_user_id, name=$new_user_name");
     }
