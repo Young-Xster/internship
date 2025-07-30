@@ -39,16 +39,17 @@ try {
         $updateUser->execute([$new_user, $numserie]);
         log_debug("UPDATE materiel SET CodeUtilisateur = $new_user WHERE NumSerie = $numserie");
         // Always record in history when user changes, even if state does not change
-        // Ensure previous and new user are never null in history
+        // Extra debug: log all values before insert
+        log_debug("History insert values: numserie=$numserie, prev_state=$prev_state, target_state=$target_state, prev_user=$prev_user, new_user=$new_user, user_id=$user_id, notes=" . ($notes ?: $cause));
         $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
         $history->execute([
-            $numserie,
-            $prev_state,
-            $target_state,
+            $numserie ?: '',
+            $prev_state !== null ? $prev_state : '',
+            $target_state !== null ? $target_state : '',
             $prev_user ?: '',
             $new_user ?: '',
-            $user_id,
-            $notes ?: $cause
+            $user_id ?: '',
+            $notes ?: $cause ?: ''
         ]);
         log_debug("History recorded for $numserie: $prev_user -> $new_user | prev_owner: $prev_user | new_owner: $new_user");
         // Optionally update state if changed
