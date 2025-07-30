@@ -28,30 +28,46 @@ try {
     $stmt->execute([$numserie]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     $prev_state = $row['stock'];
-    $prev_user = $row['CodeUtilisateur'];
+    $prev_user_id = $row['CodeUtilisateur'];
+    // Fetch previous user's name
+    $prev_user_name = '';
+    if ($prev_user_id) {
+        $stmtPrevName = $pdo->prepare('SELECT NomPrenom FROM utilisateur WHERE Compte = ?');
+        $stmtPrevName->execute([$prev_user_id]);
+        $rowPrevName = $stmtPrevName->fetch(PDO::FETCH_ASSOC);
+        $prev_user_name = $rowPrevName ? $rowPrevName['NomPrenom'] : '';
+    }
 
-    $new_user = isset($_POST['new_user']) && $_POST['new_user'] !== '' ? $_POST['new_user'] : $prev_user;
+    $new_user_id = isset($_POST['new_user']) && $_POST['new_user'] !== '' ? $_POST['new_user'] : $prev_user_id;
+    // Fetch new user's name
+    $new_user_name = '';
+    if ($new_user_id) {
+        $stmtNewName = $pdo->prepare('SELECT NomPrenom FROM utilisateur WHERE Compte = ?');
+        $stmtNewName->execute([$new_user_id]);
+        $rowNewName = $stmtNewName->fetch(PDO::FETCH_ASSOC);
+        $new_user_name = $rowNewName ? $rowNewName['NomPrenom'] : '';
+    }
     $changed = false;
     // Check if user changed (not just state)
-    if ($new_user != $prev_user) {
+    if ($new_user_id != $prev_user_id) {
         // Update user if changed
         $updateUser = $pdo->prepare('UPDATE materiel SET CodeUtilisateur = ? WHERE NumSerie = ?');
-        $updateUser->execute([$new_user, $numserie]);
-        log_debug("UPDATE materiel SET CodeUtilisateur = $new_user WHERE NumSerie = $numserie");
+        $updateUser->execute([$new_user_id, $numserie]);
+        log_debug("UPDATE materiel SET CodeUtilisateur = $new_user_id WHERE NumSerie = $numserie");
         // Always record in history when user changes, even if state does not change
         // Extra debug: log all values before insert
-        log_debug("History insert values: numserie=$numserie, prev_state=$prev_state, target_state=$target_state, prev_user=$prev_user, new_user=$new_user, user_id=$user_id, notes=" . ($notes ?: $cause));
+        log_debug("History insert values: numserie=$numserie, prev_state=$prev_state, target_state=$target_state, prev_user_name=$prev_user_name, new_user_name=$new_user_name, user_id=$user_id, notes=" . ($notes ?: $cause));
         $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
         $history->execute([
             $numserie ?: '',
             $prev_state !== null ? $prev_state : '',
             $target_state !== null ? $target_state : '',
-            $prev_user ?: '',
-            $new_user ?: '',
+            $prev_user_name ?: '',
+            $new_user_name ?: '',
             $user_id ?: '',
             $notes ?: $cause ?: ''
         ]);
-        log_debug("History recorded for $numserie: $prev_user -> $new_user | prev_owner: $prev_user | new_owner: $new_user");
+        log_debug("History recorded for $numserie: $prev_user_name -> $new_user_name | prev_owner: $prev_user_name | new_owner: $new_user_name");
         // Optionally update state if changed
         if ($target_state != $prev_state) {
             $update = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
