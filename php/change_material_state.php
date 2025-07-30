@@ -35,7 +35,12 @@ try {
         $stmtPrevName = $pdo->prepare('SELECT NomPrenom FROM utilisateur WHERE Compte = ?');
         $stmtPrevName->execute([$prev_user_id]);
         $rowPrevName = $stmtPrevName->fetch(PDO::FETCH_ASSOC);
-        $prev_user_name = $rowPrevName ? $rowPrevName['NomPrenom'] : '';
+        if ($rowPrevName && !empty($rowPrevName['NomPrenom'])) {
+            $prev_user_name = $rowPrevName['NomPrenom'];
+        } else {
+            $prev_user_name = $prev_user_id;
+        }
+        log_debug("Previous user name lookup: id=$prev_user_id, name=$prev_user_name");
     }
 
     $new_user_id = isset($_POST['new_user']) && $_POST['new_user'] !== '' ? $_POST['new_user'] : $prev_user_id;
@@ -45,7 +50,12 @@ try {
         $stmtNewName = $pdo->prepare('SELECT NomPrenom FROM utilisateur WHERE Compte = ?');
         $stmtNewName->execute([$new_user_id]);
         $rowNewName = $stmtNewName->fetch(PDO::FETCH_ASSOC);
-        $new_user_name = $rowNewName ? $rowNewName['NomPrenom'] : '';
+        if ($rowNewName && !empty($rowNewName['NomPrenom'])) {
+            $new_user_name = $rowNewName['NomPrenom'];
+        } else {
+            $new_user_name = $new_user_id;
+        }
+        log_debug("New user name lookup: id=$new_user_id, name=$new_user_name");
     }
     $changed = false;
     // Check if user changed (not just state)
