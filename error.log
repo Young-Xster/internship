@@ -2721,3 +2721,187 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 
 2025-07-28 14:53:28 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
 
+2025-07-28 19:15:59 POST: {"action":"recuperer_reparation","NumSerie":"cr7suiiiii"} TAB: maintenance
+2025-07-30 11:32:22 POST: {"action":"add_materiel","STE":"prod","datefinservice":"","NumSerie":"jjhg44","CodeType":"19","CodeMarque":"123457","Model":"lklopmp","CodeUtilisateur":"155557","CodeFournisseur":"khlifa@gmail.com","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"public","stock":"en-stock","observation":"","damage_cause":""} TAB: materiel
+2025-07-30 11:32:22 - Fin Inventaire Debug: POST present[] = null
+2025-07-30 11:32:22 - Fin Inventaire Debug: not_present_count = , moved_count = 
+2025-07-30 11:32:22 PHPMailer SMTP: SERVER -> CLIENT: 220 smtp.mailersend.net ESMTP
+
+2025-07-30 11:32:22 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-30 11:32:22 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250-AUTH LOGIN PLAIN
+250 STARTTLS
+
+2025-07-30 11:32:22 PHPMailer SMTP: CLIENT -> SERVER: STARTTLS
+
+2025-07-30 11:32:22 PHPMailer SMTP: SERVER -> CLIENT: 220 Ready to start TLS
+
+2025-07-30 11:32:23 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-30 11:32:23 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250 AUTH LOGIN PLAIN
+
+2025-07-30 11:32:23 PHPMailer SMTP: CLIENT -> SERVER: AUTH LOGIN
+
+2025-07-30 11:32:23 PHPMailer SMTP: SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2025-07-30 11:32:23 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-30 11:32:23 PHPMailer SMTP: SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2025-07-30 11:32:23 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-30 11:32:24 PHPMailer SMTP: SERVER -> CLIENT: 235 Authentication successful
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: MAIL FROM:<MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net>
+
+2025-07-30 11:32:24 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: RCPT TO:<amarahelmi81@gmail.com>
+
+2025-07-30 11:32:24 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: DATA
+
+2025-07-30 11:32:24 PHPMailer SMTP: SERVER -> CLIENT: 354 End data with <CR><LF>.<CR><LF>
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: Date: Wed, 30 Jul 2025 11:32:22 +0200
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: To: amarahelmi81@gmail.com
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: From: No Reply <MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net>
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: Subject: =?UTF-8?Q?Nouveau_mat=C3=A9riel_ajout=C3=A9:_jjhg44?=
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: Message-ID: <q3B49xAQEwiQ7xBVVbyWQBVHU1EjuNW7mkdFNWFQezE@localhost>
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: X-Mailer: PHPMailer 6.8.0 (https://github.com/PHPMailer/PHPMailer)
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: MIME-Version: 1.0
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: Content-Type: text/html; charset=UTF-8
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: Content-Transfer-Encoding: base64
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: PGgzPlVuIG5vdXZlYXUgbWF0w6lyaWVsIGEgw6l0w6kgYWpvdXTDqTwvaDM+PHVsPjxsaT48c3Ry
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: b25nPk51bcOpcm8gZGUgc8OpcmllOjwvc3Ryb25nPiBqamhnNDQ8L2xpPjxsaT48c3Ryb25nPk1v
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: ZMOobGU6PC9zdHJvbmc+IGxrbG9wbXA8L2xpPjxsaT48c3Ryb25nPlR5cGU6PC9zdHJvbmc+IGRl
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: c2t0b3A8L2xpPjxsaT48c3Ryb25nPk1hcnF1ZTo8L3N0cm9uZz4gYXN1czwvbGk+PGxpPjxzdHJv
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: bmc+RGF0ZSBkJ2VudHLDqWU6PC9zdHJvbmc+IDIwMjUtMDctMzA8L2xpPjxsaT48c3Ryb25nPlBy
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: b2Nlc3NldXI6PC9zdHJvbmc+IDwvbGk+ODE=
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: .
+
+2025-07-30 11:32:24 PHPMailer SMTP: SERVER -> CLIENT: 250 Message queued as 6889e6a83b9841b3ec9924a6
+
+2025-07-30 11:32:24 PHPMailer SMTP: CLIENT -> SERVER: QUIT
+
+2025-07-30 11:32:24 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
+
+2025-07-30 12:38:07 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"jjhg44","CodeType":"19","CodeMarque":"123457","Model":"lklopmp","CodeUtilisateur":"123","Dateentree":"2025-07-30","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-07-30 12:44:58 POST: {"action":"add_materiel","STE":"prod","datefinservice":"","NumSerie":"grdygtgt2","CodeType":"17","CodeMarque":"16","Model":"ddeded","CodeUtilisateur":"185","CodeFournisseur":"fedi3@gmail.com","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-07-30 12:44:59 - Fin Inventaire Debug: POST present[] = null
+2025-07-30 12:44:59 - Fin Inventaire Debug: not_present_count = , moved_count = 
+2025-07-30 12:44:59 PHPMailer SMTP: SERVER -> CLIENT: 220 smtp.mailersend.net ESMTP
+
+2025-07-30 12:44:59 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-30 12:44:59 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250-AUTH LOGIN PLAIN
+250 STARTTLS
+
+2025-07-30 12:44:59 PHPMailer SMTP: CLIENT -> SERVER: STARTTLS
+
+2025-07-30 12:44:59 PHPMailer SMTP: SERVER -> CLIENT: 220 Ready to start TLS
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-30 12:45:00 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250 AUTH LOGIN PLAIN
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: AUTH LOGIN
+
+2025-07-30 12:45:00 PHPMailer SMTP: SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-30 12:45:00 PHPMailer SMTP: SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-30 12:45:00 PHPMailer SMTP: SERVER -> CLIENT: 235 Authentication successful
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: MAIL FROM:<MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net>
+
+2025-07-30 12:45:00 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: RCPT TO:<amarahelmi81@gmail.com>
+
+2025-07-30 12:45:00 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: DATA
+
+2025-07-30 12:45:00 PHPMailer SMTP: SERVER -> CLIENT: 354 End data with <CR><LF>.<CR><LF>
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: Date: Wed, 30 Jul 2025 12:44:59 +0200
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: To: amarahelmi81@gmail.com
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: From: No Reply <MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net>
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: Subject: =?UTF-8?Q?Nouveau_mat=C3=A9riel_ajout=C3=A9:_grdygtgt2?=
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: Message-ID: <oqB0SEn2aSJBiI8AGvJQOBoPWikeNnel0aT0FYoCjc@localhost>
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: X-Mailer: PHPMailer 6.8.0 (https://github.com/PHPMailer/PHPMailer)
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: MIME-Version: 1.0
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: Content-Type: text/html; charset=UTF-8
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: Content-Transfer-Encoding: base64
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: PGgzPlVuIG5vdXZlYXUgbWF0w6lyaWVsIGEgw6l0w6kgYWpvdXTDqTwvaDM+PHVsPjxsaT48c3Ry
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: b25nPk51bcOpcm8gZGUgc8OpcmllOjwvc3Ryb25nPiBncmR5Z3RndDI8L2xpPjxsaT48c3Ryb25n
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: Pk1vZMOobGU6PC9zdHJvbmc+IGRkZWRlZDwvbGk+PGxpPjxzdHJvbmc+VHlwZTo8L3N0cm9uZz4g
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: bGFwdG9wPC9saT48bGk+PHN0cm9uZz5NYXJxdWU6PC9zdHJvbmc+IERFTEw8L2xpPjxsaT48c3Ry
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: b25nPkRhdGUgZCdlbnRyw6llOjwvc3Ryb25nPiAyMDI1LTA3LTMwPC9saT48bGk+PHN0cm9uZz5Q
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: cm9jZXNzZXVyOjwvc3Ryb25nPiA8L2xpPjgx
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: .
+
+2025-07-30 12:45:00 PHPMailer SMTP: SERVER -> CLIENT: 250 Message queued as 6889f7ac7a42af31020c7b22
+
+2025-07-30 12:45:00 PHPMailer SMTP: CLIENT -> SERVER: QUIT
+
+2025-07-30 12:45:00 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
+
+2025-07-30 12:47:25 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"jjhg44","CodeType":"19","CodeMarque":"123457","Model":"lklopmp","CodeUtilisateur":"185","CodeFournisseur":"hassen32@gmail.com","Dateentree":"2025-07-30","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-07-30 12:53:16 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"jjhg44","CodeType":"19","CodeMarque":"123457","Model":"lklopmp","CodeUtilisateur":"555541","CodeFournisseur":"hassen32@gmail.com","Dateentree":"2025-07-30","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel

@@ -1186,3 +1186,28 @@ body.theme-comm table thead {
   background: #ececec;
   color: #111;
 }
+
+.form-section-title {
+  font-size: 1.4em;
+  font-weight: bold;
+  margin-bottom: 0.2em;
+}
+.section-divider {
+  border-bottom: 1.5px solid #e0e0e0;
+  margin-bottom: 1.2em;
+  margin-top: -0.5em;
+}
+.form-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 1.2em;
+}
+.form-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.materiel-form form.form-grid {
+  display: block !important;
+  width: 100%;
+}

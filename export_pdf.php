@@ -244,8 +244,8 @@ header('Content-Disposition: inline; filename="inventaire_materiel_AAF_' . date(
                                     <thead>
                                         <tr>
                                             <th>N° Série</th>
-                                            <th>Marque</th>
                                             <th>Type</th>
+                                            <th>Marque</th>
                                             <th>Modèle</th>
                                             <th>Date d'entrée</th>
                                         </tr>
@@ -254,8 +254,8 @@ header('Content-Disposition: inline; filename="inventaire_materiel_AAF_' . date(
                                         <?php foreach ($materials as $material): ?>
                                             <tr>
                                                 <td><?php echo htmlspecialchars($material['NumSerie']); ?></td>
-                                                <td><?php echo htmlspecialchars($material['Marque']); ?></td>
                                                 <td><?php echo htmlspecialchars($material['TypeLibelle']); ?></td>
+                                                <td><?php echo htmlspecialchars($material['Marque']); ?></td>
                                                 <td><?php echo htmlspecialchars($material['Model']); ?></td>
                                                 <td><?php echo htmlspecialchars($material['Dateentree']); ?></td>
                                             </tr>

@@ -32,22 +32,19 @@ try {
 
     $new_user = $_POST['new_user'] ?? $prev_user;
     $changed = false;
-    // Check if state or user changed
-    if ($target_state != $prev_state || $new_user != $prev_user) {
-        $changed = true;
-        // Update state if changed
+    // Check if user changed (not just state)
+    if ($new_user != $prev_user) {
+        // Update user if changed
+        $updateUser = $pdo->prepare('UPDATE materiel SET CodeUtilisateur = ? WHERE NumSerie = ?');
+        $updateUser->execute([$new_user, $numserie]);
+        log_debug("UPDATE materiel SET CodeUtilisateur = $new_user WHERE NumSerie = $numserie");
+        // Optionally update state if changed
         if ($target_state != $prev_state) {
             $update = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
             $update->execute([$target_state, $numserie]);
             log_debug("UPDATE materiel SET stock = $target_state WHERE NumSerie = $numserie");
         }
-        // Update user if changed
-        if ($new_user != $prev_user) {
-            $updateUser = $pdo->prepare('UPDATE materiel SET CodeUtilisateur = ? WHERE NumSerie = ?');
-            $updateUser->execute([$new_user, $numserie]);
-            log_debug("UPDATE materiel SET CodeUtilisateur = $new_user WHERE NumSerie = $numserie");
-        }
-        // Record in history
+        // Record in history (user transfer only)
         $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
         $history->execute([
             $numserie,
@@ -58,7 +55,13 @@ try {
             $user_id,
             $notes ?: $cause
         ]);
-        log_debug("History recorded for $numserie: $prev_state -> $target_state, $prev_user -> $new_user");
+        log_debug("History recorded for $numserie: $prev_user -> $new_user");
+        $changed = true;
+    } else if ($target_state != $prev_state) {
+        // Only update state, do not log history
+        $update = $pdo->prepare('UPDATE materiel SET stock = ? WHERE NumSerie = ?');
+        $update->execute([$target_state, $numserie]);
+        log_debug("UPDATE materiel SET stock = $target_state WHERE NumSerie = $numserie");
     }
 
     echo json_encode(['success' => true, 'newState' => $target_state, 'history_recorded' => $changed]);

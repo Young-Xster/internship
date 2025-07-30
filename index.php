@@ -632,6 +632,18 @@ if ($_POST) {
                         $stmt = $pdo->prepare("UPDATE materiel SET CodeUtilisateur = ?, STE = ? WHERE NumSerie = ?");
                         $stmt->execute([$code_utilisateur, $target_ste, $num_serie]);
                         
+                        // Log the transfer in materiel_history
+                        $history_stmt = $pdo->prepare("INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)");
+                        $history_stmt->execute([
+                            $num_serie,
+                            $prevMaterial['stock'], // previous state
+                            $prevMaterial['stock'], // new state (no state change)
+                            $prevMaterial['CodeUtilisateur'], // previous owner
+                            $code_utilisateur, // new owner
+                            'system', // or the actual user performing the transfer
+                            "Transfert de $oldUserName à $newUserName"
+                        ]);
+                        
                         header("Location: index.php?tab=materiel&ste=" . urlencode($current_ste) . "&success=transfer_materiel");
                         exit();
                     } catch (PDOException $e) {
@@ -1126,6 +1138,30 @@ if (!$inventaire_mode && $selected_state !== 'all' && in_array($selected_state, 
     });
 }
 
+// Handle global history state
+$global_history_data = [];
+if ($selected_state === 'global-history') {
+    try {
+        $history_stmt = $pdo->prepare('
+            SELECT h.*, 
+                   m.Model, t.Libelle as TypeLibelle,
+                   u_prev.NomPrenom as previous_username,
+                   u_new.NomPrenom as new_username
+            FROM materiel_history h
+            LEFT JOIN materiel m ON h.numserie = m.NumSerie
+            LEFT JOIN type t ON m.CodeType = t.CodeType
+            LEFT JOIN utilisateur u_prev ON h.previous_owner = u_prev.Compte
+            LEFT JOIN utilisateur u_new ON h.new_owner = u_new.Compte
+            ORDER BY h.date_change DESC
+        ');
+        $history_stmt->execute();
+        $global_history_data = $history_stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $global_history_data = [];
+        error_log("Erreur lors du chargement de l'historique global: " . $e->getMessage());
+    }
+}
+
 $inventaire_materiels = [];
 if ($activeTab === 'inventaire') {
     try {
@@ -1410,12 +1446,14 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=en-stock" class="<?= $selected_state === 'en-stock' ? 'active' : '' ?>">En stock</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=endommage" class="<?= $selected_state === 'endommage' ? 'active' : '' ?>">Endommagé</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&inventaire_mode=1&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Casse</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=global-history" class="<?= ($selected_state === 'global-history') ? 'active' : '' ?>">Global History</a>
             <?php else: ?>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=all" class="<?= $selected_state === 'all' ? 'active' : '' ?>">Tous</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-service" class="<?= $selected_state === 'en-service' ? 'active' : '' ?>">En service</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=en-stock" class="<?= $selected_state === 'en-stock' ? 'active' : '' ?>">En stock</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=endommage" class="<?= $selected_state === 'endommage' ? 'active' : '' ?>">Endommagé</a>
                 <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=casse" class="<?= $selected_state === 'casse' ? 'active' : '' ?>">Casse</a>
+                <a href="?tab=materiel&ste=<?= $ste_filter ?>&state=global-history" class="<?= ($selected_state === 'global-history') ? 'active' : '' ?>">Global History</a>
             <?php endif; ?>
         </div>
         <?php endif; ?>
@@ -1435,168 +1473,154 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
                     <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : $ste_filter ?>">
                     <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= $editMode ? htmlspecialchars($editMateriel['datefinservice'] ?? '') : '' ?>">
-                    
-                    <div class="form-group">
-                        <label>Numéro de Série:</label>
-                        <input type="text" name="NumSerie" value="<?= $editMode ? htmlspecialchars($editMateriel['NumSerie']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?> pattern="[^\s].*" title="Le numéro de série ne peut pas être vide ou contenir uniquement des espaces">
+
+                    <!-- Identification Section -->
+                    <h3 class="form-section-title">Identification</h3>
+                    <div class="section-divider"></div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Numéro de Série:<span style="color:red">*</span></label>
+                            <input type="text" name="NumSerie" value="<?= $editMode ? htmlspecialchars($editMateriel['NumSerie']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?> pattern="[^\s].*" title="Le numéro de série ne peut pas être vide ou contenir uniquement des espaces">
+                        </div>
+                        <div class="form-group">
+                            <label>Type:<span style="color:red">*</span></label>
+                            <select name="CodeType" required>
+                                <option value="">Sélectionner un type</option>
+                                <?php foreach ($types as $type): ?>
+                                    <option value="<?= $type['CodeType'] ?>" <?= $editMode && $type['CodeType'] == $editMateriel['CodeType'] ? 'selected' : '' ?>><?= $type['Libelle'] ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Marque:<span style="color:red">*</span></label>
+                            <select name="CodeMarque" required>
+                                <option value="">Sélectionner une marque</option>
+                                <?php foreach ($marques as $marque): ?>
+                                    <option value="<?= $marque['Code'] ?>" <?= $editMode && $marque['Code'] == $editMateriel['CodeMarque'] ? 'selected' : '' ?>><?= $marque['Marque'] ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     </div>
                     
-                    <div class="form-group">
-                        <label>Utilisateur:</label>
-                        <select name="CodeUtilisateur" required>
-                            <option value="">Sélectionner un utilisateur</option>
-                            <?php foreach ($utilisateurs as $user): ?>
-                                <option value="<?= $user['Compte'] ?>" <?= $editMode && $user['Compte'] == $editMateriel['CodeUtilisateur'] ? 'selected' : '' ?>><?= $user['NomPrenom'] ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Fournisseur:</label>
-                        <select name="CodeFournisseur" <?= $editMode ? 'disabled' : '' ?>>
-                            <option value="">Sélectionner un fournisseur</option>
-                            <?php foreach ($fournisseurs as $four):
-                                $isSelected = $editMode && isset($editMateriel['CodeFournisseur']) && $four['Email'] == $editMateriel['CodeFournisseur'];
-                                $displayName = !empty($four['CompanyName']) ? $four['CompanyName'] : $four['NomComplet'];
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Modèle:<span style="color:red">*</span></label>
+                            <input type="text" name="Model" value="<?= $editMode ? htmlspecialchars($editMateriel['Model']) : '' ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Utilisateur:<span style="color:red">*</span></label>
+                            <select name="CodeUtilisateur" required>
+                                <option value="">Sélectionner un utilisateur</option>
+                                <?php foreach ($utilisateurs as $user): ?>
+                                    <option value="<?= $user['Compte'] ?>" <?= $editMode && $user['Compte'] == $editMateriel['CodeUtilisateur'] ? 'selected' : '' ?>><?= $user['NomPrenom'] ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fournisseur:<span style="color:red">*</span></label>
+                            <select name="CodeFournisseur" <?= $editMode ? '' : '' ?> required>
+                                <option value="">Sélectionner un fournisseur</option>
+                                <?php foreach ($fournisseurs as $four):
+                                    $isSelected = $editMode && isset($editMateriel['CodeFournisseur']) && $four['Email'] == $editMateriel['CodeFournisseur'];
+                                    $displayName = !empty($four['CompanyName']) ? $four['CompanyName'] : $four['NomComplet'];
                                 ?>
-                                <option value="<?= htmlspecialchars($four['Email']) ?>" <?= $isSelected ? 'selected' : '' ?>><?= htmlspecialchars($displayName) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                                    <option value="<?= htmlspecialchars($four['Email']) ?>" <?= $isSelected ? 'selected' : '' ?>><?= htmlspecialchars($displayName) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Marque:</label>
-                        <select name="CodeMarque" required>
-                            <option value="">Sélectionner une marque</option>
-                            <?php foreach ($marques as $marque): ?>
-                                <option value="<?= $marque['Code'] ?>" <?= $editMode && $marque['Code'] == $editMateriel['CodeMarque'] ? 'selected' : '' ?>><?= $marque['Marque'] ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date d'entrée:</label>
+                            <input type="date" name="Dateentree" value="<?= $editMode ? htmlspecialchars($editMateriel['Dateentree']) : '' ?>">
+                        </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Type:</label>
-                        <select name="CodeType" required>
-                            <option value="">Sélectionner un type</option>
-                            <?php foreach ($types as $type): ?>
-                                <option value="<?= $type['CodeType'] ?>" <?= $editMode && $type['CodeType'] == $editMateriel['CodeType'] ? 'selected' : '' ?>><?= $type['Libelle'] ?></option>
-                            <?php endforeach; ?>
-                        </select>
+
+                    <!-- Caractéristiques PC Section -->
+                    <h3 class="form-section-title">Caractéristiques PC</h3>
+                    <div class="section-divider"></div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Processeur:</label>
+                            <input type="text" name="Processeur" value="<?= $editMode ? htmlspecialchars($editMateriel['Processeur']) : '' ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Carte Graphique:</label>
+                            <input type="text" name="graphique" value="<?= $editMode ? htmlspecialchars($editMateriel['graphique']) : '' ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Disque Dur:</label>
+                            <input type="text" name="disqdur" value="<?= $editMode ? htmlspecialchars($editMateriel['disqdur']) : '' ?>">
+                        </div>
                     </div>
-                    
-                    
-                    <div class="form-group">
-                        <label>Modèle:</label>
-                        <input type="text" name="Model" value="<?= $editMode ? htmlspecialchars($editMateriel['Model']) : '' ?>">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fréquence (MHz):</label>
+                            <input type="text" name="mhtz" value="<?= $editMode ? htmlspecialchars($editMateriel['mhtz']) : '' ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>MO:</label>
+                            <input type="text" name="mo" value="<?= $editMode ? htmlspecialchars($editMateriel['mo']) : '' ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Mémoire:</label>
+                            <input type="text" name="memoire" value="<?= $editMode ? htmlspecialchars($editMateriel['memoire']) : '' ?>">
+                        </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Date d'entrée:</label>
-                        <input type="date" name="Dateentree" value="<?= $editMode ? htmlspecialchars($editMateriel['Dateentree']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Processeur:</label>
-                        <input type="text" name="Processeur" value="<?= $editMode ? htmlspecialchars($editMateriel['Processeur']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Carte Graphique:</label>
-                        <input type="text" name="graphique" value="<?= $editMode ? htmlspecialchars($editMateriel['graphique']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Disque Dur:</label>
-                        <input type="text" name="disqdur" value="<?= $editMode ? htmlspecialchars($editMateriel['disqdur']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Fréquence (MHz):</label>
-                        <input type="text" name="mhtz" value="<?= $editMode ? htmlspecialchars($editMateriel['mhtz']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>MO:</label>
-                        <input type="text" name="mo" value="<?= $editMode ? htmlspecialchars($editMateriel['mo']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Mémoire:</label>
-                        <input type="text" name="memoire" value="<?= $editMode ? htmlspecialchars($editMateriel['memoire']) : '' ?>">
-                    </div>
-                    
+                    <div class="form-row">
                     <div class="form-group">
                         <label>Adresse IP:</label>
                         <input type="text" name="ip" value="<?= $editMode ? htmlspecialchars($editMateriel['ip']) : '' ?>">
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Écran:</label>
-                        <input type="text" name="ecran" value="<?= $editMode ? htmlspecialchars($editMateriel['ecran']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Pouces:</label>
-                        <input type="text" name="pouce" value="<?= $editMode ? htmlspecialchars($editMateriel['pouce']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Classification:</label>
-                        <input type="text" name="classification" value="<?= $editMode ? htmlspecialchars($editMateriel['classification']) : '' ?>">
                     </div>
 
-                    <div class="form-group">
-                        <label>État:</label>
-                        <select name="stock" id="materiel-state-select" onchange="toggleDamageCause(this.value)">
-                            <option value="en-service" <?= ($editMode && $editMateriel['stock'] === 'en-service') || (!$editMode && $default_state === 'en-service') ? 'selected' : '' ?>>En service</option>
-                            <option value="en-stock" <?= ($editMode && $editMateriel['stock'] === 'en-stock') || (!$editMode && $default_state === 'en-stock') ? 'selected' : '' ?>>En stock</option>
-                            <option value="endommage" <?= ($editMode && $editMateriel['stock'] === 'endommage') || (!$editMode && $default_state === 'endommage') ? 'selected' : '' ?>>Endommagé</option>
-                            <option value="casse" <?= ($editMode && $editMateriel['stock'] === 'casse') || (!$editMode && $default_state === 'casse') ? 'selected' : '' ?>>Casse</option>
-                        </select>
-                        <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            var stateSelect = document.getElementById('materiel-state-select');
-                            var dateInput = document.getElementById('datefinservice-input');
-                            if (stateSelect) {
-                                stateSelect.addEventListener('change', function() {
-                                    if (this.value === 'casse') {
-                                        var now = new Date();
-                                        var formatted = now.getFullYear() + '-' +
-                                            String(now.getMonth()+1).padStart(2,'0') + '-' +
-                                            String(now.getDate()).padStart(2,'0') + ' ' +
-                                            String(now.getHours()).padStart(2,'0') + ':' +
-                                            String(now.getMinutes()).padStart(2,'0') + ':' +
-                                            String(now.getSeconds()).padStart(2,'0');
-                                        dateInput.value = formatted;
-                                    } else {
-                                        dateInput.value = '';
-                                    }
-                                });
-                                // If already selected on load
-                                if (stateSelect.value === 'casse') {
-                                    var now = new Date();
-                                    var formatted = now.getFullYear() + '-' +
-                                        String(now.getMonth()+1).padStart(2,'0') + '-' +
-                                        String(now.getDate()).padStart(2,'0') + ' ' +
-                                        String(now.getHours()).padStart(2,'0') + ':' +
-                                        String(now.getMinutes()).padStart(2,'0') + ':' +
-                                        String(now.getSeconds()).padStart(2,'0');
-                                    dateInput.value = formatted;
-                                }
-                            }
-                        });
-                        </script>
+                    <h3 class="form-section-title">Caractéristiques Ecran</h3>
+                    <div class="section-divider"></div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Écran:</label>
+                            <input type="text" name="ecran" value="<?= $editMode ? htmlspecialchars($editMateriel['ecran']) : '' ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>Pouces:</label>
+                            <input type="text" name="pouce" value="<?= $editMode ? htmlspecialchars($editMateriel['pouce']) : '' ?>">
+                        </div>
                     </div>
 
-                    <div id="damage-cause-group" class="form-group" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
+                    <!-- Others Section -->
+                    <h3 class="form-section-title">Autres</h3>
+                    <div class="section-divider"></div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Classification:</label>
+                             <select name="classification" id="materiel-classification-select" onchange="toggleDamageCause(this.value)">
+                                <option value="interne" <?= ($editMode && $editMateriel['stock'] === 'interne') || (!$editMode && $default_state === 'interne') ? 'selected' : '' ?>>Interne</option>
+                                <option value="confidentiel" <?= ($editMode && $editMateriel['stock'] === 'confidentiel') || (!$editMode && $default_state === 'confidentiel') ? 'selected' : '' ?>>Confidentiel</option>
+                                <option value="secret" <?= ($editMode && $editMateriel['stock'] === 'secret') || (!$editMode && $default_state === 'secret') ? 'selected' : '' ?>>Secret</option>
+                                <option value="public" <?= ($editMode && $editMateriel['stock'] === 'public') || (!$editMode && $default_state === 'public') ? 'selected' : '' ?>>Public</option>
+                               
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>État:</label>
+                            <select name="stock" id="materiel-state-select" onchange="toggleDamageCause(this.value)">
+                                <option value="en-service" <?= ($editMode && $editMateriel['stock'] === 'en-service') || (!$editMode && $default_state === 'en-service') ? 'selected' : '' ?>>En service</option>
+                                <option value="en-stock" <?= ($editMode && $editMateriel['stock'] === 'en-stock') || (!$editMode && $default_state === 'en-stock') ? 'selected' : '' ?>>En stock</option>
+                               
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Observation:</label>
+                            <textarea name="observation" rows="3"><?= $editMode ? htmlspecialchars($editMateriel['observation']) : '' ?></textarea>
+                        </div>
+                    </div>
+                    <div id="damage-cause-group" class="form-group full-width" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
                         <label>Cause du dommage:</label>
                         <textarea name="damage_cause" rows="2"><?= $editMode ? htmlspecialchars($editMateriel['damage_cause'] ?? '') : '' ?></textarea>
                     </div>
-
-                    <div class="form-group full-width">
-                        <label>Observation:</label>
-                        <textarea name="observation" rows="3"><?= $editMode ? htmlspecialchars($editMateriel['observation']) : '' ?></textarea>
-                    </div>
-                    
                     <div class="form-group full-width">
                         <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier le Matériel' : 'Ajouter le Matériel' ?></button>
                         <?php if ($editMode): ?>
@@ -1638,8 +1662,8 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     </div>
                     
                     <div class="form-group">
-                        <label>Matériel:</label>
-                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['Model']) : '' ?>" disabled>
+                        <label>Type:</label>
+                        <input type="text" value="<?= ($transferMode && $transferType === 'materiel') ? htmlspecialchars($transferMateriel['TypeLibelle']) : '' ?>" disabled>
                     </div>
 
                     <div class="form-group">
@@ -1648,7 +1672,7 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     </div>
 
                     <div class="form-group">
-                        <label>Nouveau Propriétaire:</label>
+                        <label>Nouveau Propriétaire:<span style="color:red">*</span></label>
                         <select name="CodeUtilisateur" required>
                             <option value="">Sélectionner un utilisateur</option>
                             <?php foreach ($transfer_utilisateurs as $user): ?>
@@ -1691,6 +1715,32 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                             placeholder="Rechercher dans le matériel..."
                             autocomplete="off"
                         />
+                        <script>
+                        // Update search functionality to handle both materiel and global history tables
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const searchInput = document.getElementById('search-materiel');
+                            if (searchInput) {
+                                searchInput.addEventListener('input', function() {
+                                    const searchTerm = this.value.toLowerCase();
+                                    const isGlobalHistory = window.location.search.includes('state=global-history');
+                                    
+                                    if (isGlobalHistory) {
+                                        // Search in global history table
+                                        const rows = document.querySelectorAll('#global-history-table tbody tr');
+                                        rows.forEach(row => {
+                                            const text = row.textContent.toLowerCase();
+                                            row.style.display = text.includes(searchTerm) ? '' : 'none';
+                                        });
+                                    } else {
+                                        // Existing search logic for materiel table
+                                        if (typeof performSearch === 'function') {
+                                            performSearch('materiel');
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                        </script>
                     </div>
                     <div class="filter-group">
                         <label class="filter-label">Filtres :</label>
@@ -1698,28 +1748,28 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                             <input type="checkbox" class="search-filter" data-column="NumSerie"> N° Série
                         </label>
                         <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="NomPrenom"> Utilisateur
+                            <input type="checkbox" class="search-filter" data-column="TypeLibelle"> Type
                         </label>
                         <label class="filter-checkbox">
                             <input type="checkbox" class="search-filter" data-column="Marque"> Marque
                         </label>
                         <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="TypeLibelle"> Type
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="classification"> Classification
-                        </label>
-                        <label class="filter-checkbox">
                             <input type="checkbox" class="search-filter" data-column="Model"> Modèle
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="NomPrenom"> Utilisateur
                         </label>
                         <label class="filter-checkbox">
                             <input type="checkbox" class="search-filter" data-column="Dateentree"> Date Entrée
                         </label>
                         <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="État"> État
+                            <input type="checkbox" class="search-filter" data-column="classification"> Classification
                         </label>
                         <label class="filter-checkbox">
                             <input type="checkbox" class="search-filter" data-column="observation"> Observation
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" class="search-filter" data-column="État"> État
                         </label>
                     </div>
                 </div>
@@ -1728,126 +1778,167 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
 
             <!-- Display count of materiels -->
             <div id="materiel-count-summary" class="materiel-count-summary" style="margin: 10px 0 10px 0; font-weight: bold; color: #333;">
-                Nombre de matériels affichés : <?= $materiel_count ?>
+                <?php if ($selected_state === 'global-history'): ?>
+                    Nombre d'historiques affichés : <?= count($global_history_data) ?>
+                <?php else: ?>
+                    Nombre de matériels affichés : <?= $materiel_count ?>
+                <?php endif; ?>
             </div>
             <form method="POST" id="fin-inventaire-form">
                 <input type="hidden" name="action" value="fin_inventaire">
                 <input type="hidden" name="ste" value="<?= htmlspecialchars($ste_filter) ?>">
                 <input type="hidden" name="state" value="<?= htmlspecialchars($selected_state) ?>">
                 <div class="table-container">
-                    <table id="materiel-table" class="table-materiel">
-                        <thead>
-                            <tr>
-                                <?php if ($inventaire_mode): ?>
-                                <th>Présent</th>
-                                <?php endif; ?>
-                                <th>Numéro de Série</th>
-                                <th>Utilisateur</th>
-                                <th>Marque</th>
-                                <th>Type</th>
-                                <th>Classification</th>
-                                <th>Modèle</th>
-                                <th>Date Entrée</th>
-                                <th>État</th>
-                                <?php if ($selected_state === 'casse'): ?>
-                                    <th>Date de fin de service</th>
+                    <?php if ($selected_state === 'global-history'): ?>
+                        <!-- Global History Table -->
+                        <table id="global-history-table" class="table-materiel">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>N° Série</th>
+                                    <th>Modèle</th>
+                                    <th>Type</th>
+                                    <th>Ancien Utilisateur</th>
+                                    <th>Nouveau Utilisateur</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($global_history_data)): ?>
+                                    <tr>
+                                        <td colspan="7" style="text-align: center;">Aucun historique disponible.</td>
+                                    </tr>
                                 <?php else: ?>
-                                    <th>Observation</th>
+                                    <?php foreach ($global_history_data as $history): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($history['date_change'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['numserie'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['Model'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['TypeLibelle'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['previous_username'] ?? $history['previous_owner'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['new_username'] ?? $history['new_owner'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['notes'] ?? '') ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
                                 <?php endif; ?>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>        
-                        <tbody>
-                            <?php foreach ($materiels as $materiel): ?>
-                            <tr>
-                                <?php if ($inventaire_mode): ?>
-                                <td><input type="checkbox" name="present[]" value="<?= $materiel['NumSerie'] ?>"></td>
-                                <?php endif; ?>
-                                <td><?= htmlspecialchars($materiel['NumSerie']) ?></td>
-                                <td><?= htmlspecialchars($materiel['NomPrenom'] ?? 'N/A') ?></td>
-                                <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
-                                <td><?= htmlspecialchars($materiel['TypeLibelle'] ?? 'N/A') ?></td>
-                                <td><?= htmlspecialchars($materiel['classification'] ?? 'N/A') ?></td>
-                                <td><?= htmlspecialchars($materiel['Model'] ?? 'N/A') ?></td>
-                                <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
-                                <td class="materiel-state">
-                                    <?php if (!$inventaire_mode): ?>
-                                    <form method="POST" style="display:inline; margin:0;" onsubmit="return handleInlineStateChange(this)">
-                                        <input type="hidden" name="action" value="change_state">
-                                        <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
-                                        <input type="hidden" name="STE" value="<?= htmlspecialchars($ste_filter) ?>">
-                                        <input type="hidden" name="redirect_state" value="<?= htmlspecialchars($selected_state) ?>">
-                                        <input type="hidden" name="datefinservice" value="" class="datefinservice-inline">
-                                        <select name="stock" onchange="handleInlineStateSelect(this)">
-                                            <?php foreach ($stockLabelMap as $val => $label): ?>
-                                            <option value="<?= $val ?>" <?= (isset($materiel['stock']) && $materiel['stock'] == $val) ? 'selected' : '' ?>><?= $label ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </form>
-                                    <script>
-                                    function handleInlineStateSelect(select) {
-                                        var form = select.form;
-                                        var dateInput = form.querySelector('.datefinservice-inline');
-                                        if (select.value == '3') {
-                                            var now = new Date();
-                                            var formatted = now.getFullYear() + '-' +
-                                                String(now.getMonth()+1).padStart(2,'0') + '-' +
-                                                String(now.getDate()).padStart(2,'0') + ' ' +
-                                                String(now.getHours()).padStart(2,'0') + ':' +
-                                                String(now.getMinutes()).padStart(2,'0') + ':' +
-                                                String(now.getSeconds()).padStart(2,'0');
-                                            dateInput.value = formatted;
-                                        } else {
-                                            dateInput.value = '';
-                                        }
-                                        form.submit();
-                                    }
-                                    function handleInlineStateChange(form) {
-                                        // Always allow submit
-                                        return true;
-                                    }
-                                    </script>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                        <!-- Regular Materiel Table -->
+                        <table id="materiel-table" class="table-materiel">
+                            <thead>
+                                <tr>
+                                    <?php if ($inventaire_mode): ?>
+                                    <th>Présent</th>
+                                    <?php endif; ?>
+                                    <th>Numéro de Série</th>
+                                    <th>Type</th>
+                                    <th>Marque</th>
+                                    <th>Modèle</th>
+                                    <th>Utilisateur</th>
+                                    <th>Date Entrée</th>
+                                    <th>Classification</th>
+                                    <th>État</th>
+                                    <?php if ($selected_state === 'casse'): ?>
+                                        <th>Date de fin de service</th>
                                     <?php else: ?>
-                                        <?php 
-                                            $stockVal = $materiel['stock'] ?? 0;
-                                            if (is_numeric($stockVal)) {
-                                                $stateLabel = $stockLabelMap[$stockVal] ?? '';
-                                            } else {
-                                                $stateLabel = $stockLabelMap[$stateToStock[$stockVal] ?? 0] ?? '';
-                                            }
-                                            $stateClass = 'state-' . ($stockVal ?? 'en-service');
-                                        ?>
-                                        <span class="<?= $stateClass ?>" style="margin-left:8px;"> <?= $stateLabel ?> </span>
+                                        <th>Observation</th>
                                     <?php endif; ?>
-                                </td>
-                                <?php if (($selected_state === 'casse') || (isset($materiel['stock']) && ($materiel['stock'] == 3 || $materiel['stock'] === 'casse'))): ?>
-                                    <td><?= ($materiel['datefinservice'] && $materiel['datefinservice'] != '0000-00-00 00:00:00') ? $materiel['datefinservice'] : '' ?></td>
-                                <?php else: ?>
-                                    <td><?= $materiel['observation'] ?? 'N/A' ?></td>
-                                <?php endif; ?>
-                                <td>
-                                    <?php if (!$inventaire_mode): ?>
-                                    <div class="action-buttons">
-                                        <a href="index.php?edit=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
-                                            <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
-                                        </a>
-                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?');">
-                                            <input type="hidden" name="action" value="delete_materiel">
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>        
+                            <tbody>
+                                <?php foreach ($materiels as $materiel): ?>
+                                <tr>
+                                    <?php if ($inventaire_mode): ?>
+                                    <td><input type="checkbox" name="present[]" value="<?= $materiel['NumSerie'] ?>"></td>
+                                    <?php endif; ?>
+                                    <td><?= htmlspecialchars($materiel['NumSerie']) ?></td>
+                                    <td><?= htmlspecialchars($materiel['TypeLibelle'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['Marque'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['Model'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['NomPrenom'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
+                                    <td><?= htmlspecialchars($materiel['classification'] ?? 'N/A') ?></td>
+                                    <td class="materiel-state">
+                                        <?php if (!$inventaire_mode): ?>
+                                        <form method="POST" style="display:inline; margin:0;" onsubmit="return handleInlineStateChange(this)">
+                                            <input type="hidden" name="action" value="change_state">
                                             <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
-                                            <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                            <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
-                                                <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
-                                            </button>
+                                            <input type="hidden" name="STE" value="<?= htmlspecialchars($ste_filter) ?>">
+                                            <input type="hidden" name="redirect_state" value="<?= htmlspecialchars($selected_state) ?>">
+                                            <input type="hidden" name="datefinservice" value="" class="datefinservice-inline">
+                                            <select name="stock" onchange="handleInlineStateSelect(this)">
+                                                <?php foreach ($stockLabelMap as $val => $label): ?>
+                                                <option value="<?= $val ?>" <?= (isset($materiel['stock']) && $materiel['stock'] == $val) ? 'selected' : '' ?>><?= $label ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
                                         </form>
-                                        <a href="index.php?transfer=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
-                                        <a href="get_material_history.php?numserie=<?= $materiel['NumSerie'] ?>&ste=<?= urlencode($ste_filter) ?>" class="btn-history" title="Historique"><img width="20px" height="20px" src="imgs/history.png" alt="historique"/></a>
-                                    </div>
+                                        <script>
+                                        function handleInlineStateSelect(select) {
+                                            var form = select.form;
+                                            var dateInput = form.querySelector('.datefinservice-inline');
+                                            if (select.value == '3') {
+                                                var now = new Date();
+                                                var formatted = now.getFullYear() + '-' +
+                                                    String(now.getMonth()+1).padStart(2,'0') + '-' +
+                                                    String(now.getDate()).padStart(2,'0') + ' ' +
+                                                    String(now.getHours()).padStart(2,'0') + ':' +
+                                                    String(now.getMinutes()).padStart(2,'0') + ':' +
+                                                    String(now.getSeconds()).padStart(2,'0');
+                                                dateInput.value = formatted;
+                                            } else {
+                                                dateInput.value = '';
+                                            }
+                                            form.submit();
+                                        }
+                                        function handleInlineStateChange(form) {
+                                            // Always allow submit
+                                            return true;
+                                        }
+                                        </script>
+                                        <?php else: ?>
+                                            <?php 
+                                                $stockVal = $materiel['stock'] ?? 0;
+                                                if (is_numeric($stockVal)) {
+                                                    $stateLabel = $stockLabelMap[$stockVal] ?? '';
+                                                } else {
+                                                    $stateLabel = $stockLabelMap[$stateToStock[$stockVal] ?? 0] ?? '';
+                                                }
+                                                $stateClass = 'state-' . ($stockVal ?? 'en-service');
+                                            ?>
+                                            <span class="<?= $stateClass ?>" style="margin-left:8px;"> <?= $stateLabel ?> </span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <?php if (($selected_state === 'casse') || (isset($materiel['stock']) && ($materiel['stock'] == 3 || $materiel['stock'] === 'casse'))): ?>
+                                        <td><?= ($materiel['datefinservice'] && $materiel['datefinservice'] != '0000-00-00 00:00:00') ? $materiel['datefinservice'] : '' ?></td>
+                                    <?php else: ?>
+                                        <td><?= $materiel['observation'] ?? 'N/A' ?></td>
                                     <?php endif; ?>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                                    <td>
+                                        <?php if (!$inventaire_mode): ?>
+                                        <div class="action-buttons">
+                                            <a href="index.php?edit=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                                <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
+                                            </a>
+                                            <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?');">
+                                                <input type="hidden" name="action" value="delete_materiel">
+                                                <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
+                                                <input type="hidden" name="STE" value="<?= $ste_filter ?>">
+                                                <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
+                                                    <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
+                                                </button>
+                                            </form>
+                                            <a href="index.php?transfer=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
+                                            <a href="get_material_history.php?numserie=<?= $materiel['NumSerie'] ?>&ste=<?= urlencode($ste_filter) ?>" class="btn-history" title="Historique"><img width="20px" height="20px" src="imgs/history.png" alt="historique"/></a>
+                                        </div>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
                 </div>
                 <?php if ($inventaire_mode): ?>
                 <div class="form-group full-width" style="margin-top: 20px; text-align: right;">
@@ -1926,17 +2017,17 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <input type="hidden" name="STE" value="<?= $editMode && isset($editUtilisateur['STE']) ? htmlspecialchars($editUtilisateur['STE']) : htmlspecialchars($ste_filter) ?>">
 
                     <div class="form-group">
-                        <label>Compte:</label>
+                        <label>Compte:<span style="color:red">*</span></label>
                         <input type="text" name="Compte" value="<?= $editMode && isset($editUtilisateur['Compte']) ? htmlspecialchars($editUtilisateur['Compte']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?> >
                     </div>
 
                     <div class="form-group">
-                        <label>Nom et Prénom:</label>
+                        <label>Nom et Prénom:<span style="color:red">*</span></label>
                         <input type="text" name="NomPrenom" value="<?= $editMode && isset($editUtilisateur['NomPrenom']) ? htmlspecialchars($editUtilisateur['NomPrenom']) : '' ?>" required>
                     </div>
 
                     <div class="form-group">
-                        <label>Service:</label>
+                        <label>Service:<span style="color:red">*</span></label>
                         <select name="CodeService" required>
                             <option value="">Non spécifié</option>
                             <?php foreach ($services as $service): ?>
@@ -2065,7 +2156,7 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <?php endif; ?>
                     
                     <div class="form-group">
-                        <label>Marque:</label>
+                        <label>Marque:<span style="color:red">*</span></label>
                         <input type="text" name="Marque" value="<?= $editMode ? htmlspecialchars($editMarque['Marque']) : '' ?>" required>
                     </div>
                     
@@ -2164,7 +2255,7 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <?php endif; ?>
                     
                     <div class="form-group">
-                        <label>Libellé:</label>
+                        <label>Libellé:<span style="color:red">*</span></label>
                         <input type="text" name="Libelle" value="<?= $editMode ? htmlspecialchars($editTypeEntity['Libelle']) : '' ?>" required>
                     </div>
                     
@@ -2263,7 +2354,7 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <?php endif; ?>
                     
                     <div class="form-group">
-                        <label>Libellé:</label>
+                        <label>Libellé:<span style="color:red">*</span></label>
                         <input type="text" name="Libelle" value="<?= $editMode ? htmlspecialchars($editService['Libelle']) : '' ?>" required>
                     </div>
                     
@@ -2359,13 +2450,13 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <input type="hidden" name="STE" value="<?= $ste_filter ?>">
                     
                     <div class="form-group">
-                        <label>Email:</label>
+                        <label>Email:<span style="color:red">*</span></label>
                         <input type="email" name="Email" value="<?= $editMode ? htmlspecialchars($editFournisseur['Email']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?>>
                     </div>
                     
                     <div class="form-group">
                         <label>Nom de la société:</label>
-                        <input type="text" name="CompanyName" value="<?= $editMode ? htmlspecialchars($editFournisseur['CompanyName']) : '' ?>">
+                        <input type="text" name="CompanyName" value="<?= $editMode ? htmlspecialchars($editFournisseur['CompanyName']) : '' ?>" required>
                     </div>
                     
                     <div class="form-group">
