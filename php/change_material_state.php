@@ -30,7 +30,7 @@ try {
     $prev_state = $row['stock'];
     $prev_user = $row['CodeUtilisateur'];
 
-    $new_user = $_POST['new_user'] ?? $prev_user;
+    $new_user = isset($_POST['new_user']) && $_POST['new_user'] !== '' ? $_POST['new_user'] : $prev_user;
     $changed = false;
     // Check if user changed (not just state)
     if ($new_user != $prev_user) {
@@ -39,13 +39,14 @@ try {
         $updateUser->execute([$new_user, $numserie]);
         log_debug("UPDATE materiel SET CodeUtilisateur = $new_user WHERE NumSerie = $numserie");
         // Always record in history when user changes, even if state does not change
+        // Ensure previous and new user are never null in history
         $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
         $history->execute([
             $numserie,
             $prev_state,
             $target_state,
-            $prev_user,
-            $new_user,
+            $prev_user ?: '',
+            $new_user ?: '',
             $user_id,
             $notes ?: $cause
         ]);
