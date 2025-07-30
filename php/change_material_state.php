@@ -3,7 +3,9 @@ header('Content-Type: application/json');
 require_once 'config.php';
 
 function log_debug($msg) {
-    file_put_contents(__DIR__ . '/../material_notifications.log', date('Y-m-d H:i:s') . ' ' . $msg . "\n", FILE_APPEND);
+    $timestamped = date('Y-m-d H:i:s') . ' ' . $msg . "\n";
+    file_put_contents(__DIR__ . '/../material_notifications.log', $timestamped, FILE_APPEND);
+    file_put_contents(__DIR__ . '/../error.log', $timestamped, FILE_APPEND);
 }
 
 log_debug('POST: ' . json_encode($_POST));
@@ -68,7 +70,18 @@ try {
         // Extra debug: log all values before insert
         log_debug("History insert values: numserie=$numserie, prev_state=$prev_state, target_state=$target_state, prev_user_name=$prev_user_name, new_user_name=$new_user_name, user_id=$user_id, notes=" . ($notes ?: $cause));
         try {
-            $history = $pdo->prepare('INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)');
+            $sql = 'INSERT INTO materiel_history (numserie, prev_state, new_state, previous_owner, new_owner, date_change, user_id, notes) VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)';
+            log_debug("SQL: $sql");
+            log_debug("VALUES: " . json_encode([
+                $numserie ?: '',
+                $prev_state !== null ? $prev_state : '',
+                $target_state !== null ? $target_state : '',
+                $prev_user_name ?: '',
+                $new_user_name ?: '',
+                $user_id ?: '',
+                $notes ?: $cause ?: ''
+            ]));
+            $history = $pdo->prepare($sql);
             $result = $history->execute([
                 $numserie ?: '',
                 $prev_state !== null ? $prev_state : '',
