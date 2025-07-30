@@ -83,13 +83,13 @@ try {
             ]));
             $history = $pdo->prepare($sql);
             $result = $history->execute([
-                $numserie ?: '',
-                $prev_state !== null ? $prev_state : '',
-                $target_state !== null ? $target_state : '',
-                $prev_user_name ?: '',
-                $new_user_name ?: '',
-                $user_id ?: '',
-                $notes ?: $cause ?: ''
+                (string)$numserie,
+                (string)($prev_state !== null ? $prev_state : ''),
+                (string)($target_state !== null ? $target_state : ''),
+                (string)$prev_user_name,
+                (string)$new_user_name,
+                (string)$user_id,
+                (string)($notes !== null ? $notes : ($cause !== null ? $cause : ''))
             ]);
             if (!$result) {
                 $errorInfo = $history->errorInfo();
