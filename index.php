@@ -58,8 +58,8 @@ if ($_POST) {
                 $checkInventaireStmt = $pdo->prepare("SELECT * FROM inventaire WHERE NumSerie = ?");
                 $checkInventaireStmt->execute([$serial]);
                 $inventaireMateriel = $checkInventaireStmt->fetch(PDO::FETCH_ASSOC);
-                if ($inventaireMateriel && !isset($_POST['recuperer_inventaire_confirm']) && !isset($_GET['force_add']) && !isset($_POST['force_add'])) {
-                    // Show a minimal HTML page with two buttons for user choice
+                if ($inventaireMateriel && !isset($_POST['recuperer_inventaire_confirm']) && !isset($_GET['force_add']) && !isset($_POST['force_add']) && !isset($_POST['ajouter_plusieurs'])) {
+                    // Show a minimal HTML page with three buttons for user choice
                     echo '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Numéro déjà en inventaire</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;">';
                     echo '<h2>Ce numéro de série existe déjà en inventaire.</h2>';
                     echo '<p>Voulez-vous le récupérer ?</p>';
@@ -78,9 +78,61 @@ if ($_POST) {
                     echo '<input type="hidden" name="force_add" value="1">';
                     echo '<button type="submit" style="margin:10px;padding:10px 20px;">Ajouter comme nouveau</button>';
                     echo '</form>';
+                    // Ajouter plusieurs button
+                    echo '<form method="POST" style="display:inline;">';
+                    foreach ($_POST as $k => $v) {
+                        $v = htmlspecialchars($v, ENT_QUOTES);
+                        echo "<input type='hidden' name='".htmlspecialchars($k, ENT_QUOTES)."' value='".$v."'>";
+                    }
+                    echo '<input type="hidden" name="ajouter_plusieurs" value="1">';
+                    echo '<button type="submit" style="margin:10px;padding:10px 20px;">Ajouter plusieurs</button>';
+                    echo '</form>';
                     echo '</body></html>';
                     exit();
-                } elseif ($inventaireMateriel && isset($_POST['recuperer_inventaire_confirm'])) {
+                } elseif (isset($_POST['ajouter_plusieurs']) && !isset($_POST['plusieurs_count'])) {
+                    // Prompt for how many materiels to add
+                    echo '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Ajouter plusieurs matériels</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;">';
+                    echo '<h2>Combien de matériels voulez-vous ajouter ?</h2>';
+                    echo '<form method="POST">';
+                    foreach ($_POST as $k => $v) {
+                        if ($k !== 'ajouter_plusieurs') {
+                            $v = htmlspecialchars($v, ENT_QUOTES);
+                            echo "<input type='hidden' name='".htmlspecialchars($k, ENT_QUOTES)."' value='".$v."'>";
+                        }
+                    }
+                    echo '<input type="number" name="plusieurs_count" min="2" max="100" required style="margin:10px;padding:10px;width:80px;">';
+                    echo '<button type="submit" style="margin:10px;padding:10px 20px;">Valider</button>';
+                    echo '</form>';
+                    echo '</body></html>';
+                    exit();
+                } elseif (isset($_POST['plusieurs_count'])) {
+                    // Loop logic: show form for each materiel
+                    $count = intval($_POST['plusieurs_count']);
+                    $current = isset($_POST['plusieurs_current']) ? intval($_POST['plusieurs_current']) : 1;
+                    if ($current <= $count) {
+                        // Show the form, prefill with previous data except NumSerie
+                        echo '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Ajouter matériel ' . $current . ' / ' . $count . '</title></head><body style="font-family:sans-serif;text-align:center;padding:40px;">';
+                        echo '<h2>Ajouter matériel ' . $current . ' / ' . $count . '</h2>';
+                        echo '<form method="POST">';
+                        foreach ($_POST as $k => $v) {
+                            if (!in_array($k, ['NumSerie', 'plusieurs_current', 'plusieurs_count', 'ajouter_plusieurs'])) {
+                                $v = htmlspecialchars($v, ENT_QUOTES);
+                                echo "<input type='hidden' name='".htmlspecialchars($k, ENT_QUOTES)."' value='".$v."'>";
+                            }
+                        }
+                        echo '<input type="hidden" name="plusieurs_count" value="' . $count . '">';
+                        echo '<input type="hidden" name="plusieurs_current" value="' . ($current + 1) . '">';
+                        // NumSerie input is always empty
+                        echo '<label>Numéro de série: <input type="text" name="NumSerie" required></label><br><br>';
+                        // ...existing code for other fields...
+                        // You may want to add other fields here as needed
+                        echo '<button type="submit" style="margin:10px;padding:10px 20px;">Ajouter</button>';
+                        echo '</form>';
+                        echo '</body></html>';
+                        exit();
+                    }
+                    // After loop, process normally
+                }
                     // User confirmed to recover from inventaire
                     // Move from inventaire to materiel
                     $pdo->beginTransaction();
