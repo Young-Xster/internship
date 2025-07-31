@@ -1016,6 +1016,7 @@ if (isset($_GET['edit']) && !empty($_GET['edit'])) {
     $editMode = true;
     $editId = $_GET['edit'];
     $editType = $_GET['type'] ?? 'materiel';
+    
     try {
         switch ($editType) {
             case 'materiel':
@@ -1055,6 +1056,7 @@ if (isset($_GET['edit']) && !empty($_GET['edit'])) {
                 $editEntity = $editFournisseur;
                 break;
         }
+        
         if (!$editEntity) {
             $error_message = "Élément non trouvé.";
             $editMode = false;
@@ -1102,86 +1104,86 @@ if ($editMode || $transferMode) {
     
     $tabMapping = [
         'materiel' => 'materiel',
+        'inventaire' => 'inventaire',
+        'utilisateur' => 'utilisateurs',
+        'marque' => 'marques',
+        'type' => 'types',
+        'service' => 'services',
+        'fournisseur' => 'fournisseurs',
+        'maintenance' => 'maintenance'
     ];
+    $activeTab = $tabMapping[$editType ?? $transferType ?? 'materiel'] ?? 'materiel';
+} elseif (isset($_GET['tab'])) {
+    
+    $tabMapping = [
+        'materiel' => 'materiel',
+        'inventaire' => 'inventaire',
+        'utilisateur' => 'utilisateurs',
+        'marque' => 'marques',
+        'type' => 'types',
+        'service' => 'services',
+        'fournisseurs' => 'fournisseurs',
+        'maintenance' => 'maintenance'
+    ];
+    $activeTab = $tabMapping[$_GET['tab']] ?? 'materiel';
 }
-if ($_POST) {
-    $action = $_POST['action'] ?? '';
-    $tab = $_GET['tab'] ?? 'materiel';
-    $ste = $_POST['STE'] ?? 'prod';
 
-    try {
-        switch ($action) {
-            case 'add_materiel_multiple':
-                // Multi-add logic for 'Ajouter Plusieurs'
-                $count = isset($_POST['count']) ? intval($_POST['count']) : 1;
-                $current = isset($_POST['current']) ? intval($_POST['current']) : 1;
-                if (!isset($_SESSION['multi_materiel'])) {
-                    $_SESSION['multi_materiel'] = [];
-                }
-                $formData = $_POST;
-                $_SESSION['multi_materiel'][] = $formData;
-                // Insert into DB
-                $stmt = $pdo->prepare("INSERT INTO materiel (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause, datefinservice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $codeUtilisateur = !empty($formData['CodeUtilisateur']) ? $formData['CodeUtilisateur'] : NULL;
-                $codeMarque = !empty($formData['CodeMarque']) ? $formData['CodeMarque'] : NULL;
-                $codeType = !empty($formData['CodeType']) ? $formData['CodeType'] : NULL;
-                $codeFournisseur = !empty($formData['CodeFournisseur']) ? $formData['CodeFournisseur'] : NULL;
-                $dateentree = !empty($formData['Dateentree']) ? $formData['Dateentree'] : date('Y-m-d');
-                $serial = $formData['NumSerie'] ?? null;
-                $damageCause = null;
-                if (isset($formData['stock']) && ($formData['stock'] === 'endommage' || $formData['stock'] === 'casse')) {
-                    $damageCause = $formData['damage_cause'] ?? null;
-                }
-                $stock = $formData['stock'] ?? 'en-service';
-                $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
-                $datefinservice = ($stockValue == 3) ? date('Y-m-d H:i:s') : null;
-                $stmt->execute([
-                    $serial,
-                    $dateentree,
-                    $formData['Model'],
-                    $codeType,
-                    $codeMarque,
-                    $codeFournisseur,
-                    $formData['STE'],
-                    $codeUtilisateur,
-                    $formData['Processeur'],
-                    $formData['graphique'],
-                    $formData['disqdur'],
-                    $formData['mhtz'],
-                    $formData['mo'],
-                    $formData['memoire'],
-                    $formData['ip'],
-                    $formData['ecran'],
-                    $formData['pouce'],
-                    $formData['observation'],
-                    $stockValue,
-                    $formData['classification'],
-                    $damageCause,
-                    $datefinservice
-                ]);
-                // If not last, redirect to next form
-                if ($current < $count) {
-                    // Pre-fill next form except NumSerie
-                    $_SESSION['multi_materiel_last'] = $formData;
-                    $_SESSION['multi_materiel_last']['NumSerie'] = '';
-                    header('Location: index.php?tab=materiel&ste=' . urlencode($formData['STE']) . '&showForm=ajouter_plusieurs&count=' . $count . '&current=' . ($current + 1));
-                    exit();
-                } else {
-                    // All done, show summary and clear session
-                    $added = $_SESSION['multi_materiel'];
-                    unset($_SESSION['multi_materiel']);
-                    unset($_SESSION['multi_materiel_last']);
-                    $success_message = count($added) . ' matériels ajoutés avec succès.';
-                    header('Location: index.php?tab=materiel&ste=' . urlencode($formData['STE']) . '&success=add_materiel');
-                    exit();
-                }
-                break;
-            // ...existing code...
-        }
-    } catch (Exception $e) {
-        $error_message = "Erreur lors du traitement de la demande: " . $e->getMessage();
+$isFormOpen = $editMode || $transferMode || $showFormParam;
+
+$ste_filter = isset($_GET['ste']) && $_GET['ste'] ? $_GET['ste'] : 'prod';
+
+try {
+    // Fetch users for the current environment filter
+    $utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
+    $utilisateurs_stmt->execute([$ste_filter]);
+    $utilisateurs = $utilisateurs_stmt->fetchAll();
+
+    // If in edit mode for a material, ensure the correct user list is loaded for that material's STE
+    if ($editMode && $editType === 'materiel' && $editMateriel && $editMateriel['STE'] !== $ste_filter) {
+        $utilisateurs_stmt->execute([$editMateriel['STE']]);
+        $utilisateurs = $utilisateurs_stmt->fetchAll();
     }
+
+    // Load users from the opposite department for transfers
+    $other_ste = ($ste_filter === 'prod') ? 'comm' : 'prod';
+    $transfer_utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
+    $transfer_utilisateurs_stmt->execute([$other_ste]);
+    $transfer_utilisateurs = $transfer_utilisateurs_stmt->fetchAll();
+
+    $marques = $pdo->query("SELECT * FROM marque ORDER BY Marque")->fetchAll();
+    $types = $pdo->query("SELECT * FROM type ORDER BY Libelle")->fetchAll();
+
+    $services_stmt = $pdo->prepare("SELECT * FROM service WHERE STE = ? ORDER BY Libelle");
+    $services_stmt->execute([$ste_filter]);
+    $services = $services_stmt->fetchAll();
+
+    $materiels_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.STE = ? ORDER BY m.NumSerie DESC");
+    $materiels_stmt->execute([$ste_filter]);
+    $materiels = $materiels_stmt->fetchAll();
+
+    $fournisseurs = $pdo->query("SELECT * FROM fournisseur ORDER BY CompanyName, NomComplet")->fetchAll();
+} catch (PDOException $e) {
+    $error_message = "Erreur critique: Impossible de charger les données de la base de données. Veuillez contacter un administrateur.";
+    $utilisateurs = $marques = $types = $services = $materiels = $fournisseurs = [];
 }
+
+$state_map = [
+    0 => 'en-service',
+    1 => 'en-stock',
+    2 => 'endommage',
+    3 => 'casse',
+    'en-service' => 0,
+    'en-stock' => 1,
+    'endommage' => 2,
+    'casse' => 3
+];
+
+$selected_state = isset($_GET['state']) ? $_GET['state'] : 'all';
+
+// Filter materiels to exclude those in inventaire
+$materiels = array_filter($materiels, function($m) { return empty($m['inventair']) || $m['inventair'] == 0; });
+
+// Detect inventaire mode from GET
 $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] == '1';
 
 // Apply state filtering only if not in inventory mode or if specific state is selected
@@ -1527,23 +1529,18 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
         <!-- Matériel Tab -->
         <div id="materiel" class="mat-section tab-content <?= ($activeTab === 'materiel') ? 'active' : '' ?>">
             
-            <!-- Add Materiel Form (single) -->
+            <!-- Add Materiel Form -->
             <div class="section materiel-form <?= ($editMode && $editType === 'materiel') || $showFormParam === 'materiel' ? '' : 'hide' ?>">
-                ...existing code...
-            </div>
-
-            <!-- Add Materiel Form (multiple) -->
-            <div class="section materiel-form <?= ($showFormParam === 'ajouter_plusieurs') ? '' : 'hide' ?>">
                 <div class="form-header form-annuler">
-                    <h2>Ajouter Plusieurs Matériels (<?= isset($_GET['current']) ? intval($_GET['current']) : 1 ?>/<?= isset($_GET['count']) ? intval($_GET['count']) : 1 ?>)</h2>
-                    <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                    <h2><?= $editMode && $editType === 'materiel' ? 'Modifier le Matériel' : 'Ajouter un Matériel' ?></h2>
+                    <?php if (!$editMode): ?>
+                        <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                    <?php endif; ?>
                 </div>
-                <form method="POST" class="form-grid">
-                    <input type="hidden" name="action" value="add_materiel_multiple">
-                    <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                    <input type="hidden" name="count" value="<?= isset($_GET['count']) ? intval($_GET['count']) : 1 ?>">
-                    <input type="hidden" name="current" value="<?= isset($_GET['current']) ? intval($_GET['current']) : 1 ?>">
-                    <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= isset($_SESSION['multi_materiel_last']['datefinservice']) ? htmlspecialchars($_SESSION['multi_materiel_last']['datefinservice']) : '' ?>">
+                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
+                    <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : $ste_filter ?>">
+                    <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= $editMode ? htmlspecialchars($editMateriel['datefinservice'] ?? '') : '' ?>">
 
                     <!-- Identification Section -->
                     <h3 class="form-section-title">Identification</h3>
@@ -1551,14 +1548,14 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <div class="form-row">
                         <div class="form-group">
                             <label>Numéro de Série:<span style="color:red">*</span></label>
-                            <input type="text" name="NumSerie" value="" required pattern="[^\s].*" title="Le numéro de série ne peut pas être vide ou contenir uniquement des espaces">
+                            <input type="text" name="NumSerie" value="<?= $editMode ? htmlspecialchars($editMateriel['NumSerie']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?> pattern="[^\s].*" title="Le numéro de série ne peut pas être vide ou contenir uniquement des espaces">
                         </div>
                         <div class="form-group">
                             <label>Type:<span style="color:red">*</span></label>
                             <select name="CodeType" required>
                                 <option value="">Sélectionner un type</option>
                                 <?php foreach ($types as $type): ?>
-                                    <option value="<?= $type['CodeType'] ?>" <?= (isset($_SESSION['multi_materiel_last']['CodeType']) && $_SESSION['multi_materiel_last']['CodeType'] == $type['CodeType']) ? 'selected' : '' ?>><?= $type['Libelle'] ?></option>
+                                    <option value="<?= $type['CodeType'] ?>" <?= $editMode && $type['CodeType'] == $editMateriel['CodeType'] ? 'selected' : '' ?>><?= $type['Libelle'] ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -1567,42 +1564,44 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                             <select name="CodeMarque" required>
                                 <option value="">Sélectionner une marque</option>
                                 <?php foreach ($marques as $marque): ?>
-                                    <option value="<?= $marque['Code'] ?>" <?= (isset($_SESSION['multi_materiel_last']['CodeMarque']) && $_SESSION['multi_materiel_last']['CodeMarque'] == $marque['Code']) ? 'selected' : '' ?>><?= $marque['Marque'] ?></option>
+                                    <option value="<?= $marque['Code'] ?>" <?= $editMode && $marque['Code'] == $editMateriel['CodeMarque'] ? 'selected' : '' ?>><?= $marque['Marque'] ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
+                    
                     <div class="form-row">
                         <div class="form-group">
                             <label>Modèle:<span style="color:red">*</span></label>
-                            <input type="text" name="Model" value="<?= isset($_SESSION['multi_materiel_last']['Model']) ? htmlspecialchars($_SESSION['multi_materiel_last']['Model']) : '' ?>" required>
+                            <input type="text" name="Model" value="<?= $editMode ? htmlspecialchars($editMateriel['Model']) : '' ?>" required>
                         </div>
                         <div class="form-group">
                             <label>Utilisateur:<span style="color:red">*</span></label>
                             <select name="CodeUtilisateur" required>
                                 <option value="">Sélectionner un utilisateur</option>
                                 <?php foreach ($utilisateurs as $user): ?>
-                                    <option value="<?= $user['Compte'] ?>" <?= (isset($_SESSION['multi_materiel_last']['CodeUtilisateur']) && $_SESSION['multi_materiel_last']['CodeUtilisateur'] == $user['Compte']) ? 'selected' : '' ?>><?= $user['NomPrenom'] ?></option>
+                                    <option value="<?= $user['Compte'] ?>" <?= $editMode && $user['Compte'] == $editMateriel['CodeUtilisateur'] ? 'selected' : '' ?>><?= $user['NomPrenom'] ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Fournisseur:<span style="color:red">*</span></label>
-                            <select name="CodeFournisseur" required>
+                            <select name="CodeFournisseur" <?= $editMode ? '' : '' ?> required>
                                 <option value="">Sélectionner un fournisseur</option>
                                 <?php foreach ($fournisseurs as $four):
-                                    $isSelected = isset($_SESSION['multi_materiel_last']['CodeFournisseur']) && $four['Email'] == $_SESSION['multi_materiel_last']['CodeFournisseur'];
+                                    $isSelected = $editMode && isset($editMateriel['CodeFournisseur']) && $four['Email'] == $editMateriel['CodeFournisseur'];
                                     $displayName = !empty($four['CompanyName']) ? $four['CompanyName'] : $four['NomComplet'];
                                 ?>
                                     <option value="<?= htmlspecialchars($four['Email']) ?>" <?= $isSelected ? 'selected' : '' ?>><?= htmlspecialchars($displayName) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Date d'entrée:</label>
-                            <input type="date" name="Dateentree" value="<?= isset($_SESSION['multi_materiel_last']['Dateentree']) ? htmlspecialchars($_SESSION['multi_materiel_last']['Dateentree']) : '' ?>">
+                            <input type="date" name="Dateentree" value="<?= $editMode ? htmlspecialchars($editMateriel['Dateentree']) : '' ?>">
                         </div>
                     </div>
 
@@ -1612,48 +1611,49 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <div class="form-row">
                         <div class="form-group">
                             <label>Processeur:</label>
-                            <input type="text" name="Processeur" value="<?= isset($_SESSION['multi_materiel_last']['Processeur']) ? htmlspecialchars($_SESSION['multi_materiel_last']['Processeur']) : '' ?>">
+                            <input type="text" name="Processeur" value="<?= $editMode ? htmlspecialchars($editMateriel['Processeur']) : '' ?>">
                         </div>
                         <div class="form-group">
                             <label>Carte Graphique:</label>
-                            <input type="text" name="graphique" value="<?= isset($_SESSION['multi_materiel_last']['graphique']) ? htmlspecialchars($_SESSION['multi_materiel_last']['graphique']) : '' ?>">
+                            <input type="text" name="graphique" value="<?= $editMode ? htmlspecialchars($editMateriel['graphique']) : '' ?>">
                         </div>
                         <div class="form-group">
                             <label>Disque Dur:</label>
-                            <input type="text" name="disqdur" value="<?= isset($_SESSION['multi_materiel_last']['disqdur']) ? htmlspecialchars($_SESSION['multi_materiel_last']['disqdur']) : '' ?>">
+                            <input type="text" name="disqdur" value="<?= $editMode ? htmlspecialchars($editMateriel['disqdur']) : '' ?>">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Fréquence (MHz):</label>
-                            <input type="text" name="mhtz" value="<?= isset($_SESSION['multi_materiel_last']['mhtz']) ? htmlspecialchars($_SESSION['multi_materiel_last']['mhtz']) : '' ?>">
+                            <input type="text" name="mhtz" value="<?= $editMode ? htmlspecialchars($editMateriel['mhtz']) : '' ?>">
                         </div>
                         <div class="form-group">
                             <label>MO:</label>
-                            <input type="text" name="mo" value="<?= isset($_SESSION['multi_materiel_last']['mo']) ? htmlspecialchars($_SESSION['multi_materiel_last']['mo']) : '' ?>">
+                            <input type="text" name="mo" value="<?= $editMode ? htmlspecialchars($editMateriel['mo']) : '' ?>">
                         </div>
                         <div class="form-group">
                             <label>Mémoire:</label>
-                            <input type="text" name="memoire" value="<?= isset($_SESSION['multi_materiel_last']['memoire']) ? htmlspecialchars($_SESSION['multi_materiel_last']['memoire']) : '' ?>">
+                            <input type="text" name="memoire" value="<?= $editMode ? htmlspecialchars($editMateriel['memoire']) : '' ?>">
                         </div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Adresse IP:</label>
-                            <input type="text" name="ip" value="<?= isset($_SESSION['multi_materiel_last']['ip']) ? htmlspecialchars($_SESSION['multi_materiel_last']['ip']) : '' ?>">
-                        </div>
+                    <div class="form-group">
+                        <label>Adresse IP:</label>
+                        <input type="text" name="ip" value="<?= $editMode ? htmlspecialchars($editMateriel['ip']) : '' ?>">
+                    </div>
                     </div>
 
                     <h3 class="form-section-title">Caractéristiques Ecran</h3>
                     <div class="section-divider"></div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>Écran:</label>
-                            <input type="text" name="ecran" value="<?= isset($_SESSION['multi_materiel_last']['ecran']) ? htmlspecialchars($_SESSION['multi_materiel_last']['ecran']) : '' ?>">
+                            <input type="text" name="ecran" value="<?= $editMode ? htmlspecialchars($editMateriel['ecran']) : '' ?>">
                         </div>
                         <div class="form-group">
                             <label>Pouces:</label>
-                            <input type="text" name="pouce" value="<?= isset($_SESSION['multi_materiel_last']['pouce']) ? htmlspecialchars($_SESSION['multi_materiel_last']['pouce']) : '' ?>">
+                            <input type="text" name="pouce" value="<?= $editMode ? htmlspecialchars($editMateriel['pouce']) : '' ?>">
                         </div>
                     </div>
 
@@ -1664,21 +1664,27 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                         <div class="form-group">
                             <label>Classification:</label>
                              <select name="classification" id="materiel-classification-select" onchange="toggleDamageCause(this.value)">
-                                <option value="interne" <?= (isset($_SESSION['multi_materiel_last']['classification']) && $_SESSION['multi_materiel_last']['classification'] === 'interne') ? 'selected' : '' ?>>Interne</option>
-                                <option value="confidentiel" <?= (isset($_SESSION['multi_materiel_last']['classification']) && $_SESSION['multi_materiel_last']['classification'] === 'confidentiel') ? 'selected' : '' ?>>Confidentiel</option>
-                                <option value="secret" <?= (isset($_SESSION['multi_materiel_last']['classification']) && $_SESSION['multi_materiel_last']['classification'] === 'secret') ? 'selected' : '' ?>>Secret</option>
-                                <option value="public" <?= (isset($_SESSION['multi_materiel_last']['classification']) && $_SESSION['multi_materiel_last']['classification'] === 'public') ? 'selected' : '' ?>>Public</option>
+                                <option value="interne" <?= ($editMode && $editMateriel['stock'] === 'interne') || (!$editMode && $default_state === 'interne') ? 'selected' : '' ?>>Interne</option>
+                                <option value="confidentiel" <?= ($editMode && $editMateriel['stock'] === 'confidentiel') || (!$editMode && $default_state === 'confidentiel') ? 'selected' : '' ?>>Confidentiel</option>
+                                <option value="secret" <?= ($editMode && $editMateriel['stock'] === 'secret') || (!$editMode && $default_state === 'secret') ? 'selected' : '' ?>>Secret</option>
+                                <option value="public" <?= ($editMode && $editMateriel['stock'] === 'public') || (!$editMode && $default_state === 'public') ? 'selected' : '' ?>>Public</option>
+                               
                             </select>
                         </div>
+                        
                         <div class="form-group">
                             <label>État:</label>
                             <select name="stock" id="materiel-state-select" onchange="toggleDamageCause(this.value)">
                                 <?php
-                                $options = $addStockLabelMap;
-                                $lastStock = isset($_SESSION['multi_materiel_last']['stock']) ? $_SESSION['multi_materiel_last']['stock'] : $default_state;
+                                $options = $editMode ? $editStockLabelMap : $addStockLabelMap;
                                 foreach ($options as $val => $label):
                                     $stringKey = isset($stockMap[$val]) ? $stockMap[$val] : $val;
-                                    $selected = ($lastStock == $val || $lastStock === $stringKey) ? 'selected' : '';
+                                    $selected = '';
+                                    if (isset($materiel['stock'])) {
+                                        if ($materiel['stock'] == $val || $materiel['stock'] === $stringKey) {
+                                            $selected = 'selected';
+                                        }
+                                    }
                                 ?>
                                     <option value="<?= $stringKey ?>" <?= $selected ?>><?= $label ?></option>
                                 <?php endforeach; ?>
@@ -1686,16 +1692,18 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                         </div>
                         <div class="form-group">
                             <label>Observation:</label>
-                            <textarea name="observation" rows="3"><?= isset($_SESSION['multi_materiel_last']['observation']) ? htmlspecialchars($_SESSION['multi_materiel_last']['observation']) : '' ?></textarea>
+                            <textarea name="observation" rows="3"><?= $editMode ? htmlspecialchars($editMateriel['observation']) : '' ?></textarea>
                         </div>
                     </div>
-                    <div id="damage-cause-group" class="form-group full-width" style="display: <?= (isset($_SESSION['multi_materiel_last']['stock']) && ($_SESSION['multi_materiel_last']['stock'] === 'endommage' || $_SESSION['multi_materiel_last']['stock'] === 'casse')) ? 'block' : 'none' ?>;">
+                    <div id="damage-cause-group" class="form-group full-width" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
                         <label>Cause du dommage:</label>
-                        <textarea name="damage_cause" rows="2"><?= isset($_SESSION['multi_materiel_last']['damage_cause']) ? htmlspecialchars($_SESSION['multi_materiel_last']['damage_cause']) : '' ?></textarea>
+                        <textarea name="damage_cause" rows="2"><?= $editMode ? htmlspecialchars($editMateriel['damage_cause'] ?? '') : '' ?></textarea>
                     </div>
                     <div class="form-group full-width">
-                        <button type="submit" class="btn-primary">Ajouter le Matériel <?= isset($_GET['current']) && isset($_GET['count']) && intval($_GET['current']) < intval($_GET['count']) ? '(Suivant)' : '' ?></button>
-                        <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier le Matériel' : 'Ajouter le Matériel' ?></button>
+                        <?php if ($editMode): ?>
+                            <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <?php endif; ?>
                     </div>
                 </form>
             </div>
