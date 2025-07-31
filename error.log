@@ -3057,3 +3057,12 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 2025-07-31 19:32:54 POST: {"action":"delete_marque","Code":"123461","STE":"prod"} TAB: marques
 2025-07-31 19:34:24 POST: {"action":"add_marque","STE":"prod","Marque":"msmsm"} TAB: marques
 2025-07-31 19:34:28 POST: {"action":"delete_marque","Code":"123461","STE":"prod"} TAB: marques
+2025-07-31 12:45:04 POST: {"action":"add_marque","STE":"prod","Marque":"djdj"} TAB: marques
+2025-07-31 12:45:11 POST: {"action":"modify_marque","STE":"prod","Code":"123461","Marque":"djdjd"} TAB: marques
+2025-07-31 12:45:16 POST: {"action":"delete_marque","Code":"123461","STE":"prod"} TAB: marques
+2025-07-31 12:45:27 POST: {"action":"add_type","STE":"prod","Libelle":"dzlkdjk"} TAB: types
+2025-07-31 12:45:35 POST: {"action":"modify_type","STE":"prod","CodeType":"22","Libelle":"dzlkdjkdd"} TAB: types
+2025-07-31 12:45:40 POST: {"action":"delete_type","CodeType":"22","STE":"prod"} TAB: types
+2025-07-31 12:45:49 POST: {"action":"add_service","STE":"prod","Libelle":"ddddjd"} TAB: services
+2025-07-31 12:45:56 POST: {"action":"modify_service","STE":"prod","CodeService":"12","Libelle":"ddddjdzz"} TAB: services
+2025-07-31 12:46:00 POST: {"action":"delete_service","CodeService":"12","STE":"prod"} TAB: services
