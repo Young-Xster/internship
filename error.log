@@ -2914,3 +2914,146 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 2025-07-30 13:58:41 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"0000-00-00 00:00:00","NumSerie":"hghgh","CodeType":"18","CodeMarque":"123457","Model":"Z","CodeUtilisateur":"555541","CodeFournisseur":"fedizbedi@gmail.com","Dateentree":"2025-07-21","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
 2025-07-30 14:02:37 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"jjhg44","CodeType":"19","CodeMarque":"123457","Model":"lklopmp","CodeUtilisateur":"185","CodeFournisseur":"hassen32@gmail.com","Dateentree":"2025-07-30","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
 2025-07-30 14:05:25 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"hjf44","CodeType":"15","CodeMarque":"16","Model":"lklopmp","CodeUtilisateur":"555541","CodeFournisseur":"fedizbedi@gmail.com","Dateentree":"2025-07-23","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 16:19:57 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"zizoz885","CodeType":"15","CodeMarque":"123457","Model":"lll","CodeUtilisateur":"123","CodeFournisseur":"fedi3@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 16:19:58 - History Error: SQLSTATE[HY093]: Invalid parameter number
+2025-07-31 16:21:09 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"ldododo856","CodeType":"15","CodeMarque":"123458","Model":"kng","CodeUtilisateur":"185","CodeFournisseur":"khlifa@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 16:23:43 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"ldododo856","CodeType":"15","CodeMarque":"123458","Model":"kng","CodeUtilisateur":"555541","CodeFournisseur":"khlifa@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 16:25:49 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"ldododo856","CodeType":"15","CodeMarque":"123458","Model":"kng","CodeUtilisateur":"555541","CodeFournisseur":"khlifa@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-stock","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 16:30:24 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"ldododo856","CodeType":"15","CodeMarque":"123458","Model":"kng","CodeUtilisateur":"555541","CodeFournisseur":"khlifa@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-stock","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 16:45:04 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"zizoz885","CodeType":"15","CodeMarque":"123457","Model":"lll","CodeUtilisateur":"123","CodeFournisseur":"fedi3@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-stock","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 16:48:00 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"ldododo856","CodeType":"15","CodeMarque":"123458","Model":"kng","CodeUtilisateur":"555541","CodeFournisseur":"khlifa@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 16:54:45 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"ldododo856","CodeType":"15","CodeMarque":"123458","Model":"kng","CodeUtilisateur":"555541","CodeFournisseur":"khlifa@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-stock","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 17:03:24 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"zizoz885","CodeType":"15","CodeMarque":"123457","Model":"lll","CodeUtilisateur":"123","CodeFournisseur":"fedi3@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"2","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 17:04:10 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"zizoz885","CodeType":"15","CodeMarque":"123457","Model":"lll","CodeUtilisateur":"123","CodeFournisseur":"fedi3@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"2","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 17:04:20 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"2"} TAB: materiel
+2025-07-31 17:05:06 POST: {"action":"add_materiel","STE":"prod","datefinservice":"","NumSerie":"kmp8859","CodeType":"18","CodeMarque":"16","Model":"dmdm","CodeUtilisateur":"185","CodeFournisseur":"fedizbedi@gmail.com","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"1","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 17:05:06 - Fin Inventaire Debug: POST present[] = null
+2025-07-31 17:05:06 - Fin Inventaire Debug: not_present_count = , moved_count = 
+2025-07-31 17:05:06 PHPMailer SMTP: SERVER -> CLIENT: 220 smtp.mailersend.net ESMTP
+
+2025-07-31 17:05:06 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-31 17:05:06 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250-AUTH LOGIN PLAIN
+250 STARTTLS
+
+2025-07-31 17:05:06 PHPMailer SMTP: CLIENT -> SERVER: STARTTLS
+
+2025-07-31 17:05:06 PHPMailer SMTP: SERVER -> CLIENT: 220 Ready to start TLS
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-07-31 17:05:07 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [197.14.52.55]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250 AUTH LOGIN PLAIN
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: AUTH LOGIN
+
+2025-07-31 17:05:07 PHPMailer SMTP: SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-31 17:05:07 PHPMailer SMTP: SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-07-31 17:05:07 PHPMailer SMTP: SERVER -> CLIENT: 235 Authentication successful
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: MAIL FROM:<MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net>
+
+2025-07-31 17:05:07 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: RCPT TO:<amarahelmi81@gmail.com>
+
+2025-07-31 17:05:07 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: DATA
+
+2025-07-31 17:05:07 PHPMailer SMTP: SERVER -> CLIENT: 354 End data with <CR><LF>.<CR><LF>
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: Date: Thu, 31 Jul 2025 17:05:06 +0200
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: To: amarahelmi81@gmail.com
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: From: No Reply <MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net>
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: Subject: =?UTF-8?Q?Nouveau_mat=C3=A9riel_ajout=C3=A9:_kmp8859?=
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: Message-ID: <h3O4aKvD8x6LVuUZfDyCKMvLnfhD2kG8oscSQHoGME@localhost>
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: X-Mailer: PHPMailer 6.8.0 (https://github.com/PHPMailer/PHPMailer)
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: MIME-Version: 1.0
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: Content-Type: text/html; charset=UTF-8
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: Content-Transfer-Encoding: base64
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: PGgzPlVuIG5vdXZlYXUgbWF0w6lyaWVsIGEgw6l0w6kgYWpvdXTDqTwvaDM+PHVsPjxsaT48c3Ry
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: b25nPk51bcOpcm8gZGUgc8OpcmllOjwvc3Ryb25nPiBrbXA4ODU5PC9saT48bGk+PHN0cm9uZz5N
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: b2TDqGxlOjwvc3Ryb25nPiBkbWRtPC9saT48bGk+PHN0cm9uZz5UeXBlOjwvc3Ryb25nPiBrb3Uz
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: TmFtbGE8L2xpPjxsaT48c3Ryb25nPk1hcnF1ZTo8L3N0cm9uZz4gREVMTDwvbGk+PGxpPjxzdHJv
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: bmc+RGF0ZSBkJ2VudHLDqWU6PC9zdHJvbmc+IDIwMjUtMDctMzE8L2xpPjxsaT48c3Ryb25nPlBy
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: b2Nlc3NldXI6PC9zdHJvbmc+IDwvbGk+ODE=
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: .
+
+2025-07-31 17:05:07 PHPMailer SMTP: SERVER -> CLIENT: 250 Message queued as 688b23b5245041462053ddaf
+
+2025-07-31 17:05:07 PHPMailer SMTP: CLIENT -> SERVER: QUIT
+
+2025-07-31 17:05:07 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
+
+2025-07-31 17:05:32 POST: {"action":"change_state","NumSerie":"kmp8859","STE":"prod","redirect_state":"all","datefinservice":"","stock":"1"} TAB: materiel
+2025-07-31 17:15:21 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"zizoz885","CodeType":"15","CodeMarque":"123457","Model":"lll","CodeUtilisateur":"123","CodeFournisseur":"fedi3@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"1","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 17:15:35 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"zizoz885","CodeType":"15","CodeMarque":"123457","Model":"lll","CodeUtilisateur":"123","CodeFournisseur":"fedi3@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"3","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 17:20:56 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"ldododo856","CodeType":"15","CodeMarque":"123458","Model":"kng","CodeUtilisateur":"555541","CodeFournisseur":"khlifa@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"2","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 17:26:42 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"zizoz885","CodeType":"15","CodeMarque":"123457","Model":"lll","CodeUtilisateur":"123","CodeFournisseur":"fedi3@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"endommage","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 17:27:43 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"1"} TAB: materiel
+2025-07-31 17:34:29 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"2"} TAB: materiel
+2025-07-31 17:34:50 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"2025-07-31 08:34:50","stock":"3"} TAB: materiel
+2025-07-31 17:35:34 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"0"} TAB: materiel
+2025-07-31 17:35:42 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"2025-07-31 08:35:42","stock":"3"} TAB: materiel
+2025-07-31 17:36:13 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"1"} TAB: materiel
+2025-07-31 17:36:17 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"0"} TAB: materiel
+2025-07-31 17:36:26 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"zizoz885","CodeType":"15","CodeMarque":"123457","Model":"lll","CodeUtilisateur":"185","CodeFournisseur":"fedi3@gmail.com","Dateentree":"2025-07-28","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-07-31 17:39:26 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"1"} TAB: materiel
+2025-07-31 17:41:19 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"2"} TAB: materiel
+2025-07-31 17:41:33 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"1"} TAB: materiel
+2025-07-31 17:45:32 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"1"} TAB: materiel
+2025-07-31 17:45:49 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"2"} TAB: materiel
+2025-07-31 17:47:10 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"0"} TAB: materiel
+2025-07-31 18:14:50 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"2"} TAB: materiel
+2025-07-31 18:24:14 POST: {"action":"change_state","ste":"prod","state":"all","NumSerie":"zizoz885","STE":"prod","redirect_state":"all","datefinservice":"","stock":"0"} TAB: materiel
+2025-07-31 18:24:35 POST: {"action":"modify_marque","STE":"prod","Code":"123457","Marque":"asuss"} TAB: marques
+2025-07-31 18:24:52 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"185","NomPrenom":"cr7","CodeService":"2","Email":"","Tel":"0"} TAB: utilisateurs
+2025-07-31 18:25:37 POST: {"action":"delete_fournisseur","Email":"fedizbedi@gmail.com","STE":"prod"} TAB: fournisseurs
+2025-07-31 18:26:00 POST: {"action":"add_fournisseur","STE":"prod","Email":"maldkjd@gmail.com","CompanyName":"lkklk","NomComplet":"ldhuad ndjna","Adress":"","TelFix":"","TelMobile":""} TAB: fournisseurs
+2025-07-31 18:26:11 POST: {"action":"delete_fournisseur","Email":"maldkjd@gmail.com","STE":"prod"} TAB: fournisseurs
+2025-07-31 18:28:43 POST: {"action":"modify_marque","STE":"prod","Code":"123457","Marque":"asus"} TAB: marques
+2025-07-31 18:30:36 POST: {"action":"modify_type","STE":"prod","CodeType":"21","Libelle":"mmmmnn"} TAB: types
+2025-07-31 18:32:23 POST: {"action":"modify_type","STE":"prod","CodeType":"21","Libelle":"mmmm"} TAB: types
+2025-07-31 18:34:17 POST: {"action":"modify_type","STE":"prod","CodeType":"21","Libelle":"bmw"} TAB: types
+2025-07-31 18:35:13 POST: {"action":"modify_type","STE":"prod","CodeType":"21","Libelle":"bmwwe"} TAB: types
+2025-07-31 18:36:55 POST: {"action":"modify_service","STE":"prod","CodeService":"10","Libelle":"cpmm"} TAB: services
+2025-07-31 18:37:12 POST: {"action":"modify_marque","STE":"prod","Code":"123457","Marque":"asuss"} TAB: marques
+2025-07-31 18:38:45 POST: {"action":"modify_type","STE":"prod","CodeType":"21","Libelle":"bmw"} TAB: types
+2025-07-31 18:48:17 POST: {"action":"modify_type","STE":"prod","CodeType":"21","Libelle":"bmwe"} TAB: types
+2025-07-31 19:31:43 POST: {"action":"modify_service","STE":"prod","CodeService":"10","Libelle":"cpmmm"} TAB: services
+2025-07-31 19:32:12 POST: {"action":"modify_fournisseur","STE":"prod","Email":"fedizbedi@gmail.com","CompanyName":"fmfmfm","NomComplet":"chikh bachar l asad","Adress":"","TelFix":"0","TelMobile":"0"} TAB: fournisseurs
+2025-07-31 19:32:48 POST: {"action":"add_marque","STE":"prod","Marque":"beya"} TAB: marques
+2025-07-31 19:32:54 POST: {"action":"delete_marque","Code":"123461","STE":"prod"} TAB: marques
+2025-07-31 19:34:24 POST: {"action":"add_marque","STE":"prod","Marque":"msmsm"} TAB: marques
+2025-07-31 19:34:28 POST: {"action":"delete_marque","Code":"123461","STE":"prod"} TAB: marques

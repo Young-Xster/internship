@@ -27,6 +27,11 @@ $stockLabelMap = [
     2 => 'Endommagé',
     3 => 'Cassé'
 ];
+$addStockLabelMap = [
+    0 => 'en service',
+    1 => 'en stock',
+];
+$editStockLabelMap = $stockLabelMap; 
 $stateToStock = [
     'en-service' => 0,
     'en-stock' => 1,
@@ -361,16 +366,16 @@ if ($_POST) {
 
                     if ($count > 0) {
                         header("Location: index.php?tab=marques&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=linked_marque");
-                        exit();
+                        
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM marque WHERE Code = ?");
                         $stmt->execute([$_POST['Code']]);
                         header("Location: index.php?tab=marques&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_marque");
-                        exit();
+                        
                     }
                 } catch (PDOException $e) {
                     header("Location: index.php?tab=marques&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=delete_marque");
-                    exit();
+                    
                 }
                 break;
             case 'delete_type':
@@ -530,26 +535,25 @@ if ($_POST) {
                     
                     // Log changes in user or state
                     $normalized_old = strtolower(str_replace([' ', '-'], '', $stockLabelMap[$original_stock] ?? $original_stock));
-                    $normalized_new = strtolower(str_replace([' ', '-'], '', $stockLabelMap[$stock] ?? $stock));
-                    if ((($original_user !== $new_user) xor ($normalized_old !== $normalized_new)) && $stock !== 'en_reparation' && $original_stock !== 'en_reparation') {
-                        // Use the actual table structure from your screenshot
+                    $normalized_new = strtolower(str_replace([' ', '-'], '', $stockLabelMap[$stockValue] ?? $stock));
+                    if ((($original_user !== $new_user) || ($normalized_old !== $normalized_new)) && $stockValue !== $stateToStock['en_reparation'] && $original_stock !== $stateToStock['en_reparation']) {
                         $history_stmt = $pdo->prepare("INSERT INTO materiel_history 
-                            (numserie, prev_state, new_state, date_change, user_id, notes) 
-                            VALUES (?, ?, ?, NOW(), ?, ?)");
-                        
+                            (numserie, prev_state, new_state, previous_owner , new_owner, date_change, user_id, notes) 
+                            VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)");
                         $notes = "Modification: ";
                         if ($original_user !== $new_user) {
                             $notes .= "Utilisateur changé de $prev_user_name à $new_user_name. ";
                         }
                         if ($normalized_old !== $normalized_new) {
-                            $notes .= "État changé de " . ($stockLabelMap[$original_stock] ?? $original_stock) . " à " . ($stockLabelMap[$stock] ?? $stock) . ".";
+                            $notes .= "État changé de " . ($stockLabelMap[$original_stock] ?? $original_stock) . " à " . ($stockLabelMap[$stockValue] ?? $stock) . ".";
                         }
-                        
                         $history_stmt->execute([
                             $serial,
-                            $original_stock,
-                            $stock,
-                            'system',
+                            $stockLabelMap[$original_stock] ?? $original_stock,
+                            $stockLabelMap[$stockValue] ?? $stock,
+                            $original_user,
+                            $new_user,
+                            $_SESSION['userName'] ?? 'system',
                             $notes
                         ]);
                     }
@@ -573,20 +577,25 @@ if ($_POST) {
                 try {
                     $stmt = $pdo->prepare("UPDATE marque SET Marque = ? WHERE Code = ?");
                     $stmt->execute([$_POST['Marque'], $_POST['Code']]);
-                    header("Location: index.php?tab=marques&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_marque");
+                   
+                    header("Location: index.php?tab=marque&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_marque");
                     exit();
                 } catch (PDOException $e) {
                     $error_message = "Une erreur est survenue lors de la modification de la marque. Veuillez réessayer.";
+                     header("Location: index.php?tab=marque&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_marque");
                 }
                 break;
             case 'modify_type':
                 try {
                     $stmt = $pdo->prepare("UPDATE type SET Libelle = ? WHERE CodeType = ?");
                     $stmt->execute([$_POST['Libelle'], $_POST['CodeType']]);
-                    header("Location: index.php?tab=types&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_type");
+
+                    header("Location: index.php?tab=types&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=modify_types");
                     exit();
                 } catch (PDOException $e) {
                     $error_message = "Une erreur est survenue lors de la modification du type. Veuillez réessayer.";
+                    header("Location: index.php?tab=types&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=modify_types");
+                    exit();
                 }
                 break;
             case 'modify_service':
@@ -666,24 +675,83 @@ if ($_POST) {
                         $error_message = "Erreur lors du transfert de l'utilisateur: " . $e->getMessage();
                     }
                     break;
+            
                 case 'change_state':
                     $numSerie = $_POST['NumSerie'] ?? '';
-                    $stock = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
+                    $stock = $_POST['stock'] ?? 'en-service';
+                    $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
                     $redirectState = $_POST['redirect_state'] ?? $selected_state ?? 'en-service';
                     $redirectSte = $_POST['STE'] ?? $ste_filter ?? 'prod';
                     $datefinservice = $_POST['datefinservice'] ?? null;
+
+                    // Fetch original state and user before update
+                    $original_materiel_stmt = $pdo->prepare("SELECT CodeUtilisateur, stock FROM materiel WHERE NumSerie = ?");
+                    $original_materiel_stmt->execute([$numSerie]);
+                    $original_materiel = $original_materiel_stmt->fetch(PDO::FETCH_ASSOC);
+                    $original_user = $original_materiel['CodeUtilisateur'] ?? null;
+                    $original_stock = $original_materiel['stock'] ?? null;
+
+                    // Update state in materiel table
                     if ($numSerie !== '') {
-                        if ($stock == 3) {
+                        if ($stockValue == 3) { // fin de service
                             if (!$datefinservice) {
                                 $datefinservice = date('Y-m-d H:i:s');
                             }
                             $stmt = $pdo->prepare('UPDATE materiel SET stock = ?, datefinservice = ? WHERE NumSerie = ?');
-                            $stmt->execute([$stock, $datefinservice, $numSerie]);
+                            $stmt->execute([$stockValue, $datefinservice, $numSerie]);
                         } else {
                             $stmt = $pdo->prepare('UPDATE materiel SET stock = ?, datefinservice = NULL WHERE NumSerie = ?');
-                            $stmt->execute([$stock, $numSerie]);
+                            $stmt->execute([$stockValue, $numSerie]);
                         }
                     }
+
+                    // Get user names for history log
+                    $prev_user_stmt = $pdo->prepare("SELECT NomPrenom FROM utilisateur WHERE Compte = ?");
+                    $new_user_stmt = $pdo->prepare("SELECT NomPrenom FROM utilisateur WHERE Compte = ?");
+                    $prev_user_name = 'Utilisateur inconnu';
+                    $new_user_name = 'Utilisateur inconnu';
+                    $new_user = $_POST['CodeUtilisateur'] ?? $original_user;
+
+                    if ($original_user) {
+                        $prev_user_stmt->execute([$original_user]);
+                        $prev_user_result = $prev_user_stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($prev_user_result) {
+                            $prev_user_name = $prev_user_result['NomPrenom'];
+                        }
+                    }
+                    if ($new_user) {
+                        $new_user_stmt->execute([$new_user]);
+                        $new_user_result = $new_user_stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($new_user_result) {
+                            $new_user_name = $new_user_result['NomPrenom'];
+                        }
+                    }
+
+                    // Log changes in user or state
+                    $normalized_old = strtolower(str_replace([' ', '-'], '', $stockLabelMap[$original_stock] ?? $original_stock));
+                    $normalized_new = strtolower(str_replace([' ', '-'], '', $stockLabelMap[$stockValue] ?? $stock));
+                    if ((($original_user !== $new_user) || ($normalized_old !== $normalized_new)) && $stockValue !== $stateToStock['en_reparation'] && $original_stock !== $stateToStock['en_reparation']) {
+                        $history_stmt = $pdo->prepare("INSERT INTO materiel_history 
+                            (numserie, prev_state, new_state, previous_owner , new_owner, date_change, user_id, notes) 
+                            VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)");
+                        $notes = "Modification: ";
+                        if ($original_user !== $new_user) {
+                            $notes .= "Utilisateur changé de $prev_user_name à $new_user_name. ";
+                        }
+                        if ($normalized_old !== $normalized_new) {
+                            $notes .= "État changé de " . ($stockLabelMap[$original_stock] ?? $original_stock) . " à " . ($stockLabelMap[$stockValue] ?? $stock) . ".";
+                        }
+                        $history_stmt->execute([
+                            $numSerie,
+                            $stockLabelMap[$original_stock] ?? $original_stock,
+                            $stockLabelMap[$stockValue] ?? $stock,
+                            $original_user,
+                            $new_user,
+                            $_SESSION['userName'] ?? 'system',
+                            $notes
+                        ]);
+                    }
+
                     header('Location: index.php?tab=materiel&ste=' . urlencode($redirectSte) . '&state=' . urlencode($redirectState));
                     exit;
                 case 'fin_inventaire':
@@ -748,6 +816,8 @@ if ($_POST) {
                                 $moved_count++;
                             }
                         }
+
+                    
                         $pdo->commit();
                         
                         // Log the operation details for debugging
@@ -1607,9 +1677,19 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                         <div class="form-group">
                             <label>État:</label>
                             <select name="stock" id="materiel-state-select" onchange="toggleDamageCause(this.value)">
-                                <option value="en-service" <?= ($editMode && $editMateriel['stock'] === 'en-service') || (!$editMode && $default_state === 'en-service') ? 'selected' : '' ?>>En service</option>
-                                <option value="en-stock" <?= ($editMode && $editMateriel['stock'] === 'en-stock') || (!$editMode && $default_state === 'en-stock') ? 'selected' : '' ?>>En stock</option>
-                               
+                                <?php
+                                $options = $editMode ? $editStockLabelMap : $addStockLabelMap;
+                                foreach ($options as $val => $label):
+                                    $stringKey = isset($stockMap[$val]) ? $stockMap[$val] : $val;
+                                    $selected = '';
+                                    if (isset($materiel['stock'])) {
+                                        if ($materiel['stock'] == $val || $materiel['stock'] === $stringKey) {
+                                            $selected = 'selected';
+                                        }
+                                    }
+                                ?>
+                                    <option value="<?= $stringKey ?>" <?= $selected ?>><?= $label ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1794,12 +1874,14 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                         <table id="global-history-table" class="table-materiel">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
                                     <th>N° Série</th>
-                                    <th>Modèle</th>
                                     <th>Type</th>
+                                    <th>Modèle</th>
+                                    <th>Date</th>
                                     <th>Ancien Utilisateur</th>
                                     <th>Nouveau Utilisateur</th>
+                                    <th>Ancienne Etat</th>
+                                    <th>Nouvelle Etat</th>
                                     <th>Notes</th>
                                 </tr>
                             </thead>
@@ -1811,12 +1893,14 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                                 <?php else: ?>
                                     <?php foreach ($global_history_data as $history): ?>
                                         <tr>
-                                            <td><?= htmlspecialchars($history['date_change'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($history['numserie'] ?? '') ?></td>
-                                            <td><?= htmlspecialchars($history['Model'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($history['TypeLibelle'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['Model'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['date_change'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($history['previous_username'] ?? $history['previous_owner'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($history['new_username'] ?? $history['new_owner'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['prev_state'] ?? $history['prev_state'] ?? '') ?></td>
+                                            <td><?= htmlspecialchars($history['new_state'] ?? $history['new_state'] ?? '') ?></td>
                                             <td><?= htmlspecialchars($history['notes'] ?? '') ?></td>
                                         </tr>
                                     <?php endforeach; ?>
