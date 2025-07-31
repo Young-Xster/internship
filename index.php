@@ -1102,6 +1102,8 @@ if ($editMode || $transferMode) {
     
     $tabMapping = [
         'materiel' => 'materiel',
+    ];
+}
 if ($_POST) {
     $action = $_POST['action'] ?? '';
     $tab = $_GET['tab'] ?? 'materiel';
