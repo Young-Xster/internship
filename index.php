@@ -1772,6 +1772,7 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                 <div class="button-group">
                     <?php if (!$inventaire_mode): ?>
                     <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=<?= urlencode($selected_state) ?>&showForm=materiel'">Ajouter Matériel</button>
+                    <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> id="ajouterPlusieursBtn">Ajouter Plusieurs</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                     <a href="export_pdf.php?ste=<?= urlencode($ste_filter) ?>" class="btn btn-primary btn-export-pdf">
                         <i class="fas fa-file-pdf"></i> Exporter en PDF
@@ -1781,6 +1782,22 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <?php endif; ?>
                 </div>
             </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('ajouterPlusieursBtn');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      var count = prompt('Combien de matériels voulez-vous ajouter ?');
+      count = parseInt(count);
+      if (!isNaN(count) && count > 0) {
+        var url = 'index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=ajouter_plusieurs&count=' + count;
+        window.location.href = url;
+      }
+    });
+  }
+});
+</script>
 
             <!-- Restored search bar -->
             <div class="search-container">
