@@ -1016,7 +1016,6 @@ if (isset($_GET['edit']) && !empty($_GET['edit'])) {
     $editMode = true;
     $editId = $_GET['edit'];
     $editType = $_GET['type'] ?? 'materiel';
-    
     try {
         switch ($editType) {
             case 'materiel':
@@ -1032,10 +1031,88 @@ if (isset($_GET['edit']) && !empty($_GET['edit'])) {
                 $editEntity = $editUtilisateur;
                 break;
             case 'marque':
+                $stmt = $pdo->prepare("SELECT * FROM marque WHERE Code = ?");
+                $stmt->execute([$editId]);
+                $editMarque = $stmt->fetch();
+                $editEntity = $editMarque;
+                break;
+            case 'type':
+                $stmt = $pdo->prepare("SELECT * FROM type WHERE CodeType = ?");
+                $stmt->execute([$editId]);
+                $editTypeEntity = $stmt->fetch();
+                $editEntity = $editTypeEntity;
+                break;
+            case 'service':
+                $stmt = $pdo->prepare("SELECT * FROM service WHERE CodeService = ?");
+                $stmt->execute([$editId]);
+                $editService = $stmt->fetch();
+                $editEntity = $editService;
+                break;
+            case 'fournisseur':
+                $stmt = $pdo->prepare("SELECT * FROM fournisseur WHERE Email = ?");
+                $stmt->execute([$editId]);
+                $editFournisseur = $stmt->fetch();
+                $editEntity = $editFournisseur;
+                break;
+        }
+        if (!$editEntity) {
+            $error_message = "Élément non trouvé.";
+            $editMode = false;
+        }
+    } catch (PDOException $e) {
+        $error_message = "Erreur lors du chargement des données pour la modification.";
+        $editMode = false;
+    }
+}
+
+// Transfer mode detection
+if (isset($_GET['transfer']) && !empty($_GET['transfer'])) {
+    $transferMode = true;
+    $transferId = $_GET['transfer'];
+    $transferType = $_GET['type'] ?? 'materiel';
+    
+    try {
+        switch ($transferType) {
+            case 'materiel':
+                $stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.NumSerie = ?");
+                $stmt->execute([$transferId]);
+                $transferMateriel = $stmt->fetch();
+                $transferEntity = $transferMateriel;
+                break;
+            case 'utilisateur':
+                $stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.Compte = ?");
+                $stmt->execute([$transferId]);
+                $transferUtilisateur = $stmt->fetch();
+                $transferEntity = $transferUtilisateur;
+                break;
+        }
+        
+        if (!$transferEntity) {
+            $error_message = "Élément non trouvé pour le transfert.";
+            $transferMode = false;
+        }
+    } catch (PDOException $e) {
+        $error_message = "Erreur lors du chargement des données pour le transfert.";
+        $transferMode = false;
+    }
+}
+
+$activeTab = 'materiel';
+if ($editMode || $transferMode) {
+    
+    $tabMapping = [
+        'materiel' => 'materiel',
+if ($_POST) {
+    $action = $_POST['action'] ?? '';
+    $tab = $_GET['tab'] ?? 'materiel';
+    $ste = $_POST['STE'] ?? 'prod';
+
+    try {
+        switch ($action) {
             case 'add_materiel_multiple':
                 // Multi-add logic for 'Ajouter Plusieurs'
-                $count = isset($_GET['count']) ? intval($_GET['count']) : 1;
-                $current = isset($_GET['current']) ? intval($_GET['current']) : 1;
+                $count = isset($_POST['count']) ? intval($_POST['count']) : 1;
+                $current = isset($_POST['current']) ? intval($_POST['current']) : 1;
                 if (!isset($_SESSION['multi_materiel'])) {
                     $_SESSION['multi_materiel'] = [];
                 }
@@ -1097,158 +1174,12 @@ if (isset($_GET['edit']) && !empty($_GET['edit'])) {
                     exit();
                 }
                 break;
-                $stmt = $pdo->prepare("SELECT * FROM marque WHERE Code = ?");
-                $stmt->execute([$editId]);
-                $editMarque = $stmt->fetch();
-                $editEntity = $editMarque;
-                break;
-            case 'type':
-                $stmt = $pdo->prepare("SELECT * FROM type WHERE CodeType = ?");
-                $stmt->execute([$editId]);
-                $editTypeEntity = $stmt->fetch();
-                $editEntity = $editTypeEntity;
-                break;
-            case 'service':
-                $stmt = $pdo->prepare("SELECT * FROM service WHERE CodeService = ?");
-                $stmt->execute([$editId]);
-                $editService = $stmt->fetch();
-                $editEntity = $editService;
-                break;
-            case 'fournisseur':
-                $stmt = $pdo->prepare("SELECT * FROM fournisseur WHERE Email = ?");
-                $stmt->execute([$editId]);
-                $editFournisseur = $stmt->fetch();
-                $editEntity = $editFournisseur;
-                break;
+            // ...existing code...
         }
-        
-        if (!$editEntity) {
-            $error_message = "Élément non trouvé.";
-            $editMode = false;
-        }
-    } catch (PDOException $e) {
-        $error_message = "Erreur lors du chargement des données pour la modification.";
-        $editMode = false;
+    } catch (Exception $e) {
+        $error_message = "Erreur lors du traitement de la demande: " . $e->getMessage();
     }
 }
-
-// Transfer mode detection
-if (isset($_GET['transfer']) && !empty($_GET['transfer'])) {
-    $transferMode = true;
-    $transferId = $_GET['transfer'];
-    $transferType = $_GET['type'] ?? 'materiel';
-    
-    try {
-        switch ($transferType) {
-            case 'materiel':
-                $stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.NumSerie = ?");
-                $stmt->execute([$transferId]);
-                $transferMateriel = $stmt->fetch();
-                $transferEntity = $transferMateriel;
-                break;
-            case 'utilisateur':
-                $stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.Compte = ?");
-                $stmt->execute([$transferId]);
-                $transferUtilisateur = $stmt->fetch();
-                $transferEntity = $transferUtilisateur;
-                break;
-        }
-        
-        if (!$transferEntity) {
-            $error_message = "Élément non trouvé pour le transfert.";
-            $transferMode = false;
-        }
-    } catch (PDOException $e) {
-        $error_message = "Erreur lors du chargement des données pour le transfert.";
-        $transferMode = false;
-    }
-}
-
-$activeTab = 'materiel';
-if ($editMode || $transferMode) {
-    
-    $tabMapping = [
-        'materiel' => 'materiel',
-        'inventaire' => 'inventaire',
-        'utilisateur' => 'utilisateurs',
-        'marque' => 'marques',
-        'type' => 'types',
-        'service' => 'services',
-        'fournisseur' => 'fournisseurs',
-        'maintenance' => 'maintenance'
-    ];
-    $activeTab = $tabMapping[$editType ?? $transferType ?? 'materiel'] ?? 'materiel';
-} elseif (isset($_GET['tab'])) {
-    
-    $tabMapping = [
-        'materiel' => 'materiel',
-        'inventaire' => 'inventaire',
-        'utilisateur' => 'utilisateurs',
-        'marque' => 'marques',
-        'type' => 'types',
-        'service' => 'services',
-        'fournisseurs' => 'fournisseurs',
-        'maintenance' => 'maintenance'
-    ];
-    $activeTab = $tabMapping[$_GET['tab']] ?? 'materiel';
-}
-
-$isFormOpen = $editMode || $transferMode || $showFormParam;
-
-$ste_filter = isset($_GET['ste']) && $_GET['ste'] ? $_GET['ste'] : 'prod';
-
-try {
-    // Fetch users for the current environment filter
-    $utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
-    $utilisateurs_stmt->execute([$ste_filter]);
-    $utilisateurs = $utilisateurs_stmt->fetchAll();
-
-    // If in edit mode for a material, ensure the correct user list is loaded for that material's STE
-    if ($editMode && $editType === 'materiel' && $editMateriel && $editMateriel['STE'] !== $ste_filter) {
-        $utilisateurs_stmt->execute([$editMateriel['STE']]);
-        $utilisateurs = $utilisateurs_stmt->fetchAll();
-    }
-
-    // Load users from the opposite department for transfers
-    $other_ste = ($ste_filter === 'prod') ? 'comm' : 'prod';
-    $transfer_utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
-    $transfer_utilisateurs_stmt->execute([$other_ste]);
-    $transfer_utilisateurs = $transfer_utilisateurs_stmt->fetchAll();
-
-    $marques = $pdo->query("SELECT * FROM marque ORDER BY Marque")->fetchAll();
-    $types = $pdo->query("SELECT * FROM type ORDER BY Libelle")->fetchAll();
-
-    $services_stmt = $pdo->prepare("SELECT * FROM service WHERE STE = ? ORDER BY Libelle");
-    $services_stmt->execute([$ste_filter]);
-    $services = $services_stmt->fetchAll();
-
-    $materiels_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.STE = ? ORDER BY m.NumSerie DESC");
-    $materiels_stmt->execute([$ste_filter]);
-    $materiels = $materiels_stmt->fetchAll();
-
-    $fournisseurs = $pdo->query("SELECT * FROM fournisseur ORDER BY CompanyName, NomComplet")->fetchAll();
-} catch (PDOException $e) {
-    $error_message = "Erreur critique: Impossible de charger les données de la base de données. Veuillez contacter un administrateur.";
-    $utilisateurs = $marques = $types = $services = $materiels = $fournisseurs = [];
-}
-
-$state_map = [
-    0 => 'en-service',
-    1 => 'en-stock',
-    2 => 'endommage',
-    3 => 'casse',
-    'en-service' => 0,
-    'en-stock' => 1,
-    'endommage' => 2,
-    'casse' => 3
-];
-
-$selected_state = isset($_GET['state']) ? $_GET['state'] : 'all';
-
-// Filter materiels to exclude those in inventaire
-$materiels = array_filter($materiels, function($m) { return empty($m['inventair']) || $m['inventair'] == 0; });
-
-// Detect inventaire mode from GET
 $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] == '1';
 
 // Apply state filtering only if not in inventory mode or if specific state is selected
