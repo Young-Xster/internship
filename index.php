@@ -1032,6 +1032,71 @@ if (isset($_GET['edit']) && !empty($_GET['edit'])) {
                 $editEntity = $editUtilisateur;
                 break;
             case 'marque':
+            case 'add_materiel_multiple':
+                // Multi-add logic for 'Ajouter Plusieurs'
+                $count = isset($_GET['count']) ? intval($_GET['count']) : 1;
+                $current = isset($_GET['current']) ? intval($_GET['current']) : 1;
+                if (!isset($_SESSION['multi_materiel'])) {
+                    $_SESSION['multi_materiel'] = [];
+                }
+                $formData = $_POST;
+                $_SESSION['multi_materiel'][] = $formData;
+                // Insert into DB
+                $stmt = $pdo->prepare("INSERT INTO materiel (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause, datefinservice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $codeUtilisateur = !empty($formData['CodeUtilisateur']) ? $formData['CodeUtilisateur'] : NULL;
+                $codeMarque = !empty($formData['CodeMarque']) ? $formData['CodeMarque'] : NULL;
+                $codeType = !empty($formData['CodeType']) ? $formData['CodeType'] : NULL;
+                $codeFournisseur = !empty($formData['CodeFournisseur']) ? $formData['CodeFournisseur'] : NULL;
+                $dateentree = !empty($formData['Dateentree']) ? $formData['Dateentree'] : date('Y-m-d');
+                $serial = $formData['NumSerie'] ?? null;
+                $damageCause = null;
+                if (isset($formData['stock']) && ($formData['stock'] === 'endommage' || $formData['stock'] === 'casse')) {
+                    $damageCause = $formData['damage_cause'] ?? null;
+                }
+                $stock = $formData['stock'] ?? 'en-service';
+                $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
+                $datefinservice = ($stockValue == 3) ? date('Y-m-d H:i:s') : null;
+                $stmt->execute([
+                    $serial,
+                    $dateentree,
+                    $formData['Model'],
+                    $codeType,
+                    $codeMarque,
+                    $codeFournisseur,
+                    $formData['STE'],
+                    $codeUtilisateur,
+                    $formData['Processeur'],
+                    $formData['graphique'],
+                    $formData['disqdur'],
+                    $formData['mhtz'],
+                    $formData['mo'],
+                    $formData['memoire'],
+                    $formData['ip'],
+                    $formData['ecran'],
+                    $formData['pouce'],
+                    $formData['observation'],
+                    $stockValue,
+                    $formData['classification'],
+                    $damageCause,
+                    $datefinservice
+                ]);
+                // If not last, redirect to next form
+                if ($current < $count) {
+                    // Pre-fill next form except NumSerie
+                    $_SESSION['multi_materiel_last'] = $formData;
+                    $_SESSION['multi_materiel_last']['NumSerie'] = '';
+                    header('Location: index.php?tab=materiel&ste=' . urlencode($formData['STE']) . '&showForm=ajouter_plusieurs&count=' . $count . '&current=' . ($current + 1));
+                    exit();
+                } else {
+                    // All done, show summary and clear session
+                    $added = $_SESSION['multi_materiel'];
+                    unset($_SESSION['multi_materiel']);
+                    unset($_SESSION['multi_materiel_last']);
+                    $success_message = count($added) . ' matériels ajoutés avec succès.';
+                    header('Location: index.php?tab=materiel&ste=' . urlencode($formData['STE']) . '&success=add_materiel');
+                    exit();
+                }
+                break;
                 $stmt = $pdo->prepare("SELECT * FROM marque WHERE Code = ?");
                 $stmt->execute([$editId]);
                 $editMarque = $stmt->fetch();
@@ -1772,6 +1837,7 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                 <div class="button-group">
                     <?php if (!$inventaire_mode): ?>
                     <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=<?= urlencode($selected_state) ?>&showForm=materiel'">Ajouter Matériel</button>
+                    <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> id="ajouterPlusieursBtn">Ajouter Plusieurs</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                     <a href="export_pdf.php?ste=<?= urlencode($ste_filter) ?>" class="btn btn-primary btn-export-pdf">
                         <i class="fas fa-file-pdf"></i> Exporter en PDF
@@ -1781,6 +1847,22 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <?php endif; ?>
                 </div>
             </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var btn = document.getElementById('ajouterPlusieursBtn');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      var count = prompt('Combien de matériels voulez-vous ajouter ?');
+      count = parseInt(count);
+      if (!isNaN(count) && count > 0) {
+        var url = 'index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=ajouter_plusieurs&count=' + count;
+        window.location.href = url;
+      }
+    });
+  }
+});
+</script>
 
             <!-- Restored search bar -->
             <div class="search-container">
