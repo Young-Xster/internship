@@ -44,6 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     file_put_contents(__DIR__ . '/material_notifications.log', date('Y-m-d H:i:s') . ' POST: ' . json_encode($_POST) . "\n", FILE_APPEND);
 }
 
+// Initialize session variables for multi-materiel if needed
+if (!isset($_SESSION['multi_materiel'])) {
+    $_SESSION['multi_materiel'] = [];
+}
+if (!isset($_SESSION['multi_materiel_last'])) {
+    $_SESSION['multi_materiel_last'] = [];
+}
+
 // If there's a POST, let's see what action the user wants to do
 if ($_POST) {
     $action = $_POST['action'] ?? '';
@@ -52,6 +60,182 @@ if ($_POST) {
 
     try {
         switch ($action) {
+            case 'add_materiel_multiple':
+                // Get the current count and total count from the form
+                $count = $_POST['count'] ?? 1;
+                $current = $_POST['current'] ?? 1;
+                
+                // Save the form data to session for reuse in next iterations
+                if (!isset($_SESSION['multi_materiel_last'])) {
+                    $_SESSION['multi_materiel_last'] = [];
+                }
+                
+                // Store all form data except NumSerie for next iteration
+                $formData = $_POST;
+                unset($formData['NumSerie']); // Don't save NumSerie for next form
+                $_SESSION['multi_materiel_last'] = $formData;
+                
+                // Process this material addition (same logic as add_materiel)
+                $serial = $_POST['NumSerie'] ?? null;
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO MATERIEL (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause, datefinservice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+                    // Grab all the form data, or set to null if missing
+                    $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
+                    $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
+                    $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
+                    $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
+                    $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : date('Y-m-d');
+
+                    // Only include damage_cause if state requires it
+                    $damageCause = null;
+                    if (isset($_POST['stock']) && ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse')) {
+                        $damageCause = $_POST['damage_cause'] ?? null;
+                    }
+
+                    $stock = $_POST['stock'] ?? 'en-service';
+                    $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
+                    
+                    // Date fin service handling
+                    if (isset($_POST['datefinservice']) && !empty($_POST['datefinservice'])) {
+                        $datefinservice = $_POST['datefinservice'];
+                    } else {
+                        $datefinservice = ($stockValue == 3) ? date('Y-m-d H:i:s') : null;
+                    }
+
+                    $stmt->execute([
+                        $serial,
+                        $dateentree,
+                        $_POST['Model'],
+                        $codeType,
+                        $codeMarque,
+                        $codeFournisseur,
+                        $_POST['STE'],
+                        $codeUtilisateur,
+                        $_POST['Processeur'],
+                        $_POST['graphique'],
+                        $_POST['disqdur'],
+                        $_POST['mhtz'],
+                        $_POST['mo'],
+                        $_POST['memoire'],
+                        $_POST['ip'],
+                        $_POST['ecran'],
+                        $_POST['pouce'],
+                        $_POST['observation'],
+                        $stockValue,
+                        $_POST['classification'],
+                        $damageCause,
+                        $datefinservice
+                    ]);
+                    
+                    // Check if we need to continue with more items
+                    $remainingCount = $count - 1;
+                    if ($remainingCount > 0) {
+                        // Redirect to the form for the next material
+                        header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&showForm=ajouter_plusieurs&count=$remainingCount&success=add_materiel_multiple");
+                        exit();
+                    } else {
+                        // All materials added, clear session and redirect
+                        unset($_SESSION['multi_materiel_last']);
+                        header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&success=add_all_materiels");
+                        exit();
+                    }
+                } catch (PDOException $e) {
+                    // Oops, something went wrong with the DB insert
+                    $error_message = "Une erreur est survenue lors de l'ajout du matériel multiple: " . $e->getMessage();
+                }
+                break;
+            
+            case 'add_materiel_multiple':
+                // Store all form data for next iteration
+                $formData = $_POST;
+                $_SESSION['multi_materiel_last'] = $formData;
+                
+                // Decrement the count
+                $current = intval($_POST['current'] ?? 1);
+                $count = intval($_POST['count'] ?? 1);
+                
+                // Check if the serial number exists in inventaire
+                $serial = $_POST['NumSerie'] ?? null;
+                $checkInventaireStmt = $pdo->prepare("SELECT * FROM inventaire WHERE NumSerie = ?");
+                $checkInventaireStmt->execute([$serial]);
+                $inventaireMateriel = $checkInventaireStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($inventaireMateriel) {
+                    // We don't handle inventaire recovery in multi-add mode
+                    $error_message = "Le numéro de série existe déjà en inventaire. Utilisez l'ajout simple pour récupérer un matériel.";
+                    // Redirect back to the form with the error
+                    header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&error=" . urlencode($error_message));
+                    exit();
+                }
+                
+                try {
+                    // Insert the materiel just like in add_materiel case
+                    $stmt = $pdo->prepare("INSERT INTO MATERIEL (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause, datefinservice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+                    // Grab all the form data, or set to null if missing
+                    $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
+                    $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
+                    $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
+                    $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
+                    $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : date('Y-m-d');
+                    
+                    // Only include damage_cause if state requires it
+                    $damageCause = null;
+                    if (isset($_POST['stock']) && ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse')) {
+                        $damageCause = $_POST['damage_cause'] ?? null;
+                    }
+                    
+                    $stock = $_POST['stock'] ?? 'en-service';
+                    $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
+                    $datefinservice = ($stockValue == 3) ? date('Y-m-d H:i:s') : null;
+                    
+                    $stmt->execute([
+                        $serial,
+                        $dateentree,
+                        $_POST['Model'],
+                        $codeType,
+                        $codeMarque,
+                        $codeFournisseur,
+                        $_POST['STE'],
+                        $codeUtilisateur,
+                        $_POST['Processeur'],
+                        $_POST['graphique'],
+                        $_POST['disqdur'],
+                        $_POST['mhtz'],
+                        $_POST['mo'],
+                        $_POST['memoire'],
+                        $_POST['ip'],
+                        $_POST['ecran'],
+                        $_POST['pouce'],
+                        $_POST['observation'],
+                        $stockValue,
+                        $_POST['classification'],
+                        $damageCause,
+                        $datefinservice
+                    ]);
+                    
+                    // Store all form data except NumSerie for next iteration
+                    unset($formData['NumSerie']); // Don't save NumSerie for next form
+                    $_SESSION['multi_materiel_last'] = $formData;
+                    
+                    if ($current < $count) {
+                        // Continue with more materials to add
+                        header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&showForm=ajouter_plusieurs&count=" . ($count - $current) . "&current=1&success=add_materiel");
+                    } else {
+                        // Done with all materials, redirect back to list
+                        $_SESSION['multi_materiel_last'] = []; // Clear the saved data
+                        header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&success=add_materiel_multiple");
+                    }
+                    exit();
+                } catch (PDOException $e) {
+                    // Handle error
+                    $error_message = "Une erreur est survenue lors de l'ajout du matériel: " . $e->getMessage();
+                    header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&showForm=ajouter_plusieurs&count=" . ($count - $current + 1) . "&current=" . $current . "&error=" . urlencode($error_message));
+                    exit();
+                }
+                break;
+                
             case 'add_materiel':
                 // Check if the serial number exists in inventaire
                 $serial = $_POST['NumSerie'] ?? null;
@@ -1012,6 +1196,12 @@ $transferEntity = null;
 
 $showFormParam = isset($_GET['showForm']) ? $_GET['showForm'] : null;
 
+// Check if we're in multi-materiel mode and have previous data
+$previousMaterielData = null;
+if ($showFormParam === 'ajouter_plusieurs' && isset($_SESSION['multi_materiel_last'])) {
+    $previousMaterielData = $_SESSION['multi_materiel_last'];
+}
+
 if (isset($_GET['edit']) && !empty($_GET['edit'])) {
     $editMode = true;
     $editId = $_GET['edit'];
@@ -1530,17 +1720,27 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
         <div id="materiel" class="mat-section tab-content <?= ($activeTab === 'materiel') ? 'active' : '' ?>">
             
             <!-- Add Materiel Form -->
-            <div class="section materiel-form <?= ($editMode && $editType === 'materiel') || $showFormParam === 'materiel' ? '' : 'hide' ?>">
+            <div class="section materiel-form <?= ($editMode && $editType === 'materiel') || $showFormParam === 'materiel' || $showFormParam === 'ajouter_plusieurs' ? '' : 'hide' ?>">
                 <div class="form-header form-annuler">
-                    <h2><?= $editMode && $editType === 'materiel' ? 'Modifier le Matériel' : 'Ajouter un Matériel' ?></h2>
+                    <?php if ($showFormParam === 'ajouter_plusieurs'): ?>
+                        <h2>Ajouter Plusieurs Matériels (<?= $_GET['count'] ?? 0 ?> restants)</h2>
+                    <?php else: ?>
+                        <h2><?= $editMode && $editType === 'materiel' ? 'Modifier le Matériel' : 'Ajouter un Matériel' ?></h2>
+                    <?php endif; ?>
                     <?php if (!$editMode): ?>
                         <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
                     <?php endif; ?>
                 </div>
                 <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
-                    <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : $ste_filter ?>">
-                    <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= $editMode ? htmlspecialchars($editMateriel['datefinservice'] ?? '') : '' ?>">
+                    <?php if ($showFormParam === 'ajouter_plusieurs'): ?>
+                        <input type="hidden" name="action" value="add_materiel_multiple">
+                        <input type="hidden" name="count" value="<?= $_GET['count'] ?? 1 ?>">
+                        <input type="hidden" name="current" value="<?= $_GET['current'] ?? 1 ?>">
+                    <?php else: ?>
+                        <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
+                    <?php endif; ?>
+                    <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : (isset($previousMaterielData['STE']) ? htmlspecialchars($previousMaterielData['STE']) : $ste_filter) ?>">
+                    <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= $editMode ? htmlspecialchars($editMateriel['datefinservice'] ?? '') : (isset($previousMaterielData['datefinservice']) ? htmlspecialchars($previousMaterielData['datefinservice']) : '') ?>">
 
                     <!-- Identification Section -->
                     <h3 class="form-section-title">Identification</h3>
@@ -1548,14 +1748,17 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <div class="form-row">
                         <div class="form-group">
                             <label>Numéro de Série:<span style="color:red">*</span></label>
-                            <input type="text" name="NumSerie" value="<?= $editMode ? htmlspecialchars($editMateriel['NumSerie']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?> pattern="[^\s].*" title="Le numéro de série ne peut pas être vide ou contenir uniquement des espaces">
+                            <input type="text" name="NumSerie" value="<?= $editMode ? htmlspecialchars($editMateriel['NumSerie']) : '' ?>" required <?= $editMode ? 'readonly' : '' ?> pattern="[^\s].*" title="Le numéro de série ne peut pas être vide ou contenir uniquement des espaces" <?= ($showFormParam === 'ajouter_plusieurs') ? 'autofocus' : '' ?>>
                         </div>
                         <div class="form-group">
                             <label>Type:<span style="color:red">*</span></label>
                             <select name="CodeType" required>
                                 <option value="">Sélectionner un type</option>
                                 <?php foreach ($types as $type): ?>
-                                    <option value="<?= $type['CodeType'] ?>" <?= $editMode && $type['CodeType'] == $editMateriel['CodeType'] ? 'selected' : '' ?>><?= $type['Libelle'] ?></option>
+                                    <option value="<?= $type['CodeType'] ?>" 
+                                        <?= $editMode && $type['CodeType'] == $editMateriel['CodeType'] ? 'selected' : 
+                                            (isset($previousMaterielData['CodeType']) && $type['CodeType'] == $previousMaterielData['CodeType'] ? 'selected' : '') ?>
+                                    ><?= $type['Libelle'] ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -1564,7 +1767,10 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                             <select name="CodeMarque" required>
                                 <option value="">Sélectionner une marque</option>
                                 <?php foreach ($marques as $marque): ?>
-                                    <option value="<?= $marque['Code'] ?>" <?= $editMode && $marque['Code'] == $editMateriel['CodeMarque'] ? 'selected' : '' ?>><?= $marque['Marque'] ?></option>
+                                    <option value="<?= $marque['Code'] ?>" 
+                                        <?= $editMode && $marque['Code'] == $editMateriel['CodeMarque'] ? 'selected' : 
+                                            (isset($previousMaterielData['CodeMarque']) && $marque['Code'] == $previousMaterielData['CodeMarque'] ? 'selected' : '') ?>
+                                    ><?= $marque['Marque'] ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -1573,14 +1779,17 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <div class="form-row">
                         <div class="form-group">
                             <label>Modèle:<span style="color:red">*</span></label>
-                            <input type="text" name="Model" value="<?= $editMode ? htmlspecialchars($editMateriel['Model']) : '' ?>" required>
+                            <input type="text" name="Model" value="<?= $editMode ? htmlspecialchars($editMateriel['Model']) : (isset($previousMaterielData['Model']) ? htmlspecialchars($previousMaterielData['Model']) : '') ?>" required>
                         </div>
                         <div class="form-group">
                             <label>Utilisateur:<span style="color:red">*</span></label>
                             <select name="CodeUtilisateur" required>
                                 <option value="">Sélectionner un utilisateur</option>
                                 <?php foreach ($utilisateurs as $user): ?>
-                                    <option value="<?= $user['Compte'] ?>" <?= $editMode && $user['Compte'] == $editMateriel['CodeUtilisateur'] ? 'selected' : '' ?>><?= $user['NomPrenom'] ?></option>
+                                    <option value="<?= $user['Compte'] ?>" 
+                                        <?= $editMode && $user['Compte'] == $editMateriel['CodeUtilisateur'] ? 'selected' : 
+                                            (isset($previousMaterielData['CodeUtilisateur']) && $user['Compte'] == $previousMaterielData['CodeUtilisateur'] ? 'selected' : '') ?>
+                                    ><?= $user['NomPrenom'] ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -1590,9 +1799,10 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                                 <option value="">Sélectionner un fournisseur</option>
                                 <?php foreach ($fournisseurs as $four):
                                     $isSelected = $editMode && isset($editMateriel['CodeFournisseur']) && $four['Email'] == $editMateriel['CodeFournisseur'];
+                                    $isSelectedPrevious = !$editMode && isset($previousMaterielData['CodeFournisseur']) && $four['Email'] == $previousMaterielData['CodeFournisseur'];
                                     $displayName = !empty($four['CompanyName']) ? $four['CompanyName'] : $four['NomComplet'];
                                 ?>
-                                    <option value="<?= htmlspecialchars($four['Email']) ?>" <?= $isSelected ? 'selected' : '' ?>><?= htmlspecialchars($displayName) ?></option>
+                                    <option value="<?= htmlspecialchars($four['Email']) ?>" <?= $isSelected ? 'selected' : ($isSelectedPrevious ? 'selected' : '') ?>><?= htmlspecialchars($displayName) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -1601,7 +1811,7 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <div class="form-row">
                         <div class="form-group">
                             <label>Date d'entrée:</label>
-                            <input type="date" name="Dateentree" value="<?= $editMode ? htmlspecialchars($editMateriel['Dateentree']) : '' ?>">
+                            <input type="date" name="Dateentree" value="<?= $editMode ? htmlspecialchars($editMateriel['Dateentree']) : (isset($previousMaterielData['Dateentree']) ? htmlspecialchars($previousMaterielData['Dateentree']) : '') ?>">
                         </div>
                     </div>
 
@@ -1611,35 +1821,35 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <div class="form-row">
                         <div class="form-group">
                             <label>Processeur:</label>
-                            <input type="text" name="Processeur" value="<?= $editMode ? htmlspecialchars($editMateriel['Processeur']) : '' ?>">
+                            <input type="text" name="Processeur" value="<?= $editMode ? htmlspecialchars($editMateriel['Processeur']) : (isset($previousMaterielData['Processeur']) ? htmlspecialchars($previousMaterielData['Processeur']) : '') ?>">
                         </div>
                         <div class="form-group">
                             <label>Carte Graphique:</label>
-                            <input type="text" name="graphique" value="<?= $editMode ? htmlspecialchars($editMateriel['graphique']) : '' ?>">
+                            <input type="text" name="graphique" value="<?= $editMode ? htmlspecialchars($editMateriel['graphique']) : (isset($previousMaterielData['graphique']) ? htmlspecialchars($previousMaterielData['graphique']) : '') ?>">
                         </div>
                         <div class="form-group">
                             <label>Disque Dur:</label>
-                            <input type="text" name="disqdur" value="<?= $editMode ? htmlspecialchars($editMateriel['disqdur']) : '' ?>">
+                            <input type="text" name="disqdur" value="<?= $editMode ? htmlspecialchars($editMateriel['disqdur']) : (isset($previousMaterielData['disqdur']) ? htmlspecialchars($previousMaterielData['disqdur']) : '') ?>">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Fréquence (MHz):</label>
-                            <input type="text" name="mhtz" value="<?= $editMode ? htmlspecialchars($editMateriel['mhtz']) : '' ?>">
+                            <input type="text" name="mhtz" value="<?= $editMode ? htmlspecialchars($editMateriel['mhtz']) : (isset($previousMaterielData['mhtz']) ? htmlspecialchars($previousMaterielData['mhtz']) : '') ?>">
                         </div>
                         <div class="form-group">
                             <label>MO:</label>
-                            <input type="text" name="mo" value="<?= $editMode ? htmlspecialchars($editMateriel['mo']) : '' ?>">
+                            <input type="text" name="mo" value="<?= $editMode ? htmlspecialchars($editMateriel['mo']) : (isset($previousMaterielData['mo']) ? htmlspecialchars($previousMaterielData['mo']) : '') ?>">
                         </div>
                         <div class="form-group">
                             <label>Mémoire:</label>
-                            <input type="text" name="memoire" value="<?= $editMode ? htmlspecialchars($editMateriel['memoire']) : '' ?>">
+                            <input type="text" name="memoire" value="<?= $editMode ? htmlspecialchars($editMateriel['memoire']) : (isset($previousMaterielData['memoire']) ? htmlspecialchars($previousMaterielData['memoire']) : '') ?>">
                         </div>
                     </div>
                     <div class="form-row">
                     <div class="form-group">
                         <label>Adresse IP:</label>
-                        <input type="text" name="ip" value="<?= $editMode ? htmlspecialchars($editMateriel['ip']) : '' ?>">
+                        <input type="text" name="ip" value="<?= $editMode ? htmlspecialchars($editMateriel['ip']) : (isset($previousMaterielData['ip']) ? htmlspecialchars($previousMaterielData['ip']) : '') ?>">
                     </div>
                     </div>
 
@@ -1649,11 +1859,11 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <div class="form-row">
                         <div class="form-group">
                             <label>Écran:</label>
-                            <input type="text" name="ecran" value="<?= $editMode ? htmlspecialchars($editMateriel['ecran']) : '' ?>">
+                            <input type="text" name="ecran" value="<?= $editMode ? htmlspecialchars($editMateriel['ecran']) : (isset($previousMaterielData['ecran']) ? htmlspecialchars($previousMaterielData['ecran']) : '') ?>">
                         </div>
                         <div class="form-group">
                             <label>Pouces:</label>
-                            <input type="text" name="pouce" value="<?= $editMode ? htmlspecialchars($editMateriel['pouce']) : '' ?>">
+                            <input type="text" name="pouce" value="<?= $editMode ? htmlspecialchars($editMateriel['pouce']) : (isset($previousMaterielData['pouce']) ? htmlspecialchars($previousMaterielData['pouce']) : '') ?>">
                         </div>
                     </div>
 
@@ -1664,10 +1874,18 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                         <div class="form-group">
                             <label>Classification:</label>
                              <select name="classification" id="materiel-classification-select" onchange="toggleDamageCause(this.value)">
-                                <option value="interne" <?= ($editMode && $editMateriel['stock'] === 'interne') || (!$editMode && $default_state === 'interne') ? 'selected' : '' ?>>Interne</option>
-                                <option value="confidentiel" <?= ($editMode && $editMateriel['stock'] === 'confidentiel') || (!$editMode && $default_state === 'confidentiel') ? 'selected' : '' ?>>Confidentiel</option>
-                                <option value="secret" <?= ($editMode && $editMateriel['stock'] === 'secret') || (!$editMode && $default_state === 'secret') ? 'selected' : '' ?>>Secret</option>
-                                <option value="public" <?= ($editMode && $editMateriel['stock'] === 'public') || (!$editMode && $default_state === 'public') ? 'selected' : '' ?>>Public</option>
+                                <option value="interne" <?= ($editMode && $editMateriel['stock'] === 'interne') || 
+                                                          (!$editMode && isset($previousMaterielData['classification']) && $previousMaterielData['classification'] === 'interne') || 
+                                                          (!$editMode && !isset($previousMaterielData['classification']) && $default_state === 'interne') ? 'selected' : '' ?>>Interne</option>
+                                <option value="confidentiel" <?= ($editMode && $editMateriel['stock'] === 'confidentiel') || 
+                                                             (!$editMode && isset($previousMaterielData['classification']) && $previousMaterielData['classification'] === 'confidentiel') || 
+                                                             (!$editMode && !isset($previousMaterielData['classification']) && $default_state === 'confidentiel') ? 'selected' : '' ?>>Confidentiel</option>
+                                <option value="secret" <?= ($editMode && $editMateriel['stock'] === 'secret') || 
+                                                       (!$editMode && isset($previousMaterielData['classification']) && $previousMaterielData['classification'] === 'secret') || 
+                                                       (!$editMode && !isset($previousMaterielData['classification']) && $default_state === 'secret') ? 'selected' : '' ?>>Secret</option>
+                                <option value="public" <?= ($editMode && $editMateriel['stock'] === 'public') || 
+                                                        (!$editMode && isset($previousMaterielData['classification']) && $previousMaterielData['classification'] === 'public') || 
+                                                        (!$editMode && !isset($previousMaterielData['classification']) && $default_state === 'public') ? 'selected' : '' ?>>Public</option>
                                
                             </select>
                         </div>
@@ -1680,8 +1898,12 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                                 foreach ($options as $val => $label):
                                     $stringKey = isset($stockMap[$val]) ? $stockMap[$val] : $val;
                                     $selected = '';
-                                    if (isset($materiel['stock'])) {
+                                    if ($editMode && isset($materiel['stock'])) {
                                         if ($materiel['stock'] == $val || $materiel['stock'] === $stringKey) {
+                                            $selected = 'selected';
+                                        }
+                                    } elseif (!$editMode && isset($previousMaterielData['stock'])) {
+                                        if ($previousMaterielData['stock'] == $stringKey) {
                                             $selected = 'selected';
                                         }
                                     }
@@ -1692,15 +1914,23 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                         </div>
                         <div class="form-group">
                             <label>Observation:</label>
-                            <textarea name="observation" rows="3"><?= $editMode ? htmlspecialchars($editMateriel['observation']) : '' ?></textarea>
+                            <textarea name="observation" rows="3"><?= $editMode ? htmlspecialchars($editMateriel['observation']) : (isset($previousMaterielData['observation']) ? htmlspecialchars($previousMaterielData['observation']) : '') ?></textarea>
                         </div>
                     </div>
-                    <div id="damage-cause-group" class="form-group full-width" style="display: <?= $editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse') ? 'block' : 'none' ?>;">
+                    <div id="damage-cause-group" class="form-group full-width" style="display: <?= ($editMode && ($editMateriel['stock'] === 'endommage' || $editMateriel['stock'] === 'casse')) || (!$editMode && isset($previousMaterielData['stock']) && ($previousMaterielData['stock'] === 'endommage' || $previousMaterielData['stock'] === 'casse')) ? 'block' : 'none' ?>;">
                         <label>Cause du dommage:</label>
-                        <textarea name="damage_cause" rows="2"><?= $editMode ? htmlspecialchars($editMateriel['damage_cause'] ?? '') : '' ?></textarea>
+                        <textarea name="damage_cause" rows="2"><?= $editMode ? htmlspecialchars($editMateriel['damage_cause'] ?? '') : (isset($previousMaterielData['damage_cause']) ? htmlspecialchars($previousMaterielData['damage_cause']) : '') ?></textarea>
                     </div>
                     <div class="form-group full-width">
-                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier le Matériel' : 'Ajouter le Matériel' ?></button>
+                        <button type="submit" class="btn-primary">
+                            <?php if ($editMode): ?>
+                                Modifier le Matériel
+                            <?php elseif ($showFormParam === 'ajouter_plusieurs'): ?>
+                                Ajouter et Continuer
+                            <?php else: ?>
+                                Ajouter le Matériel
+                            <?php endif; ?>
+                        </button>
                         <?php if ($editMode): ?>
                             <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
                         <?php endif; ?>
@@ -1791,8 +2021,12 @@ document.addEventListener('DOMContentLoaded', function() {
       var count = prompt('Combien de matériels voulez-vous ajouter ?');
       count = parseInt(count);
       if (!isNaN(count) && count > 0) {
-        var url = 'index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=ajouter_plusieurs&count=' + count;
+        var url = 'index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=ajouter_plusieurs&count=' + count + '&current=1';
         window.location.href = url;
+      } else if (count <= 0) {
+        alert('Veuillez entrer un nombre positif.');
+      } else {
+        alert('Veuillez entrer un nombre valide.');
       }
     });
   }
