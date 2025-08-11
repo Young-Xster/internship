@@ -324,3 +324,18 @@ Type: kou3Namla
 2025-07-31 19:32:54 POST: {"action":"delete_marque","Code":"123461","STE":"prod"}
 2025-07-31 19:34:24 POST: {"action":"add_marque","STE":"prod","Marque":"msmsm"}
 2025-07-31 19:34:28 POST: {"action":"delete_marque","Code":"123461","STE":"prod"}
+2025-07-31 12:45:04 POST: {"action":"add_marque","STE":"prod","Marque":"djdj"}
+2025-07-31 12:45:11 POST: {"action":"modify_marque","STE":"prod","Code":"123461","Marque":"djdjd"}
+2025-07-31 12:45:16 POST: {"action":"delete_marque","Code":"123461","STE":"prod"}
+2025-07-31 12:45:27 POST: {"action":"add_type","STE":"prod","Libelle":"dzlkdjk"}
+2025-07-31 12:45:36 POST: {"action":"modify_type","STE":"prod","CodeType":"22","Libelle":"dzlkdjkdd"}
+2025-07-31 12:45:40 POST: {"action":"delete_type","CodeType":"22","STE":"prod"}
+2025-07-31 12:45:49 POST: {"action":"add_service","STE":"prod","Libelle":"ddddjd"}
+2025-07-31 12:45:56 POST: {"action":"modify_service","STE":"prod","CodeService":"12","Libelle":"ddddjdzz"}
+2025-07-31 12:46:00 POST: {"action":"delete_service","CodeService":"12","STE":"prod"}
+2025-08-11 10:07:11 POST: {"action":"delete_utilisateur","Compte":"0","STE":"prod"}
+2025-08-11 10:16:45 POST: {"action":"modify_utilisateur","STE":"prod","Compte":"185","NomPrenom":"cr7","CodeService":"2","Email":"","Tel":"0"}
+2025-08-11 10:36:21 POST: {"action":"modify_utilisateur","STE":"Prod","Compte":"WISI51              ","NomPrenom":"Abdellaoui Amor jr","CodeService":"6","Email":"Amor.ABDELLAOUI@aaf.com.tn","Tel":"123"}
+2025-08-11 10:36:30 POST: {"action":"modify_utilisateur","STE":"Prod","Compte":"WISI51              ","NomPrenom":"Abdellaoui Amor ","CodeService":"6","Email":"Amor.ABDELLAOUI@aaf.com.tn","Tel":"123"}
+2025-08-11 10:36:45 POST: {"action":"add_utilisateur","STE":"Prod","Compte":"dsddsd","NomPrenom":"DEELY","CodeService":"8","Email":"","Tel":""}
+2025-08-11 10:37:04 POST: {"action":"delete_utilisateur","Compte":"dsddsd","STE":"Prod"}

@@ -13,19 +13,34 @@ if (isset($_SESSION['userName'])) {
 
 $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     $stmt = $pdo->prepare("SELECT * FROM login WHERE userName = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($user && password_verify($password, $user['passwordHash'])) {
-        $_SESSION['userName'] = $user['userName'];
-        $_SESSION['is_admin'] = $user['admin'];
-        header('Location: index.php');
-        exit;
-    } else {
-        $message = "<span style='color:red'>Nom d'utilisateur ou mot de passe invalide.</span>";
+    if ($user) {
+        $hash = $user['passwordHash'] ?? '';
+        $ok = false;
+        if (is_string($hash) && preg_match('/^\$2[aby]\$/', (string)$hash)) {
+            // Normal bcrypt verify
+            $ok = password_verify($password, $hash);
+        } else if (is_string($hash)) {
+            // Fallback: if passwordHash was saved as plaintext in DB, accept once and migrate to bcrypt
+            if (hash_equals((string)$hash, (string)$password)) {
+                $newHash = password_hash($password, PASSWORD_DEFAULT);
+                $upd = $pdo->prepare('UPDATE login SET passwordHash = ? WHERE userName = ?');
+                $upd->execute([$newHash, $user['userName']]);
+                $ok = true;
+            }
+        }
+        if ($ok) {
+            $_SESSION['userName'] = $user['userName'];
+            $_SESSION['is_admin'] = (int)$user['admin'] === 1;
+            header('Location: index.php');
+            exit;
+        }
     }
+    $message = "<span style='color:red'>Nom d'utilisateur ou mot de passe invalide.</span>";
 }
 ?>
 <!DOCTYPE html>
