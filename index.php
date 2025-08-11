@@ -1122,9 +1122,9 @@ $transferEntity = null;
 
 $showFormParam = isset($_GET['showForm']) ? $_GET['showForm'] : null;
 
-// Check if we're in multi-materiel mode and have previous data
+// Check if we have previous data from multi-material entry
 $previousMaterielData = null;
-if ($showFormParam === 'ajouter_plusieurs' && isset($_SESSION['multi_materiel_last'])) {
+if (isset($_SESSION['multi_materiel_last']) && !empty($_SESSION['multi_materiel_last'])) {
     $previousMaterielData = $_SESSION['multi_materiel_last'];
 }
 
@@ -1618,6 +1618,15 @@ if ($selected_state === 'en-service') {
                     <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
                     <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : (isset($previousMaterielData['STE']) ? htmlspecialchars($previousMaterielData['STE']) : $ste_filter) ?>">
                     <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= $editMode ? htmlspecialchars($editMateriel['datefinservice'] ?? '') : (isset($previousMaterielData['datefinservice']) ? htmlspecialchars($previousMaterielData['datefinservice']) : '') ?>">
+                    
+                    <?php if (!$editMode): ?>
+                    <div class="form-group full-width" style="margin-bottom: 15px;">
+                        <label for="plusieurs" class="checkbox-label" style="display: flex; align-items: center; font-weight: bold;">
+                            <input type="checkbox" id="plusieurs" name="plusieurs" value="1" <?= (!empty($previousMaterielData) || (isset($_SESSION['multi_materiel_last']) && !empty($_SESSION['multi_materiel_last']))) ? 'checked' : '' ?> style="margin-right: 8px;">
+                            Ajouter plusieurs matériels
+                        </label>
+                    </div>
+                    <?php endif; ?>>
 
                     <!-- Identification Section -->
                     <h3 class="form-section-title">Identification</h3>
@@ -1799,12 +1808,6 @@ if ($selected_state === 'en-service') {
                         <textarea name="damage_cause" rows="2"><?= $editMode ? htmlspecialchars($editMateriel['damage_cause'] ?? '') : (isset($previousMaterielData['damage_cause']) ? htmlspecialchars($previousMaterielData['damage_cause']) : '') ?></textarea>
                     </div>
                     <?php if (!$editMode): ?>
-                    <div class="form-group">
-                        <label for="plusieurs" class="checkbox-label" style="display: flex; align-items: center; margin-bottom: 10px;">
-                            <input type="checkbox" id="plusieurs" name="plusieurs" value="1" <?= isset($previousMaterielData) ? 'checked' : '' ?> style="margin-right: 8px;">
-                            <span>Plusieurs (cocher pour ajouter plusieurs matériels)</span>
-                        </label>
-                    </div>
                     <?php endif; ?>
                     <div class="form-group full-width">
                         <button type="submit" class="btn-primary">
