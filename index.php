@@ -602,7 +602,6 @@ if ($_POST) {
                     exit();
                 }
                 break;
-                    
             case 'delete_fournisseur':
                 try {
                     $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM materiel WHERE CodeFournisseur = ?");
@@ -1084,48 +1083,48 @@ if ($_POST) {
                     // Redirect back to the inventaire tab to see the list update
                     header('Location: index.php?tab=inventaire&ste=' . urlencode($current_ste) . '&success=1');
                     exit;
-            case 'recuperer_reparation':
-                $date_recuperated = date('Y-m-d H:i:s');
-                $numserie = $_POST['NumSerie'] ?? '';
-                if($numserie !== ''){
-                    // 1. Update repair history
-                    $select = $pdo->prepare("SELECT id FROM materiel_repair_history WHERE NumSerie = ? AND date_recuperated IS NULL ORDER BY date_sent DESC LIMIT 1");
-                    $select->execute([$numserie]);
-                    $row = $select->fetch(PDO::FETCH_ASSOC);
-                    if ($row && isset($row['id'])) {
-                        $update = $pdo->prepare("UPDATE materiel_repair_history SET date_recuperated = ? WHERE id = ?");
-                        $update->execute([$date_recuperated, $row['id']]);
-                    }
-
-                    // 2. Move from materiel_en_reparation back to materiel
-                    $selectMat = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE NumSerie = ?");
-                    $selectMat->execute([$numserie]);
-                    $mat = $selectMat->fetch(PDO::FETCH_ASSOC);
-                    if ($mat) {
-                        // Insert into materiel (adjust columns as needed)
-                        $fields = [
-                            'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
-                            'stock', 'observation', 'Processeur', 'memoire', 'disqdur', 'graphique',
-                            'pouce', 'ecran', 'mhtz', 'mo', 'ip', 'classification', 'STE', 'CodeFournisseur', 'damage_cause'
-                        ];
-                        $insert_fields = implode(", ", $fields);
-                        $insert_placeholders = ":" . implode(", :", $fields);
-                        $insert = $pdo->prepare("INSERT INTO materiel ($insert_fields) VALUES ($insert_placeholders)");
-                        $params = [];
-                        foreach ($fields as $f) {
-                            $params[$f] = $mat[$f] ?? null;
+                case 'recuperer_reparation':
+                    $date_recuperated = date('Y-m-d H:i:s');
+                    $numserie = $_POST['NumSerie'] ?? '';
+                    if($numserie !== ''){
+                        // 1. Update repair history
+                        $select = $pdo->prepare("SELECT id FROM materiel_repair_history WHERE NumSerie = ? AND date_recuperated IS NULL ORDER BY date_sent DESC LIMIT 1");
+                        $select->execute([$numserie]);
+                        $row = $select->fetch(PDO::FETCH_ASSOC);
+                        if ($row && isset($row['id'])) {
+                            $update = $pdo->prepare("UPDATE materiel_repair_history SET date_recuperated = ? WHERE id = ?");
+                            $update->execute([$date_recuperated, $row['id']]);
                         }
-                        $insert->execute($params);
 
-                        // Delete from materiel_en_reparation
-                        $del = $pdo->prepare("DELETE FROM materiel_en_reparation WHERE NumSerie = ?");
-                        $del->execute([$numserie]);
+                        // 2. Move from materiel_en_reparation back to materiel
+                        $selectMat = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE NumSerie = ?");
+                        $selectMat->execute([$numserie]);
+                        $mat = $selectMat->fetch(PDO::FETCH_ASSOC);
+                        if ($mat) {
+                            // Insert into materiel (adjust columns as needed)
+                            $fields = [
+                                'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
+                                'stock', 'observation', 'Processeur', memoire, disqdur, graphique, 
+                                'pouce', 'ecran', 'mhtz', 'mo', 'ip', 'classification', 'STE', 'CodeFournisseur', 'damage_cause'
+                            ];
+                            $insert_fields = implode(", ", $fields);
+                            $insert_placeholders = ":" . implode(", :", $fields);
+                            $insert = $pdo->prepare("INSERT INTO materiel ($insert_fields) VALUES ($insert_placeholders)");
+                            $params = [];
+                            foreach ($fields as $f) {
+                                $params[$f] = $mat[$f] ?? null;
+                            }
+                            $insert->execute($params);
+
+                            // Delete from materiel_en_reparation
+                            $del = $pdo->prepare("DELETE FROM materiel_en_reparation WHERE NumSerie = ?");
+                            $del->execute([$numserie]);
+                        }
+
+                        $success_message = "Le matériel a été récupéré dans la liste principale.";
                     }
-
-                    $success_message = "Le matériel a été récupéré dans la liste principale.";
-                }
-                header('Location: index.php?tab=maintenance&ste=' . urlencode($ste_filter));
-                exit;
+                    header('Location: index.php?tab=maintenance&ste=' . urlencode($ste_filter));
+                    exit;
         }
     } catch (Exception $e) {
         $error_message = "Erreur lors du traitement de la demande: " . $e->getMessage();
@@ -1320,196 +1319,157 @@ if ($editMode || $transferMode) {
 
 $isFormOpen = $editMode || $transferMode || $showFormParam;
 
-$ste_filter = isset($_GET['ste']) && $_GET['ste'] ? $_GET['ste'] : 'prod';
-
-try {
-    // Fetch users for the current environment filter
-    $utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
-    $utilisateurs_stmt->execute([$ste_filter]);
-    $utilisateurs = $utilisateurs_stmt->fetchAll();
-
-    // If in edit mode for a material, ensure the correct user list is loaded for that material's STE
-    if ($editMode && $editType === 'materiel' && $editMateriel && $editMateriel['STE'] !== $ste_filter) {
-        $utilisateurs_stmt->execute([$editMateriel['STE']]);
-        $utilisateurs = $utilisateurs_stmt->fetchAll();
-    }
-
-    // Load users from the opposite department for transfers
-    $other_ste = ($ste_filter === 'prod') ? 'comm' : 'prod';
-    $transfer_utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
-    $transfer_utilisateurs_stmt->execute([$other_ste]);
-    $transfer_utilisateurs = $transfer_utilisateurs_stmt->fetchAll();
-
-    $marques = $pdo->query("SELECT * FROM marque ORDER BY Marque")->fetchAll();
-    $types = $pdo->query("SELECT * FROM type ORDER BY Libelle")->fetchAll();
-
-    $services_stmt = $pdo->prepare("SELECT * FROM service WHERE STE = ? ORDER BY Libelle");
-    $services_stmt->execute([$ste_filter]);
-    $services = $services_stmt->fetchAll();
-
-    $materiels_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.STE = ? ORDER BY m.NumSerie DESC");
-    $materiels_stmt->execute([$ste_filter]);
-    $materiels = $materiels_stmt->fetchAll();
-
-    $fournisseurs = $pdo->query("SELECT * FROM fournisseur ORDER BY CompanyName, NomComplet")->fetchAll();
-} catch (PDOException $e) {
-    $error_message = "Erreur critique: Impossible de charger les données de la base de données. Veuillez contacter un administrateur.";
-    $utilisateurs = $marques = $types = $services = $materiels = $fournisseurs = [];
-}
-
-$state_map = [
-    0 => 'en-service',
-    1 => 'en-stock',
-    2 => 'endommage',
-    3 => 'casse',
-    'en-service' => 0,
-    'en-stock' => 1,
-    'endommage' => 2,
-    'casse' => 3
-];
+$ste_filter = isset($_GET['ste']) && $_GET['ste'] ? $_GET['ste'] : 'all';
 
 $selected_state = isset($_GET['state']) ? $_GET['state'] : 'all';
-
-// Filter materiels to exclude those in inventaire
-$materiels = array_filter($materiels, function($m) { return empty($m['inventair']) || $m['inventair'] == 0; });
-
-// Detect inventaire mode from GET
+// Ensure inventaire mode flag exists
 $inventaire_mode = isset($_GET['inventaire_mode']) && $_GET['inventaire_mode'] == '1';
+// Include inventaire items by default (exclude only if include_inventaire=0)
+$include_inventaire = !isset($_GET['include_inventaire']) || $_GET['include_inventaire'] == '1';
 
-// Apply state filtering only if not in inventory mode or if specific state is selected
-if (!$inventaire_mode && $selected_state !== 'all' && in_array($selected_state, ['en-service','en-stock','endommage','casse'])) {
-    $materiels = array_filter($materiels, function($m) use ($selected_state, $state_map) {
-        $stock = $m['stock'];
-        if (is_numeric($stock)) {
-            $stock = $state_map[(int)$stock] ?? 'en-stock';
-        }
-        return $stock === $selected_state;
-    });
-} elseif ($inventaire_mode && $selected_state !== 'all' && in_array($selected_state, ['en-service','en-stock','endommage','casse'])) {
-    // In inventory mode, filter but keep all materials available for inventory
-    $materiels = array_filter($materiels, function($m) use ($selected_state, $state_map) {
-        $stock = $m['stock'];
-        if (is_numeric($stock)) {
-            $stock = $state_map[(int)$stock] ?? 'en-stock';
-        }
-        return $stock === $selected_state;
-    });
-}
-
-// Handle global history state
+// Initialize Global History data
 $global_history_data = [];
 if ($selected_state === 'global-history') {
     try {
-        $history_stmt = $pdo->prepare('
-            SELECT h.*, 
-                   m.Model, t.Libelle as TypeLibelle,
-                   u_prev.NomPrenom as previous_username,
-                   u_new.NomPrenom as new_username
-            FROM materiel_history h
-            LEFT JOIN materiel m ON h.numserie = m.NumSerie
-            LEFT JOIN type t ON m.CodeType = t.CodeType
-            LEFT JOIN utilisateur u_prev ON h.previous_owner = u_prev.Compte
-            LEFT JOIN utilisateur u_new ON h.new_owner = u_new.Compte
-            ORDER BY h.date_change DESC
-        ');
-        $history_stmt->execute();
-        $global_history_data = $history_stmt->fetchAll(PDO::FETCH_ASSOC);
+        $params = [];
+        $sql = "SELECT h.*, 
+                       m.Model, t.Libelle AS TypeLibelle,
+                       u_prev.NomPrenom AS previous_username,
+                       u_new.NomPrenom AS new_username
+                FROM materiel_history h
+               
+               
+               
+                LEFT JOIN materiel m ON h.numserie = m.NumSerie
+                LEFT JOIN type t ON m.CodeType = t.CodeType
+                LEFT JOIN utilisateur u_prev ON h.previous_owner = u_prev.Compte
+                LEFT JOIN utilisateur u_new ON h.new_owner = u_new.Compte
+                LEFT JOIN inventaire i ON i.NumSerie = h.numserie";
+        if ($ste_filter !== 'all') {
+            $sql .= " WHERE (m.STE = ? OR i.STE = ?)";
+            $params = [$ste_filter, $ste_filter];
+        }
+        $sql .= " ORDER BY h.date_change DESC";
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+        $global_history_data = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (PDOException $e) {
+        error_log('Erreur lors du chargement du Global History: ' . $e->getMessage());
         $global_history_data = [];
-        error_log("Erreur lors du chargement de l'historique global: " . $e->getMessage());
     }
 }
 
-$inventaire_materiels = [];
-if ($activeTab === 'inventaire') {
-    try {
-        // Now fetching from the dedicated 'inventaire' table
-        $inventaire_stmt = $pdo->prepare(
-            "SELECT i.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle 
-             FROM inventaire i 
-             LEFT JOIN utilisateur u ON i.CodeUtilisateur = u.Compte 
-             LEFT JOIN marque ma ON i.CodeMarque = ma.Code 
-             LEFT JOIN type t ON i.CodeType = t.CodeType 
-             WHERE i.STE = ? 
-             ORDER BY i.dateinvent DESC"
-        );
-        $inventaire_stmt->execute([$ste_filter]);
-        $inventaire_materiels = $inventaire_stmt->fetchAll();
-    } catch (PDOException $e) {
-        $inventaire_materiels = [];
-        // Silently log error as we cannot show it to the user without a proper setup
-        error_log("Erreur lors du chargement du matériel en inventaire: " . $e->getMessage());
+// Load core lists for UI (utilisateurs, services, materiels, fournisseurs, inventaire)
+try {
+    // Utilisateurs for current STE (or all)
+    if ($ste_filter === 'all') {
+        $utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService ORDER BY u.NomPrenom");
+        $utilisateurs_stmt->execute();
+    } else {
+        $utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
+        $utilisateurs_stmt->execute([$ste_filter]);
+    }
+    $utilisateurs = $utilisateurs_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Transfer utilisateurs (opposite STE or all)
+    if ($ste_filter === 'all') {
+        $transfer_utilisateurs = $utilisateurs;
+    } else {
+        $other_ste = ($ste_filter === 'prod') ? 'comm' : 'prod';
+        $transfer_utilisateurs_stmt = $pdo->prepare("SELECT u.*, s.Libelle as ServiceLibelle FROM utilisateur u LEFT JOIN service s ON u.CodeService = s.CodeService WHERE u.STE = ? ORDER BY u.NomPrenom");
+        $transfer_utilisateurs_stmt->execute([$other_ste]);
+        $transfer_utilisateurs = $transfer_utilisateurs_stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Static lists
+    $marques = $pdo->query("SELECT * FROM marque ORDER BY Marque")->fetchAll(PDO::FETCH_ASSOC);
+    $types = $pdo->query("SELECT * FROM type ORDER BY Libelle")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Services by STE
+    if ($ste_filter === 'all') {
+        $services = $pdo->query("SELECT * FROM service ORDER BY STE, Libelle")->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $services_stmt = $pdo->prepare("SELECT * FROM service WHERE STE = ? ORDER BY Libelle");
+        $services_stmt->execute([$ste_filter]);
+        $services = $services_stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Materiels list by STE
+    if ($ste_filter === 'all') {
+        $materiels_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType ORDER BY m.NumSerie DESC");
+        $materiels_stmt->execute();
+    } else {
+        $materiels_stmt = $pdo->prepare("SELECT m.*, u.NomPrenom, ma.Marque, t.Libelle as TypeLibelle FROM materiel m LEFT JOIN utilisateur u ON m.CodeUtilisateur = u.Compte LEFT JOIN marque ma ON m.CodeMarque = ma.Code LEFT JOIN type t ON m.CodeType = t.CodeType WHERE m.STE = ? ORDER BY m.NumSerie DESC");
+        $materiels_stmt->execute([$ste_filter]);
+    }
+    $materiels = $materiels_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fournisseurs list
+    $fournisseurs = $pdo->query("SELECT * FROM fournisseur ORDER BY CompanyName, NomComplet")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Inventaire list by STE (for the Inventaire tab)
+    if ($ste_filter === 'all') {
+        $inv_stmt = $pdo->prepare("SELECT i.*, ma.Marque, t.Libelle AS TypeLibelle FROM inventaire i LEFT JOIN marque ma ON i.CodeMarque = ma.Code LEFT JOIN type t ON i.CodeType = t.CodeType ORDER BY i.dateinvent DESC");
+        $inv_stmt->execute();
+    } else {
+        $inv_stmt = $pdo->prepare("SELECT i.*, ma.Marque, t.Libelle AS TypeLibelle FROM inventaire i LEFT JOIN marque ma ON i.CodeMarque = ma.Code LEFT JOIN type t ON i.CodeType = t.CodeType WHERE i.STE = ? ORDER BY i.dateinvent DESC");
+        $inv_stmt->execute([$ste_filter]);
+    }
+    $inventaire_materiels = $inv_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $error_message = "Erreur critique: Impossible de charger les données.";
+    $utilisateurs = $transfer_utilisateurs = $marques = $types = $services = $materiels = $fournisseurs = $inventaire_materiels = [];
+}
+
+// Exclude items flagged inventaire if requested
+if (!$include_inventaire && is_array($materiels)) {
+    $materiels = array_values(array_filter($materiels, function($m){ return empty($m['inventair']) || (int)$m['inventair'] === 0; }));
+}
+
+// Apply state filtering on the displayed materiels list
+if (in_array($selected_state, ['en-service','en-stock','endommage','casse'], true) && is_array($materiels)) {
+    $desiredStock = $stateToStock[$selected_state] ?? null;
+    if ($desiredStock !== null) {
+        $materiels = array_values(array_filter($materiels, function($m) use ($desiredStock) {
+            return isset($m['stock']) && (int)$m['stock'] === (int)$desiredStock;
+        }));
     }
 }
 
-// Handle recuperer_inventaire POST action
-if ($_POST && ($_POST['action'] ?? '') === 'recuperer_inventaire') {
-    $numSerie = $_POST['NumSerie'] ?? '';
-    if ($numSerie !== '') {
-        $stmt = $pdo->prepare('UPDATE materiel SET inventair = 0, dateinvent = NULL WHERE NumSerie = ?');
-        $stmt->execute([$numSerie]);
-        $success_message = "Le matériel a été récupéré dans la liste principale.";
-    }
-    header('Location: index.php?tab=materiel&ste=' . urlencode($ste_filter) . '&success=1');
-    exit;
+// Aggregated counts by state for summary
+$state_counts = ['total'=>0,'en_service'=>0,'en_stock'=>0,'endommage'=>0,'casse'=>0];
+try {
+    $conds = [];
+    $params = [];
+    if ($ste_filter !== 'all') { $conds[] = 'STE = ?'; $params[] = $ste_filter; }
+    if (!$include_inventaire) { $conds[] = '(inventair IS NULL OR inventair = 0)'; }
+    $sqlCount = "SELECT COUNT(*) AS total,
+                        SUM(CASE WHEN stock = 0 THEN 1 ELSE 0 END) AS en_service,
+                        SUM(CASE WHEN stock = 1 THEN 1 ELSE 0 END) AS en_stock,
+                        SUM(CASE WHEN stock = 2 THEN 1 ELSE 0 END) AS endommage,
+                        SUM(CASE WHEN stock = 3 THEN 1 ELSE 0 END) AS casse
+                 FROM materiel";
+    if ($conds) { $sqlCount .= ' WHERE ' . implode(' AND ', $conds); }
+    $stc = $pdo->prepare($sqlCount);
+    $stc->execute($params);
+    $row = $stc->fetch(PDO::FETCH_ASSOC) ?: [];
+    $state_counts = array_merge($state_counts, array_map('intval', $row));
+} catch (PDOException $e) {
+    // leave defaults
 }
 
-require_once 'php/initialize_db.php';
-
-// Determine the default state for the add form
-$default_state = ($selected_state !== 'all' && in_array($selected_state, ['en-service','en-stock','endommage','casse']))
-    ? $selected_state
-    : 'en-service';
-
-// Count materiels for display summary
-$materiel_count = isset($materiels) ? count($materiels) : 0;
-
-if($_POST && $_POST['action'] === 'recuperer_reparation'){
-    $date_recuperated = date('Y-m-d H:i:s');
-    $numserie = $_POST['NumSerie'] ?? '';
-    if($numserie !== ''){
-        // 1. Update repair history
-        $select = $pdo->prepare("SELECT id FROM materiel_repair_history WHERE NumSerie = ? AND date_recuperated IS NULL ORDER BY date_sent DESC LIMIT 1");
-        $select->execute([$numserie]);
-        $row = $select->fetch(PDO::FETCH_ASSOC);
-        if ($row && isset($row['id'])) {
-            $update = $pdo->prepare("UPDATE materiel_repair_history SET date_recuperated = ? WHERE id = ?");
-            $update->execute([$date_recuperated, $row['id']]);
-        }
-
-        // 2. Move from materiel_en_reparation back to materiel
-        $selectMat = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE NumSerie = ?");
-        $selectMat->execute([$numserie]);
-        $mat = $selectMat->fetch(PDO::FETCH_ASSOC);
-        if ($mat) {
-            // Insert into materiel (adjust columns as needed)
-            $fields = [
-                'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
-                'stock', 'observation', 'Processeur', 'memoire', 'disqdur', 'graphique',
-                'pouce', 'ecran', 'mhtz', 'mo', 'ip', 'classification', 'STE', 'CodeFournisseur', 'damage_cause'
-            ];
-            $insert_fields = implode(", ", $fields);
-            $insert_placeholders = ":" . implode(", :", $fields);
-            $insert = $pdo->prepare("INSERT INTO materiel ($insert_fields) VALUES ($insert_placeholders)");
-            $params = [];
-            foreach ($fields as $f) {
-                $params[$f] = $mat[$f] ?? null;
-            }
-            $insert->execute($params);
-
-            // Delete from materiel_en_reparation
-            $del = $pdo->prepare("DELETE FROM materiel_en_reparation WHERE NumSerie = ?");
-            $del->execute([$numserie]);
-        }
-
-        $success_message = "Le matériel a été récupéré dans la liste principale.";
-    }
-    header('Location: index.php?tab=maintenance&ste=' . urlencode($ste_filter));
-    exit;
+// Determine display count used in header
+$display_count = $state_counts['total'];
+if ($selected_state === 'en-service') {
+    $display_count = $state_counts['en_service'];
+} elseif ($selected_state === 'en-stock') {
+    $display_count = $state_counts['en_stock'];
+} elseif ($selected_state === 'endommage') {
+    $display_count = $state_counts['endommage'];
+} elseif ($selected_state === 'casse') {
+    $display_count = $state_counts['casse'];
 }
-
 ?>
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -2103,14 +2063,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             </div>
-            <!-- End search bar -->
 
             <!-- Display count of materiels -->
             <div id="materiel-count-summary" class="materiel-count-summary" style="margin: 10px 0 10px 0; font-weight: bold; color: #333;">
                 <?php if ($selected_state === 'global-history'): ?>
-                    Nombre d'historiques affichés : <?= count($global_history_data) ?>
+                    Nombre d'historiques affichés : <?= is_array($global_history_data) ? count($global_history_data) : 0 ?>
                 <?php else: ?>
-                    Nombre de matériels affichés : <?= $materiel_count ?>
+                    Nombre de matériels affichés : <?= $display_count ?>
                 <?php endif; ?>
             </div>
             <form method="POST" id="fin-inventaire-form">
@@ -2137,7 +2096,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <tbody>
                                 <?php if (empty($global_history_data)): ?>
                                     <tr>
-                                        <td colspan="7" style="text-align: center;">Aucun historique disponible.</td>
+                                        <td colspan="9" style="text-align: center;">Aucun historique disponible.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($global_history_data as $history): ?>
@@ -2251,19 +2210,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <td>
                                         <?php if (!$inventaire_mode): ?>
                                         <div class="action-buttons">
-                                            <a href="index.php?edit=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
-                                                <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
-                                            </a>
-                                            <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?');">
-                                                <input type="hidden" name="action" value="delete_materiel">
-                                                <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
-                                                <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                                <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
-                                                    <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
-                                                </button>
-                                            </form>
-                                            <a href="index.php?transfer=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-transfer" title="Transférer" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
-                                            <a href="get_material_history.php?numserie=<?= $materiel['NumSerie'] ?>&ste=<?= urlencode($ste_filter) ?>" class="btn-history" title="Historique"><img width="20px" height="20px" src="imgs/history.png" alt="historique"/></a>
+                                            <a href="index.php?edit=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($materiel['STE'] ?? $ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                                 <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
+                                             </a>
+                                             <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce matériel ?');">
+                                                 <input type="hidden" name="action" value="delete_materiel">
+                                                 <input type="hidden" name="NumSerie" value="<?= $materiel['NumSerie'] ?>">
+                                                 <input type="hidden" name="STE" value="<?= htmlspecialchars($materiel['STE'] ?? $ste_filter) ?>">
+                                                 <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
+                                                     <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
+                                                 </button>
+                                             </form>
+                                            <a href="index.php?transfer=<?= $materiel['NumSerie'] ?>&type=materiel&ste=<?= urlencode($materiel['STE'] ?? $ste_filter) ?>" class="btn-transfer" title="Transférer" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>><img width="20px" height="20px" src="imgs/transfer.png" alt="transférer"/></a>
+                                            <a href="get_material_history.php?numserie=<?= $materiel['NumSerie'] ?>&ste=<?= urlencode($materiel['STE'] ?? $ste_filter) ?>" class="btn-history" title="Historique"><img width="20px" height="20px" src="imgs/history.png" alt="historique"/></a>
                                         </div>
                                         <?php endif; ?>
                                     </td>
@@ -2413,21 +2372,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label class="filter-checkbox">
                             <input type="checkbox" class="search-filter" data-column="Compte"> Compte
                         </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="NomPrenom"> Nom et Prénom
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="ServiceLibelle"> Service
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Email"> Email
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="Tel"> Téléphone
-                        </label>
                     </div>
                 </div>
             </div>
+
             <div class="table-container">
                 <table id="utilisateurs-table" class="table-materiel">
                     <thead>
@@ -2441,27 +2389,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($utilisateurs as $utilisateur): ?>
+                        <?php foreach ($utilisateurs as $u): ?>
                         <tr>
-                            <td><?= htmlspecialchars($utilisateur['Compte']) ?></td>
-                            <td><?= htmlspecialchars($utilisateur['NomPrenom']) ?></td>
-                            <td><?= htmlspecialchars($utilisateur['ServiceLibelle'] ?? 'N/A') ?></td>
-                            <td><?= htmlspecialchars($utilisateur['Email'] ?? 'N/A') ?></td>
-                            <td><?= htmlspecialchars($utilisateur['Tel'] ?? 'N/A') ?></td>
+                            <td><?= htmlspecialchars($u['Compte']) ?></td>
+                            <td><?= htmlspecialchars($u['NomPrenom']) ?></td>
+                            <td><?= htmlspecialchars($u['ServiceLibelle'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($u['Email'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($u['Tel'] ?? '') ?></td>
                             <td>
-                                <div class="action-buttons">
-                                    <a href="index.php?edit=<?= $utilisateur['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
-                                        <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
-                                    </a>
-                                    <form method="POST" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
-                                        <input type="hidden" name="action" value="delete_utilisateur">
-                                        <input type="hidden" name="Compte" value="<?= $utilisateur['Compte'] ?>">
-                                        <input type="hidden" name="STE" value="<?= $ste_filter ?>">
-                                        <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
-                                            <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
-                                        </button>
-                                    </form>
-                                </div>
+                                <a href="index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&edit=utilisateur&Compte=<?= urlencode($u['Compte']) ?>">Modifier</a>
+                                <a href="index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&delete=utilisateur&Compte=<?= urlencode($u['Compte']) ?>" onclick="return confirm('Supprimer cet utilisateur ?')">Supprimer</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -2796,28 +2733,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label>Nom Complet:</label>
                         <input type="text" name="NomComplet" value="<?= $editMode ? htmlspecialchars($editFournisseur['NomComplet']) : '' ?>" required>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Adresse:</label>
-                        <input type="text" name="Adress" value="<?= $editMode ? htmlspecialchars($editFournisseur['Adress']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Téléphone Fixe:</label>
-                        <input type="text" name="TelFix" value="<?= $editMode ? htmlspecialchars($editFournisseur['TelFix']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Téléphone Mobile:</label>
-                        <input type="text" name="TelMobile" value="<?= $editMode ? htmlspecialchars($editFournisseur['TelMobile']) : '' ?>">
-                    </div>
-                    
-                    <div class="form-group full-width">
-                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
-                        <?php if ($editMode): ?>
-                            <a href="index.php?tab=fournisseurs&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
-                        <?php endif; ?>
-                    </div>
                 </form>
             </div>
 
@@ -2908,6 +2823,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
 
+        <!-- Maintenance Tab -->
         <div id="maintenance" class="tab-content <?= ($activeTab === 'maintenance') ? 'active' : '' ?>">
             <div class="section-header">
                 <h2>Maintenance</h2>

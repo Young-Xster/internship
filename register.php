@@ -5,18 +5,28 @@ function HashPassword($password) {
 }
 $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    // Check if email exists
-    $stmt = $pdo->prepare("SELECT 1 FROM login WHERE email = ?");
-    $stmt->execute([$email]);
-    if ($stmt->fetch()) {
-        $message = "<span style='color:red'>Email already registered.</span>";
+    if (strlen($username) < 3 || strlen($username) > 64) {
+        $message = "<span style='color:red'>Le nom d'utilisateur doit comporter entre 3 et 64 caractères.</span>";
+    } elseif (strlen($password) < 8) {
+        $message = "<span style='color:red'>Le mot de passe doit comporter au moins 8 caractères.</span>";
     } else {
-        $hash = HashPassword($password);
-        $stmt = $pdo->prepare("INSERT INTO login (email, passwordHash, admin) VALUES (?, ?, 0)");
-        $stmt->execute([$email, $hash]);
-        $message = "<span style='color:green'>Registration successful. <a href='login.php'>Login here</a>.</span>";
+        // Check if username exists
+        $stmt = $pdo->prepare("SELECT 1 FROM login WHERE userName = ?");
+        $stmt->execute([$username]);
+        if ($stmt->fetch()) {
+            $message = "<span style='color:red'>Ce nom d'utilisateur existe déjà.</span>";
+        } else {
+            // If there is no admin yet, the first registered user becomes admin
+            $hasAdmin = (int)$pdo->query("SELECT COUNT(*) FROM login WHERE admin = 1")->fetchColumn() > 0;
+            $adminFlag = $hasAdmin ? 0 : 1;
+            $hash = HashPassword($password);
+            $stmt = $pdo->prepare("INSERT INTO login (userName, passwordHash, admin) VALUES (?, ?, ?)");
+            $stmt->execute([$username, $hash, $adminFlag]);
+            $roleMsg = $adminFlag ? " (compte admin)" : "";
+            $message = "<span style='color:green'>Inscription réussie$roleMsg. <a href='login.php'>Se connecter</a>.</span>";
+        }
     }
 }
 ?>
@@ -40,14 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="register-container">
     <h2>Register</h2>
     <?php if ($message) echo $message; ?>
-    <form method="POST">
-        <input type="email" name="email" placeholder="Email" required>
-        <input type="password" name="password" placeholder="Password" required>
+    <form method="POST" autocomplete="off">
+        <input type="text" name="username" placeholder="Nom d'utilisateur" minlength="3" maxlength="64" required>
+        <input type="password" name="password" placeholder="Mot de passe (min 8 caractères)" minlength="8" required>
         <button type="submit">Register</button>
     </form>
     <div class="login-link">
-        Already have an account? <a href="login.php">Login</a>
+        Vous avez déjà un compte ? <a href="login.php">Se connecter</a>
     </div>
 </div>
 </body>
-</html> 
+</html>
