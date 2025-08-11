@@ -146,95 +146,7 @@ if ($_POST) {
                 }
                 break;
             
-            case 'add_materiel_multiple':
-                // Store all form data for next iteration
-                $formData = $_POST;
-                $_SESSION['multi_materiel_last'] = $formData;
-                
-                // Decrement the count
-                $current = intval($_POST['current'] ?? 1);
-                $count = intval($_POST['count'] ?? 1);
-                
-                // Check if the serial number exists in inventaire
-                $serial = $_POST['NumSerie'] ?? null;
-                $checkInventaireStmt = $pdo->prepare("SELECT * FROM inventaire WHERE NumSerie = ?");
-                $checkInventaireStmt->execute([$serial]);
-                $inventaireMateriel = $checkInventaireStmt->fetch(PDO::FETCH_ASSOC);
-                
-                if ($inventaireMateriel) {
-                    // We don't handle inventaire recovery in multi-add mode
-                    $error_message = "Le numéro de série existe déjà en inventaire. Utilisez l'ajout simple pour récupérer un matériel.";
-                    // Redirect back to the form with the error
-                    header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&error=" . urlencode($error_message));
-                    exit();
-                }
-                
-                try {
-                    // Insert the materiel just like in add_materiel case
-                    $stmt = $pdo->prepare("INSERT INTO MATERIEL (NumSerie, Dateentree, Model, CodeType, CodeMarque, CodeFournisseur, STE, CodeUtilisateur, Processeur, graphique, disqdur, mhtz, mo, memoire, ip, ecran, pouce, observation, stock, classification, damage_cause, datefinservice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-                    // Grab all the form data, or set to null if missing
-                    $codeUtilisateur = !empty($_POST['CodeUtilisateur']) ? $_POST['CodeUtilisateur'] : NULL;
-                    $codeMarque = !empty($_POST['CodeMarque']) ? $_POST['CodeMarque'] : NULL;
-                    $codeType = !empty($_POST['CodeType']) ? $_POST['CodeType'] : NULL;
-                    $codeFournisseur = !empty($_POST['CodeFournisseur']) ? $_POST['CodeFournisseur'] : NULL;
-                    $dateentree = !empty($_POST['Dateentree']) ? $_POST['Dateentree'] : date('Y-m-d');
-                    
-                    // Only include damage_cause if state requires it
-                    $damageCause = null;
-                    if (isset($_POST['stock']) && ($_POST['stock'] === 'endommage' || $_POST['stock'] === 'casse')) {
-                        $damageCause = $_POST['damage_cause'] ?? null;
-                    }
-                    
-                    $stock = $_POST['stock'] ?? 'en-service';
-                    $stockValue = isset($stateToStock[$stock]) ? $stateToStock[$stock] : 0;
-                    $datefinservice = ($stockValue == 3) ? date('Y-m-d H:i:s') : null;
-                    
-                    $stmt->execute([
-                        $serial,
-                        $dateentree,
-                        $_POST['Model'],
-                        $codeType,
-                        $codeMarque,
-                        $codeFournisseur,
-                        $_POST['STE'],
-                        $codeUtilisateur,
-                        $_POST['Processeur'],
-                        $_POST['graphique'],
-                        $_POST['disqdur'],
-                        $_POST['mhtz'],
-                        $_POST['mo'],
-                        $_POST['memoire'],
-                        $_POST['ip'],
-                        $_POST['ecran'],
-                        $_POST['pouce'],
-                        $_POST['observation'],
-                        $stockValue,
-                        $_POST['classification'],
-                        $damageCause,
-                        $datefinservice
-                    ]);
-                    
-                    // Store all form data except NumSerie for next iteration
-                    unset($formData['NumSerie']); // Don't save NumSerie for next form
-                    $_SESSION['multi_materiel_last'] = $formData;
-                    
-                    if ($current < $count) {
-                        // Continue with more materials to add
-                        header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&showForm=ajouter_plusieurs&count=" . ($count - $current) . "&current=1&success=add_materiel");
-                    } else {
-                        // Done with all materials, redirect back to list
-                        $_SESSION['multi_materiel_last'] = []; // Clear the saved data
-                        header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&success=add_materiel_multiple");
-                    }
-                    exit();
-                } catch (PDOException $e) {
-                    // Handle error
-                    $error_message = "Une erreur est survenue lors de l'ajout du matériel: " . $e->getMessage();
-                    header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&showForm=ajouter_plusieurs&count=" . ($count - $current + 1) . "&current=" . $current . "&error=" . urlencode($error_message));
-                    exit();
-                }
-                break;
                 
             case 'add_materiel':
                 // Check if the serial number exists in inventaire
@@ -407,9 +319,23 @@ if ($_POST) {
                         '</ul>';
                     require_once __DIR__ . '/lib/mail_helper.php';
                     sendNewMaterielEmail($to, $subject, $body);
-
-                    // All done! Redirect back to the main page with a success message
-                    header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&success=add_materiel");
+                    
+                    // Save form data for next material if "plusieurs" is checked
+                    if (isset($_POST['plusieurs']) && $_POST['plusieurs'] == '1') {
+                        // Store all form data except NumSerie for next iteration
+                        $formData = $_POST;
+                        unset($formData['NumSerie']); // Don't save NumSerie for next form
+                        $_SESSION['multi_materiel_last'] = $formData;
+                        
+                        // Show the form again with a special success message for multiple material addition
+                        header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&showForm=materiel&success=add_materiel_multiple");
+                    } else {
+                        // Clean up any saved form data
+                        $_SESSION['multi_materiel_last'] = [];
+                        
+                        // All done! Redirect back to the main page with a standard success message
+                        header("Location: index.php?tab=materiel&ste=" . urlencode($_POST['STE']) . "&success=add_materiel");
+                    }
                     exit();
                 } catch (PDOException $e) {
                     // Oops, something went wrong with the DB insert
@@ -1134,6 +1060,7 @@ if ($_POST) {
 
 $success_messages = [
     'add_materiel' => 'Le matériel a été ajouté avec succès.',
+    'add_materiel_multiple' => 'Le matériel a été ajouté avec succès. Veuillez ajouter un autre matériel.',
     'add_user' => "L'utilisateur a été ajouté avec succès.",
     'add_marque' => "La marque a été ajoutée avec succès.",
     'add_type' => "Le type a été ajouté avec succès.",
@@ -1720,25 +1647,15 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
         <div id="materiel" class="mat-section tab-content <?= ($activeTab === 'materiel') ? 'active' : '' ?>">
             
             <!-- Add Materiel Form -->
-            <div class="section materiel-form <?= ($editMode && $editType === 'materiel') || $showFormParam === 'materiel' || $showFormParam === 'ajouter_plusieurs' ? '' : 'hide' ?>">
+            <div class="section materiel-form <?= ($editMode && $editType === 'materiel') || $showFormParam === 'materiel' ? '' : 'hide' ?>">
                 <div class="form-header form-annuler">
-                    <?php if ($showFormParam === 'ajouter_plusieurs'): ?>
-                        <h2>Ajouter Plusieurs Matériels (<?= $_GET['count'] ?? 0 ?> restants)</h2>
-                    <?php else: ?>
-                        <h2><?= $editMode && $editType === 'materiel' ? 'Modifier le Matériel' : 'Ajouter un Matériel' ?></h2>
-                    <?php endif; ?>
+                    <h2><?= $editMode && $editType === 'materiel' ? 'Modifier le Matériel' : 'Ajouter un Matériel' ?></h2>
                     <?php if (!$editMode): ?>
                         <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
                     <?php endif; ?>
                 </div>
                 <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
-                    <?php if ($showFormParam === 'ajouter_plusieurs'): ?>
-                        <input type="hidden" name="action" value="add_materiel_multiple">
-                        <input type="hidden" name="count" value="<?= $_GET['count'] ?? 1 ?>">
-                        <input type="hidden" name="current" value="<?= $_GET['current'] ?? 1 ?>">
-                    <?php else: ?>
-                        <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
-                    <?php endif; ?>
+                    <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
                     <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : (isset($previousMaterielData['STE']) ? htmlspecialchars($previousMaterielData['STE']) : $ste_filter) ?>">
                     <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= $editMode ? htmlspecialchars($editMateriel['datefinservice'] ?? '') : (isset($previousMaterielData['datefinservice']) ? htmlspecialchars($previousMaterielData['datefinservice']) : '') ?>">
 
@@ -1921,12 +1838,18 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                         <label>Cause du dommage:</label>
                         <textarea name="damage_cause" rows="2"><?= $editMode ? htmlspecialchars($editMateriel['damage_cause'] ?? '') : (isset($previousMaterielData['damage_cause']) ? htmlspecialchars($previousMaterielData['damage_cause']) : '') ?></textarea>
                     </div>
+                    <?php if (!$editMode): ?>
+                    <div class="form-group">
+                        <label for="plusieurs" class="checkbox-label" style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <input type="checkbox" id="plusieurs" name="plusieurs" value="1" <?= isset($previousMaterielData) ? 'checked' : '' ?> style="margin-right: 8px;">
+                            <span>Plusieurs (cocher pour ajouter plusieurs matériels)</span>
+                        </label>
+                    </div>
+                    <?php endif; ?>
                     <div class="form-group full-width">
                         <button type="submit" class="btn-primary">
                             <?php if ($editMode): ?>
                                 Modifier le Matériel
-                            <?php elseif ($showFormParam === 'ajouter_plusieurs'): ?>
-                                Ajouter et Continuer
                             <?php else: ?>
                                 Ajouter le Matériel
                             <?php endif; ?>
@@ -2002,7 +1925,6 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                 <div class="button-group">
                     <?php if (!$inventaire_mode): ?>
                     <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> onclick="window.location.href='index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&state=<?= urlencode($selected_state) ?>&showForm=materiel'">Ajouter Matériel</button>
-                    <button class="btn-primary" <?= !$is_admin ? 'disabled' : '' ?> id="ajouterPlusieursBtn">Ajouter Plusieurs</button>
                     <button class="btn btn-primary btn-excel-<?= $ste_filter ?>" onclick="exportTableToExcel('materiel-table', 'materiel_<?= htmlspecialchars($ste_filter) ?>_<?= date('Y-m-d') ?>.xlsx')">Exporter en Excel</button>
                     <a href="export_pdf.php?ste=<?= urlencode($ste_filter) ?>" class="btn btn-primary btn-export-pdf">
                         <i class="fas fa-file-pdf"></i> Exporter en PDF
@@ -2012,25 +1934,6 @@ if($_POST && $_POST['action'] === 'recuperer_reparation'){
                     <?php endif; ?>
                 </div>
             </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  var btn = document.getElementById('ajouterPlusieursBtn');
-  if (btn) {
-    btn.addEventListener('click', function() {
-      var count = prompt('Combien de matériels voulez-vous ajouter ?');
-      count = parseInt(count);
-      if (!isNaN(count) && count > 0) {
-        var url = 'index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>&showForm=ajouter_plusieurs&count=' + count + '&current=1';
-        window.location.href = url;
-      } else if (count <= 0) {
-        alert('Veuillez entrer un nombre positif.');
-      } else {
-        alert('Veuillez entrer un nombre valide.');
-      }
-    });
-  }
-});
 </script>
 
             <!-- Restored search bar -->
