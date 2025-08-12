@@ -1611,22 +1611,21 @@ if ($selected_state === 'en-service') {
                 <div class="form-header form-annuler">
                     <h2><?= $editMode && $editType === 'materiel' ? 'Modifier le Matériel' : 'Ajouter un Matériel' ?></h2>
                     <?php if (!$editMode): ?>
-                        <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                        <div class="form-header-actions">
+                            <a href="index.php?tab=materiel&ste=<?= urlencode($ste_filter) ?>" class="btn-close btn-cancel">Annuler</a>
+                            <label for="plusieurs" class="inline-checkbox">
+                                <input type="checkbox" id="plusieurs" name="plusieurs" value="1" form="materiel-form" <?= (!empty($previousMaterielData) || (isset($_SESSION['multi_materiel_last']) && !empty($_SESSION['multi_materiel_last']))) ? 'checked' : '' ?>>
+                                <span>Ajouter plusieurs matériels</span>
+                            </label>
+                        </div>
                     <?php endif; ?>
                 </div>
-                <form method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
+                <form id="materiel-form" method="POST" class="form-grid" onsubmit="return handleFormSubmit(this)">
                     <input type="hidden" name="action" value="<?= $editMode && $editType === 'materiel' ? 'modify_materiel' : 'add_materiel' ?>">
                     <input type="hidden" name="STE" value="<?= $editMode ? htmlspecialchars($editMateriel['STE']) : (isset($previousMaterielData['STE']) ? htmlspecialchars($previousMaterielData['STE']) : $ste_filter) ?>">
                     <input type="hidden" name="datefinservice" id="datefinservice-input" value="<?= $editMode ? htmlspecialchars($editMateriel['datefinservice'] ?? '') : (isset($previousMaterielData['datefinservice']) ? htmlspecialchars($previousMaterielData['datefinservice']) : '') ?>">
                     
-                    <?php if (!$editMode): ?>
-                    <div class="form-group full-width" style="margin-bottom: 15px;">
-                        <label for="plusieurs" class="checkbox-label" style="display: flex; align-items: center; font-weight: bold;">
-                            <input type="checkbox" id="plusieurs" name="plusieurs" value="1" <?= (!empty($previousMaterielData) || (isset($_SESSION['multi_materiel_last']) && !empty($_SESSION['multi_materiel_last']))) ? 'checked' : '' ?> style="margin-right: 8px;">
-                            Ajouter plusieurs matériels
-                        </label>
-                    </div>
-                    <?php endif; ?>
+                    <?php /* Multi-add checkbox moved to header (still submits via form attribute) */ ?>
 
                     <!-- Identification Section -->
                     <h3 class="form-section-title">Identification</h3>

@@ -809,6 +809,13 @@ body.theme-comm .btn-search:hover {
   margin-bottom: 20px;
 }
 
+.form-header .form-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 .form-header h2 {
   font-size: 1.5rem;
   font-weight: 300;
@@ -1240,6 +1247,30 @@ body.theme-comm table thead {
 .materiel-form form.form-grid {
   display: block !important;
   width: 100%;
+}
+
+/* Inline checkbox row for 'Ajouter plusieurs matériels' */
+.checkbox-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+.inline-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #333;
+  user-select: none;
+}
+.inline-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #667eea; /* modern browsers */
+}
+.inline-checkbox span {
+  line-height: 1;
+  white-space: nowrap;
 }
 
 /* Fiche de réparation modal styles */
