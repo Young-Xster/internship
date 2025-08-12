@@ -32,7 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_to_repair']) && 
         // Remove from materiel
         $del = $pdo->prepare("DELETE FROM materiel WHERE NumSerie = ?");
         $del->execute([$numserie]);
-        header('Location: index.php?tab=maintenance&sent=1');
+    $ste = urlencode($mat['STE'] ?? 'prod');
+    header('Location: index.php?tab=maintenance&ste=' . $ste . '&sent=1');
         exit();
     } else {
         $error = 'Matériel introuvable.';
@@ -191,6 +192,7 @@ if (!$mat) {
     <button type="button" class="fiche-btn pdf" onclick="window.print()" title="Cliquez pour exporter cette fiche en PDF via l'impression du navigateur">Importer PDF</button>
     <form method="POST" style="display:inline; margin:0;">
         <input type="hidden" name="numserie" value="<?= htmlspecialchars($mat['NumSerie']) ?>">
+        <input type="hidden" name="ste" value="<?= htmlspecialchars($mat['STE'] ?? '') ?>">
         <button type="submit" name="send_to_repair" class="fiche-btn send"  onclick="return confirm('Envoyer ce matériel en réparation ? Il sera retiré de la liste principale.'); ">Envoyer en réparation</button>
     </form>
 </div>

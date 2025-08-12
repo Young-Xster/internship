@@ -1030,7 +1030,7 @@ if ($_POST) {
                             // Insert into materiel (adjust columns as needed)
                             $fields = [
                                 'NumSerie', 'CodeMarque', 'CodeType', 'Model', 'CodeUtilisateur', 'Dateentree',
-                                'stock', 'observation', 'Processeur', memoire, disqdur, graphique, 
+                                'stock', 'observation', 'Processeur', 'memoire', 'disqdur', 'graphique',
                                 'pouce', 'ecran', 'mhtz', 'mo', 'ip', 'classification', 'STE', 'CodeFournisseur', 'damage_cause'
                             ];
                             $insert_fields = implode(", ", $fields);
@@ -2842,7 +2842,7 @@ if ($selected_state === 'en-service') {
                                     <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
                                     <td><?= ($materiel['stock'] == 0) ? 'En service' : 'En stock' ?></td>
                                     <td>
-                                        <a href="fiche_reparation.php?numserie=<?= urlencode($materiel['NumSerie']) ?>" class="btn-primary" target="_blank" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>Fiche de réparation</a>
+                                        <a href="fiche_reparation.php?numserie=<?= urlencode($materiel['NumSerie']) ?>" class="btn-fiche" target="_blank" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>Fiche de réparation</a>
                                     </td>
                                 </tr>
                                 <?php endif; ?>
@@ -2854,8 +2854,13 @@ if ($selected_state === 'en-service') {
                     <?php
                     // Fetch materiel en reparation from the new table
                     try {
-                        $reparation_stmt = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE STE = ? ORDER BY date_sent DESC");
-                        $reparation_stmt->execute([$ste_filter]);
+                        if ($ste_filter === 'all') {
+                            $reparation_stmt = $pdo->prepare("SELECT * FROM materiel_en_reparation ORDER BY date_sent DESC");
+                            $reparation_stmt->execute();
+                        } else {
+                            $reparation_stmt = $pdo->prepare("SELECT * FROM materiel_en_reparation WHERE STE = ? ORDER BY date_sent DESC");
+                            $reparation_stmt->execute([$ste_filter]);
+                        }
                         $materiels_en_reparation = $reparation_stmt->fetchAll();
                         // Fetch user, marque, and type names for each materiel
                         foreach ($materiels_en_reparation as &$mat) {

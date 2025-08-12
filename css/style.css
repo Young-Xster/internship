@@ -740,6 +740,36 @@ body.theme-comm .btn-search:hover {
   transform: translateY(-1px);
 }
 
+/* Compact button for 'Fiche de réparation' in maintenance table */
+.btn-fiche {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff !important;
+  text-decoration: none !important;
+  border: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap; /* keep text on one line */
+  min-width: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.2s ease;
+}
+
+.btn-fiche:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  filter: brightness(1.03);
+}
+
+.btn-fiche:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
 .hide {
   display: none !important;
 }

@@ -3169,3 +3169,7 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 
 2025-08-12 22:56:20 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"vjhvhjvjv","CodeType":"4","CodeMarque":"61","Model":"Zrr","CodeUtilisateur":"ESD AB              ","CodeFournisseur":"DELY@GMAIL.COM","Dateentree":"2025-08-12","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
 2025-08-12 22:56:31 POST: {"action":"delete_materiel","NumSerie":"vjhvhjvjv","STE":"prod"} TAB: materiel
+2025-08-12 23:37:56 POST: {"action":"recuperer_reparation","NumSerie":"ZSKBH9LBC01879F               "} TAB: maintenance
+2025-08-12 23:42:48 POST: {"action":"recuperer_reparation","NumSerie":"ZSKBH9LBC01879F               "} TAB: maintenance
+2025-08-12 23:43:08 POST: {"action":"recuperer_reparation","NumSerie":"ZZ0KHTKF101642K               "} TAB: maintenance
+2025-08-12 23:43:14 POST: {"action":"recuperer_reparation","NumSerie":"ZZNMH4ZH400766N               "} TAB: maintenance
