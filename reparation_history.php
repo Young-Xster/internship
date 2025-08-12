@@ -5,8 +5,13 @@ $ste = $_GET['ste'] ?? 'prod';
 $materiel_filter = isset($_GET['materiel']) ? $_GET['materiel'] : '';
 
 try {
-    $materielStmt = $pdo->prepare("SELECT DISTINCT NumSerie FROM materiel_repair_history WHERE STE = :ste ORDER BY NumSerie");
-    $materielStmt->execute(['ste' => $ste]);
+    if ($ste === 'all') {
+        $materielStmt = $pdo->prepare("SELECT DISTINCT NumSerie FROM materiel_repair_history ORDER BY NumSerie");
+        $materielStmt->execute();
+    } else {
+        $materielStmt = $pdo->prepare("SELECT DISTINCT NumSerie FROM materiel_repair_history WHERE STE = :ste ORDER BY NumSerie");
+        $materielStmt->execute(['ste' => $ste]);
+    }
     $allMateriel = $materielStmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (PDOException $e) {
     $allMateriel = [];
@@ -15,8 +20,13 @@ try {
 $history = [];
 if ($materiel_filter) {
     try {
-        $historyStmt = $pdo->prepare("SELECT * FROM materiel_repair_history WHERE NumSerie = :numserie AND STE = :ste ORDER BY date_sent DESC");
-        $historyStmt->execute(['numserie' => $materiel_filter, 'ste' => $ste]);
+        if ($ste === 'all') {
+            $historyStmt = $pdo->prepare("SELECT * FROM materiel_repair_history WHERE NumSerie = :numserie ORDER BY date_sent DESC");
+            $historyStmt->execute(['numserie' => $materiel_filter]);
+        } else {
+            $historyStmt = $pdo->prepare("SELECT * FROM materiel_repair_history WHERE NumSerie = :numserie AND STE = :ste ORDER BY date_sent DESC");
+            $historyStmt->execute(['numserie' => $materiel_filter, 'ste' => $ste]);
+        }
         $history = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         $history = [];
@@ -24,8 +34,13 @@ if ($materiel_filter) {
 } else {
     // Show all materiel with all their repair history, grouped by NumSerie
     try {
-        $historyStmt = $pdo->prepare("SELECT * FROM materiel_repair_history WHERE STE = :ste ORDER BY NumSerie, date_sent DESC");
-        $historyStmt->execute(['ste' => $ste]);
+        if ($ste === 'all') {
+            $historyStmt = $pdo->prepare("SELECT * FROM materiel_repair_history ORDER BY NumSerie, date_sent DESC");
+            $historyStmt->execute();
+        } else {
+            $historyStmt = $pdo->prepare("SELECT * FROM materiel_repair_history WHERE STE = :ste ORDER BY NumSerie, date_sent DESC");
+            $historyStmt->execute(['ste' => $ste]);
+        }
         $allHistory = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
         // Group by NumSerie
         $history = [];

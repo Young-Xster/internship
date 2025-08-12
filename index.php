@@ -1759,20 +1759,15 @@ if ($selected_state === 'en-service') {
                     <div class="form-row">
                         <div class="form-group">
                             <label>Classification:</label>
-                             <select name="classification" id="materiel-classification-select" onchange="toggleDamageCause(this.value)">
-                                <option value="interne" <?= ($editMode && $editMateriel['stock'] === 'interne') || 
-                                                          (!$editMode && isset($previousMaterielData['classification']) && $previousMaterielData['classification'] === 'interne') || 
-                                                          (!$editMode && !isset($previousMaterielData['classification']) && $default_state === 'interne') ? 'selected' : '' ?>>Interne</option>
-                                <option value="confidentiel" <?= ($editMode && $editMateriel['stock'] === 'confidentiel') || 
-                                                             (!$editMode && isset($previousMaterielData['classification']) && $previousMaterielData['classification'] === 'confidentiel') || 
-                                                             (!$editMode && !isset($previousMaterielData['classification']) && $default_state === 'confidentiel') ? 'selected' : '' ?>>Confidentiel</option>
-                                <option value="secret" <?= ($editMode && $editMateriel['stock'] === 'secret') || 
-                                                       (!$editMode && isset($previousMaterielData['classification']) && $previousMaterielData['classification'] === 'secret') || 
-                                                       (!$editMode && !isset($previousMaterielData['classification']) && $default_state === 'secret') ? 'selected' : '' ?>>Secret</option>
-                                <option value="public" <?= ($editMode && $editMateriel['stock'] === 'public') || 
-                                                        (!$editMode && isset($previousMaterielData['classification']) && $previousMaterielData['classification'] === 'public') || 
-                                                        (!$editMode && !isset($previousMaterielData['classification']) && $default_state === 'public') ? 'selected' : '' ?>>Public</option>
-                               
+                             <select name="classification" id="materiel-classification-select">
+                                <?php
+                                $classOptions = ['interne' => 'Interne', 'confidentiel' => 'Confidentiel', 'secret' => 'Secret', 'public' => 'Public'];
+                                $currentClass = $editMode ? ($editMateriel['classification'] ?? '') : ($previousMaterielData['classification'] ?? ($default_state ?? 'interne'));
+                                foreach ($classOptions as $val => $label):
+                                    $sel = ($currentClass === $val) ? 'selected' : '';
+                                ?>
+                                    <option value="<?= $val ?>" <?= $sel ?>><?= $label ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         
