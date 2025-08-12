@@ -3072,3 +3072,100 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 2025-08-11 10:36:30 POST: {"action":"modify_utilisateur","STE":"Prod","Compte":"WISI51              ","NomPrenom":"Abdellaoui Amor ","CodeService":"6","Email":"Amor.ABDELLAOUI@aaf.com.tn","Tel":"123"} TAB: utilisateurs
 2025-08-11 10:36:45 POST: {"action":"add_utilisateur","STE":"Prod","Compte":"dsddsd","NomPrenom":"DEELY","CodeService":"8","Email":"","Tel":""} TAB: utilisateurs
 2025-08-11 10:37:04 POST: {"action":"delete_utilisateur","Compte":"dsddsd","STE":"Prod"} TAB: utilisateurs
+2025-08-12 22:45:44 POST: {"action":"modify_utilisateur","STE":"Prod","Compte":"WISI51              ","NomPrenom":"Abdellaoui Amor ","CodeService":"6","Email":"Amor.ABDELLAOUI@aaf.com.tn","Tel":"123333"} TAB: utilisateurs
+2025-08-12 22:47:03 POST: {"action":"add_utilisateur","STE":"Prod","Compte":"hgvgvhgv","NomPrenom":"hjbjhbjhb","CodeService":"10","Email":"","Tel":""} TAB: utilisateurs
+2025-08-12 22:47:28 POST: {"action":"delete_utilisateur","Compte":"hgvgvhgv","STE":"Prod"} TAB: utilisateurs
+2025-08-12 22:55:04 POST: {"action":"add_fournisseur","STE":"all","Email":"DELY@GMAIL.COM","CompanyName":"ahmed mohsen ","NomComplet":"mohsen ahmed","Adress":"","TelFix":"","TelMobile":""} TAB: fournisseurs
+2025-08-12 22:55:18 POST: {"action":"modify_fournisseur","STE":"all","Email":"DELY@GMAIL.COM","CompanyName":"ahmed mohsen ","NomComplet":"mohsen ahmed","Adress":"","TelFix":"0","TelMobile":"04234243"} TAB: fournisseurs
+2025-08-12 22:55:55 POST: {"action":"add_materiel","STE":"prod","datefinservice":"","NumSerie":"vjhvhjvjv","CodeType":"4","CodeMarque":"61","Model":"Z","CodeUtilisateur":"ESD AB              ","CodeFournisseur":"DELY@GMAIL.COM","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-08-12 22:55:55 - Fin Inventaire Debug: POST present[] = null
+2025-08-12 22:55:55 - Fin Inventaire Debug: not_present_count = , moved_count = 
+2025-08-12 22:55:56 PHPMailer SMTP: SERVER -> CLIENT: 220 smtp.mailersend.net ESMTP
+
+2025-08-12 22:55:56 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-08-12 22:55:56 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [165.51.234.201]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250-AUTH LOGIN PLAIN
+250 STARTTLS
+
+2025-08-12 22:55:56 PHPMailer SMTP: CLIENT -> SERVER: STARTTLS
+
+2025-08-12 22:55:56 PHPMailer SMTP: SERVER -> CLIENT: 220 Ready to start TLS
+
+2025-08-12 22:55:56 PHPMailer SMTP: CLIENT -> SERVER: EHLO localhost
+
+2025-08-12 22:55:56 PHPMailer SMTP: SERVER -> CLIENT: 250-smtp.mailersend.net Nice to meet you, [165.51.234.201]
+250-PIPELINING
+250-8BITMIME
+250-SMTPUTF8
+250 AUTH LOGIN PLAIN
+
+2025-08-12 22:55:56 PHPMailer SMTP: CLIENT -> SERVER: AUTH LOGIN
+
+2025-08-12 22:55:56 PHPMailer SMTP: SERVER -> CLIENT: 334 VXNlcm5hbWU6
+
+2025-08-12 22:55:56 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-08-12 22:55:56 PHPMailer SMTP: SERVER -> CLIENT: 334 UGFzc3dvcmQ6
+
+2025-08-12 22:55:56 PHPMailer SMTP: CLIENT -> SERVER: [credentials hidden]
+2025-08-12 22:55:57 PHPMailer SMTP: SERVER -> CLIENT: 235 Authentication successful
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: MAIL FROM:<MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net>
+
+2025-08-12 22:55:57 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: RCPT TO:<amarahelmi81@gmail.com>
+
+2025-08-12 22:55:57 PHPMailer SMTP: SERVER -> CLIENT: 250 Accepted
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: DATA
+
+2025-08-12 22:55:57 PHPMailer SMTP: SERVER -> CLIENT: 354 End data with <CR><LF>.<CR><LF>
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: Date: Tue, 12 Aug 2025 22:55:55 +0200
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: To: amarahelmi81@gmail.com
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: From: No Reply <MS_GBPJuK@test-eqvygm0o5r8l0p7w.mlsender.net>
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: Subject: =?UTF-8?Q?Nouveau_mat=C3=A9riel_ajout=C3=A9:_vjhvhjvjv?=
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: Message-ID: <odIIs4hjXTaLe2EpTLoIs54xJauKkCepQep8gZ2Im94@localhost>
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: X-Mailer: PHPMailer 6.8.0 (https://github.com/PHPMailer/PHPMailer)
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: MIME-Version: 1.0
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: Content-Type: text/html; charset=UTF-8
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: Content-Transfer-Encoding: base64
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: PGgzPlVuIG5vdXZlYXUgbWF0w6lyaWVsIGEgw6l0w6kgYWpvdXTDqTwvaDM+PHVsPjxsaT48c3Ry
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: b25nPk51bcOpcm8gZGUgc8OpcmllOjwvc3Ryb25nPiB2amh2aGp2anY8L2xpPjxsaT48c3Ryb25n
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: Pk1vZMOobGU6PC9zdHJvbmc+IFo8L2xpPjxsaT48c3Ryb25nPlR5cGU6PC9zdHJvbmc+IEltcHJp
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: bWFudGUgTGFzZXIgPC9saT48bGk+PHN0cm9uZz5NYXJxdWU6PC9zdHJvbmc+IEJlblE8L2xpPjxs
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: aT48c3Ryb25nPkRhdGUgZCdlbnRyw6llOjwvc3Ryb25nPiAyMDI1LTA4LTEyPC9saT48bGk+PHN0
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: cm9uZz5Qcm9jZXNzZXVyOjwvc3Ryb25nPiA8L2xpPjgx
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: 
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: .
+
+2025-08-12 22:55:57 PHPMailer SMTP: SERVER -> CLIENT: 250 Message queued as 689baa5c1751d0cc4cb6a5ca
+
+2025-08-12 22:55:57 PHPMailer SMTP: CLIENT -> SERVER: QUIT
+
+2025-08-12 22:55:57 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
+
+2025-08-12 22:56:20 POST: {"action":"modify_materiel","STE":"prod","datefinservice":"","NumSerie":"vjhvhjvjv","CodeType":"4","CodeMarque":"61","Model":"Zrr","CodeUtilisateur":"ESD AB              ","CodeFournisseur":"DELY@GMAIL.COM","Dateentree":"2025-08-12","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""} TAB: materiel
+2025-08-12 22:56:31 POST: {"action":"delete_materiel","NumSerie":"vjhvhjvjv","STE":"prod"} TAB: materiel

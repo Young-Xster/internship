@@ -455,16 +455,16 @@ if ($_POST) {
                     $count = $checkStmt->fetchColumn();
 
                     if ($count > 0) {
-                        header("Location: index.php?tab=utilisateurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=linked_user");
+                        header("Location: index.php?tab=utilisateur&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=linked_user");
                         exit();
                     } else {
                         $stmt = $pdo->prepare("DELETE FROM utilisateur WHERE Compte = ?");
                         $stmt->execute([$_POST['Compte']]);
-                        header("Location: index.php?tab=utilisateurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_user");
+                        header("Location: index.php?tab=utilisateur&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&success=delete_user");
                         exit();
                     }
                 } catch (PDOException $e) {
-                    header("Location: index.php?tab=utilisateurs&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=delete_user");
+                    header("Location: index.php?tab=utilisateur&ste=" . urlencode($_POST['STE'] ?? 'prod') . "&error=delete_user");
                     exit();
                 }
                 break;
@@ -1626,7 +1626,7 @@ if ($selected_state === 'en-service') {
                             Ajouter plusieurs matériels
                         </label>
                     </div>
-                    <?php endif; ?>>
+                    <?php endif; ?>
 
                     <!-- Identification Section -->
                     <h3 class="form-section-title">Identification</h3>
@@ -2303,8 +2303,17 @@ if ($selected_state === 'en-service') {
                             <td><?= htmlspecialchars($u['Email'] ?? '') ?></td>
                             <td><?= htmlspecialchars($u['Tel'] ?? '') ?></td>
                             <td>
-                                <a href="index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&edit=utilisateur&Compte=<?= urlencode($u['Compte']) ?>">Modifier</a>
-                                <a href="index.php?tab=utilisateur&ste=<?= urlencode($ste_filter) ?>&delete=utilisateur&Compte=<?= urlencode($u['Compte']) ?>" onclick="return confirm('Supprimer cet utilisateur ?')">Supprimer</a>
+                                <a href="index.php?edit=<?= urlencode($u['Compte']) ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                    <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
+                                </a>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Supprimer cet utilisateur ?');">
+                                    <input type="hidden" name="action" value="delete_utilisateur">
+                                    <input type="hidden" name="Compte" value="<?= htmlspecialchars($u['Compte']) ?>">
+                                    <input type="hidden" name="STE" value="<?= htmlspecialchars($ste_filter) ?>">
+                                    <button type="submit" class="btn-delete" title="Supprimer" <?= !$is_admin ? 'disabled' : '' ?>>
+                                        <img width="20px" height="20px" src="imgs/trash.png" alt="Supprimer"/>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -2638,6 +2647,28 @@ if ($selected_state === 'en-service') {
                     <div class="form-group">
                         <label>Nom Complet:</label>
                         <input type="text" name="NomComplet" value="<?= $editMode ? htmlspecialchars($editFournisseur['NomComplet']) : '' ?>" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Adresse:</label>
+                        <input type="text" name="Adress" value="<?= $editMode ? htmlspecialchars($editFournisseur['Adress'] ?? '') : '' ?>">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tel Fixe:</label>
+                        <input type="text" name="TelFix" value="<?= $editMode ? htmlspecialchars($editFournisseur['TelFix'] ?? '') : '' ?>">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tel Mobile:</label>
+                        <input type="text" name="TelMobile" value="<?= $editMode ? htmlspecialchars($editFournisseur['TelMobile'] ?? '') : '' ?>">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary"><?= $editMode ? 'Modifier' : 'Ajouter' ?></button>
+                        <?php if ($editMode): ?>
+                            <a href="index.php?tab=fournisseurs&ste=<?= urlencode($ste_filter) ?>" class="btn-cancel">Annuler</a>
+                        <?php endif; ?>
                     </div>
                 </form>
             </div>
