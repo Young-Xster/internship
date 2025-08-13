@@ -1,6 +1,6 @@
 <?php
 $host = 'localhost';
-$db   = 'gestion-de-stock';
+$db   = 'gestion-de-stockaaf';
 $user = 'root';
 $pass = '';
 $charset = 'utf8mb4';

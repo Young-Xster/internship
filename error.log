@@ -3270,3 +3270,4 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 2025-08-13 00:44:20 PHPMailer SMTP: SERVER -> CLIENT: 221 Bye
 
 2025-08-13 00:44:41 POST: {"action":"delete_materiel","NumSerie":"dcsdd","STE":"all"} TAB: materiel
+2025-08-13 21:58:41 POST: {"action":"recuperer_reparation","NumSerie":"ZZNMH4ZH400766N               "} TAB: maintenance
