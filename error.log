@@ -3271,3 +3271,4 @@ Trace: #0 C:\xampp\htdocs\stage\index.php(607): PDOStatement->execute(Array)
 
 2025-08-13 00:44:41 POST: {"action":"delete_materiel","NumSerie":"dcsdd","STE":"all"} TAB: materiel
 2025-08-13 21:58:41 POST: {"action":"recuperer_reparation","NumSerie":"ZZNMH4ZH400766N               "} TAB: maintenance
+2025-08-13 22:24:05 POST: {"action":"transfer_materiel","NumSerie":"ZZNMH4ZH400766N               ","STE":"PROD","target_STE":"comm","CodeUtilisateur":"wisi54              "} TAB: materiel

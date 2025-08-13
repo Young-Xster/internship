@@ -360,3 +360,4 @@ Type: kou3Namla
 2025-08-13 00:44:17 POST: {"action":"add_materiel","STE":"all","datefinservice":"","plusieurs":"1","NumSerie":"dcsdd","CodeType":"21","CodeMarque":"15","Model":"Z","CodeUtilisateur":"SMD2                ","CodeFournisseur":"DELY@GMAIL.COM","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""}
 2025-08-13 00:44:41 POST: {"action":"delete_materiel","NumSerie":"dcsdd","STE":"all"}
 2025-08-13 21:58:41 POST: {"action":"recuperer_reparation","NumSerie":"ZZNMH4ZH400766N               "}
+2025-08-13 22:24:05 POST: {"action":"transfer_materiel","NumSerie":"ZZNMH4ZH400766N               ","STE":"PROD","target_STE":"comm","CodeUtilisateur":"wisi54              "}

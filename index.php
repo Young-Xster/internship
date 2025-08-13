@@ -1856,7 +1856,11 @@ if ($selected_state === 'en-service') {
 
                     <div class="form-group">
                         <label>Transférer vers:</label>
-                        <input type="text" name="target_STE" value="<?= ($ste_filter === 'prod') ? 'COMM' : 'PROD' ?>" readonly>
+                        <select name="target_STE" id="target-ste-select" required onchange="updateUserDropdown()">
+                            <option value="prod">PROD</option>
+                            <option value="comm">COMM</option>
+                            
+                        </select>
                     </div>
 
                     <div class="form-group">
