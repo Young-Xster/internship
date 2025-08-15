@@ -361,3 +361,10 @@ Type: kou3Namla
 2025-08-13 00:44:41 POST: {"action":"delete_materiel","NumSerie":"dcsdd","STE":"all"}
 2025-08-13 21:58:41 POST: {"action":"recuperer_reparation","NumSerie":"ZZNMH4ZH400766N               "}
 2025-08-13 22:24:05 POST: {"action":"transfer_materiel","NumSerie":"ZZNMH4ZH400766N               ","STE":"PROD","target_STE":"comm","CodeUtilisateur":"wisi54              "}
+2025-08-15 09:35:21 POST: {"action":"recuperer_reparation","NumSerie":"ZZNMH4ZH400766N               "}
+2025-08-15 09:37:08 POST: {"action":"recuperer_reparation","NumSerie":"ZZNMH4ZH400766N               "}
+2025-08-15 09:51:22 POST: {"action":"add_materiel","STE":"all","datefinservice":"","NumSerie":"GAGGGA","CodeType":"15","CodeMarque":"15","Model":"13","CodeUtilisateur":"wisi116             ","CodeFournisseur":"DELY@GMAIL.COM","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""}
+2025-08-15 09:51:54 POST: {"plusieurs":"1","action":"add_materiel","STE":"all","datefinservice":"","NumSerie":"gdggg","CodeType":"5","CodeMarque":"61","Model":"12","CodeUtilisateur":"WISI25              ","CodeFournisseur":"DELY@GMAIL.COM","Dateentree":"","Processeur":"","graphique":"","disqdur":"","mhtz":"","mo":"","memoire":"","ip":"","ecran":"","pouce":"","classification":"interne","stock":"en-service","observation":"","damage_cause":""}
+2025-08-15 09:52:32 POST: {"action":"add_fournisseur","STE":"all","Email":"Amor.ABDELLAOUI@aaf.com.tn","CompanyName":"zied","NomComplet":"fedi besbes","Adress":"","TelFix":"","TelMobile":""}
+2025-08-15 10:00:50 POST: {"action":"delete_materiel","NumSerie":"gdggg","STE":"all"}
+2025-08-15 10:04:47 POST: {"action":"delete_materiel","NumSerie":"GAGGGA","STE":"all"}

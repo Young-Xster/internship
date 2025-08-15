@@ -6,17 +6,29 @@
 require_once 'config.php';
 
 try {
-    // Read the SQL command from the setup file.
-    $sql = file_get_contents(__DIR__ . '/../sql/create_inventaire_table.sql');
-    
-    // If the file is readable, execute the SQL.
-    if ($sql !== false) {
-        $pdo->exec($sql);
+    // Create inventaire table if missing
+    $sqlInventaire = file_get_contents(__DIR__ . '/../sql/create_inventaire_table.sql');
+    if ($sqlInventaire !== false) {
+        $pdo->exec($sqlInventaire);
+    }
+
+    // Create materiel_history table if missing
+    $sqlHist = file_get_contents(__DIR__ . '/../sql/create_materiel_history.sql');
+    if ($sqlHist !== false) {
+        $pdo->exec($sqlHist);
+    }
+
+    // Apply optional updates to materiel table (safe to run repeatedly)
+    $sqlUpdateMateriel = file_get_contents(__DIR__ . '/../sql/update_materiel_table.sql');
+    if ($sqlUpdateMateriel !== false) {
+        try {
+            $pdo->exec($sqlUpdateMateriel);
+        } catch (Exception $ignore) {
+            // Some MySQL versions may not support IF NOT EXISTS in ALTER; ignore if it fails
+        }
     }
 } catch (Exception $e) {
-    // If there's an error (e.g., permissions, connection issue),
-    // log it silently and let the application continue.
-    // This prevents crashing if the DB isn't fully set up.
+    // Log and continue without breaking the app
     error_log("Database initialization check failed: " . $e->getMessage());
 }
 ?>

@@ -1331,6 +1331,7 @@ try {
     }
     $materiels = $materiels_stmt->fetchAll(PDO::FETCH_ASSOC);
 
+   
     // Fournisseurs list
     $fournisseurs = $pdo->query("SELECT * FROM fournisseur ORDER BY CompanyName, NomComplet")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -1820,7 +1821,6 @@ if ($selected_state === 'en-service') {
 
             <!-- Transfer Materiel Form -->
             <div class="section materiel-transfer-form <?= ($transferMode && $transferType === 'materiel') ? '' : 'hide' ?>">
-            <!-- Display datefinservice in Casse tab -->
             <?php if ($activeTab === 'materiel' && $selected_state === 'casse'): ?>
                 <div class="casse-datefinservice-list">
                     <h3>Date de fin de service</h3>
@@ -1868,7 +1868,10 @@ if ($selected_state === 'en-service') {
                         <select name="CodeUtilisateur" required>
                             <option value="">Sélectionner un utilisateur</option>
                             <?php foreach ($transfer_utilisateurs as $user): ?>
-                                <option value="<?= $user['Compte'] ?>"><?= $user['NomPrenom'] ?></option>
+                                <option value="<?= $user['Compte'] ?>" 
+                                    <?= $editMode && $user['Compte'] == $editMateriel['CodeUtilisateur'] ? 'selected' : 
+                                        (isset($previousMaterielData['CodeUtilisateur']) && $user['Compte'] == $previousMaterielData['CodeUtilisateur'] ? 'selected' : '') ?>
+                                ><?= $user['NomPrenom'] ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -1895,7 +1898,6 @@ if ($selected_state === 'en-service') {
                     <?php endif; ?>
                 </div>
             </div>
-</script>
 
             <!-- Restored search bar -->
             <div class="search-container">
@@ -1913,6 +1915,8 @@ if ($selected_state === 'en-service') {
                         document.addEventListener('DOMContentLoaded', function() {
                             const searchInput = document.getElementById('search-materiel');
                             if (searchInput) {
+                                // Trigger initial filtering once DOM and script are ready
+                                setTimeout(function(){ if (typeof performSearch === 'function') { performSearch('materiel'); } }, 0);
                                 searchInput.addEventListener('input', function() {
                                     const searchTerm = this.value.toLowerCase();
                                     const isGlobalHistory = window.location.search.includes('state=global-history');
@@ -1960,9 +1964,6 @@ if ($selected_state === 'en-service') {
                         </label>
                         <label class="filter-checkbox">
                             <input type="checkbox" class="search-filter" data-column="observation"> Observation
-                        </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="État"> État
                         </label>
                     </div>
                 </div>
@@ -2056,7 +2057,20 @@ if ($selected_state === 'en-service') {
                                     <td><?= htmlspecialchars($materiel['NomPrenom'] ?? 'N/A') ?></td>
                                     <td><?= htmlspecialchars($materiel['Dateentree'] ?? 'N/A') ?></td>
                                     <td><?= htmlspecialchars($materiel['classification'] ?? 'N/A') ?></td>
-                                    <td class="materiel-state">
+                                    <?php
+                                        // Compute a stable state key for filtering
+                                        $stateKey = 'en-service';
+                                        if (isset($materiel['stock'])) {
+                                            $sv = $materiel['stock'];
+                                            if (is_numeric($sv)) {
+                                                $map = ['en-service','en-stock','endommage','casse'];
+                                                $stateKey = $map[(int)$sv] ?? 'en-service';
+                                            } elseif (in_array($sv, ['en-service','en-stock','endommage','casse'], true)) {
+                                                $stateKey = $sv;
+                                            }
+                                        }
+                                    ?>
+                                    <td class="materiel-state materiel-state-value" data-state="<?= htmlspecialchars($stateKey) ?>">
                                         <?php if (!$inventaire_mode): ?>
                                         <form method="POST" style="display:inline; margin:0;" onsubmit="return handleInlineStateChange(this)">
                                             <input type="hidden" name="action" value="change_state">
@@ -2301,7 +2315,7 @@ if ($selected_state === 'en-service') {
                             <td><?= htmlspecialchars($u['Email'] ?? '') ?></td>
                             <td><?= htmlspecialchars($u['Tel'] ?? '') ?></td>
                             <td>
-                                <a href="index.php?edit=<?= urlencode($u['Compte']) ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
+                                <a href="index.php?edit=<?= $u['Compte'] ?>&type=utilisateur&ste=<?= urlencode($ste_filter) ?>" class="btn-modify" title="Modifier" <?= !$is_admin ? 'tabindex="-1" style="pointer-events:none;opacity:0.6;"' : '' ?>>
                                     <img width="20px" height="20px" src="imgs/edit.png" alt="modifier"/>
                                 </a>
                                 <form method="POST" style="display:inline;" onsubmit="return confirm('Supprimer cet utilisateur ?');">
@@ -2801,9 +2815,6 @@ if ($selected_state === 'en-service') {
                         <label class="filter-checkbox">
                             <input type="checkbox" class="search-filter" data-column="Dateentree"> Date Entrée
                         </label>
-                        <label class="filter-checkbox">
-                            <input type="checkbox" class="search-filter" data-column="État"> État
-                        </label>
                     </div>
                 </div>
             </div>
@@ -2969,8 +2980,6 @@ if ($selected_state === 'en-service') {
 
     <div id="notification-container"></div>
 
-    <script src="js/script.js?v=<?= time() ?>"></script>
-    <!-- <script src="js/export.js?v=<?= time() ?>"></script> -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const themeToggle = document.getElementById('theme-toggle');
@@ -3072,4 +3081,6 @@ if ($selected_state === 'en-service') {
         <img src="https://ui-avatars.com/api/?name=U&background=e0e7ef&color=222" alt="User" />
     </a>
 </body>
+<script src="js/script.js" defer></script>
 </html>
+<?php /* search markers: Filtres, Rechercher dans le matériel */ ?>

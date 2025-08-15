@@ -77,6 +77,21 @@ function exportTableToExcel(tableId, filename = "") {
   }
 }
 
+// Normalize text for accent-insensitive, case-insensitive comparisons
+function normalizeText(s) {
+  try {
+    return (s || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch (e) {
+    return (s || "").toString().toLowerCase();
+  }
+}
+
 // Function to immediately enable all tabs and hide forms (for instant feedback)
 function enableAllTabsAndHideForms() {
   // Enable all tab buttons
@@ -178,6 +193,7 @@ function performSearch(searchType) {
     table = document.getElementById(`${searchType}-table`);
   }
   const searchTerm = searchInput.value.toLowerCase().trim();
+  const searchTermNorm = normalizeText(searchInput.value);
 
   if (!table) return;
 
@@ -196,6 +212,40 @@ function performSearch(searchType) {
       document.querySelectorAll("#materiel .search-filter:checked")
     ).map((checkbox) => checkbox.getAttribute("data-column"));
 
+    // Build dynamic mapping from table headers to data-column keys
+    const columnMapping = (function buildMaterielMapping(tbl) {
+      const map = {};
+      if (!tbl) return map;
+      const ths = tbl.querySelectorAll("thead th");
+      const keyMatchers = [
+        { key: "NumSerie", re: /^(n|num(é|e)ro).*s(é|e)rie|^n[°o]?\s*s(é|e)rie|^num\.?\s*s(é|e)rie|^num(é|e)ro de s(é|e)rie$/i },
+        { key: "TypeLibelle", re: /^type$/i },
+        { key: "Marque", re: /^marque$/i },
+        { key: "Model", re: /^mod(è|e)le$/i },
+        { key: "NomPrenom", re: /^(utilisateur|nom.*pr(é|e)nom)/i },
+        { key: "Dateentree", re: /^date\s*entr(é|e)e$/i },
+        { key: "classification", re: /^classification$/i },
+        { key: "État", re: /^(état|etat)$/i },
+        { key: "observation", re: /^(observation|date\s*de\s*fin\s*de\s*service)$/i }
+      ];
+      ths.forEach((th, idx) => {
+        const label = (th.textContent || th.innerText || "").trim();
+        if (!label) return;
+        for (const m of keyMatchers) {
+          if (m.re.test(label) && map[m.key] === undefined) {
+            map[m.key] = idx;
+            break;
+          }
+        }
+      });
+      return map;
+    })(table);
+
+    const columnsToCheck =
+      checkedFilters && checkedFilters.length > 0
+        ? checkedFilters
+        : Object.keys(columnMapping);
+
     Array.from(rows).forEach((row) => {
       const stateCell = row.querySelector(".materiel-state-value");
       const materialState = stateCell
@@ -207,26 +257,20 @@ function performSearch(searchType) {
 
       // 2. Determine if the row matches the search term and filters
       let matchesSearch = false;
-      // If there's no search term, it's a match.
-      if (searchTerm === "") {
+      const cells = row.getElementsByTagName("td");
+  if (searchTermNorm === "") {
         matchesSearch = true;
-      } else if (checkedFilters.length > 0) {
-        const cells = row.getElementsByTagName("td");
-        const columnMapping = getColumnMapping("materiel");
-
-        for (const column of checkedFilters) {
+      } else {
+        for (const column of columnsToCheck) {
           const cellIndex = columnMapping[column];
           if (cellIndex !== undefined && cells[cellIndex]) {
-            const cellText = cells[cellIndex].textContent.toLowerCase();
-            if (cellText.includes(searchTerm)) {
+    const cellText = normalizeText(cells[cellIndex].textContent || "");
+    if (cellText.includes(searchTermNorm)) {
               matchesSearch = true;
               break; // Found a match, no need to check other columns
             }
           }
         }
-      } else {
-        // No search term and no filters checked, so it's a match.
-        matchesSearch = true;
       }
 
       // A row is visible only if it matches both the tab filter AND the search filter
@@ -256,32 +300,30 @@ function performSearch(searchType) {
     document.querySelectorAll(`#${containerId} .search-filter:checked`)
   ).map((checkbox) => checkbox.getAttribute("data-column"));
 
-  // If no filters are checked, show all rows
-  if (checkedFilters.length === 0) {
-    Array.from(rows).forEach((row) => {
-      row.style.display = "";
-    });
-    return;
-  }
+  // Determine which columns to search: if no filter selected, search all data columns
+  const columnMapping = getColumnMapping(searchType);
+  const columnsToCheck =
+    checkedFilters && checkedFilters.length > 0
+      ? checkedFilters
+      : Object.keys(columnMapping);
 
   Array.from(rows).forEach((row) => {
     let shouldShow = false;
 
-    if (searchTerm === "") {
+    const cells = row.getElementsByTagName("td");
+  if (searchTermNorm === "") {
       shouldShow = true;
     } else {
-      const cells = row.getElementsByTagName("td");
-      const columnMapping = getColumnMapping(searchType);
-
-      checkedFilters.forEach((column) => {
+      for (const column of columnsToCheck) {
         const cellIndex = columnMapping[column];
         if (cellIndex !== undefined && cells[cellIndex]) {
-          const cellText = cells[cellIndex].textContent.toLowerCase();
-          if (cellText.includes(searchTerm)) {
+      const cellText = normalizeText(cells[cellIndex].textContent || "");
+      if (cellText.includes(searchTermNorm)) {
             shouldShow = true;
+            break;
           }
         }
-      });
+      }
     }
 
     row.style.display = shouldShow ? "" : "none";
@@ -501,7 +543,7 @@ function initializeFormStateClearers() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+function __initApp() {
   const activeContent = document.querySelector(".tab-content.active");
   if (activeContent) {
     showTab(activeContent.id);
@@ -586,7 +628,13 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', __initApp);
+} else {
+  try { __initApp(); } catch (e) { console.error(e); }
+}
 
 function toggleDamageCause(stockValue) {
   const damageCauseGroup = document.getElementById("damage-cause-group");
@@ -706,4 +754,4 @@ window.openFicheReparationModal = openFicheReparationModal;
 window.closeFicheReparationModal = closeFicheReparationModal;
 window.printFicheReparation = printFicheReparation;
 
-// Remove the AJAX handler for materiel-state-dropdowns (no-op)
+// (Removed conflicting ad-hoc filter handler; unified filtering handled by performSearch/initializeSearch above)
